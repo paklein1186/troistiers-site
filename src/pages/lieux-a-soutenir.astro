@@ -10,6 +10,7 @@ try {
   lieux = lieuxASoutenir(r.lieux);
   exemple = r.exemple;
 } catch (e) {
+  console.error("Lieux à soutenir :", e);
   erreur = "Les lieux ne sont pas disponibles pour le moment.";
 }
 ---

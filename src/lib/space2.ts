@@ -35,7 +35,10 @@ export async function chargerLieux(): Promise<{ lieux: Lieu[]; exemple: boolean 
     return cache;
   }
   const r = await fetch(`${url.replace(/\/$/, "")}/lieux`, { headers: { "X-Webhook-Secret": secret } });
-  if (!r.ok) throw new Error(`Space2 a répondu ${r.status}`);
+  if (!r.ok) {
+    const raison = r.status === 401 ? " : clé refusée (SITE_READ_SECRET absente de Render, différente de SPACE2_API_SECRET, ou API pas encore mise à jour)" : "";
+    throw new Error(`Space2 a répondu ${r.status}${raison}`);
+  }
   const corps = (await r.json()) as { lieux: Lieu[] };
   cache = { quand: Date.now(), lieux: corps.lieux, exemple: false };
   return cache;
