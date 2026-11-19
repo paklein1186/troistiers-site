@@ -136,6 +136,14 @@ const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" 
     </section>
   )}
 
+  {niveauAcces(c, u, "bibliotheque") !== "aucun" && (
+    <section class="bloc">
+      <h2>Bibliothèque</h2>
+      <p>Posez vos questions à l'assistant de Space2 : il cherche dans ce que les lieux du réseau ont partagé et cite ses sources.</p>
+      <div class="rangee"><a class="bouton" href="/membre/bibliotheque">Interroger la bibliothèque</a></div>
+    </section>
+  )}
+
   {outils.length > 0 && (
     <section class="bloc">
       <h2>Vos outils</h2>

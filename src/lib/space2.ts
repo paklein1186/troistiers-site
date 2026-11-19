@@ -199,3 +199,23 @@ export function enListe(c: Champ): string[] {
   if (!c) return [];
   return String(c).split(/\n|;\s*/).map((x) => x.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
 }
+
+export interface MessageAssistant { role: "user" | "assistant"; content: string }
+
+/**
+ * Pose une question à l'assistant de Space2 (POST /ask, agent du site : public sauf décision contraire).
+ * Jamais mis en cache. Space2 peut prendre jusqu'à ~55 secondes.
+ */
+export async function poserQuestion(messages: MessageAssistant[]): Promise<string> {
+  if (!space2Configure()) throw new Error("Space2 n'est pas configuré");
+  const r = await fetch(`${env("SPACE2_API_URL")!.replace(/\/$/, "")}/ask`, {
+    method: "POST",
+    headers: { "X-Webhook-Secret": env("SPACE2_API_SECRET")!, "content-type": "application/json" },
+    body: JSON.stringify({ messages, context: { language: "fr" } }),
+    signal: AbortSignal.timeout(70_000),
+  });
+  if (r.status === 429) throw new Error("trop_de_questions");
+  if (!r.ok) throw new Error(`Space2 a répondu ${r.status} sur /ask`);
+  const { content } = (await r.json()) as { content: string };
+  return content;
+}
