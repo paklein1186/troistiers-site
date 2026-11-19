@@ -101,6 +101,12 @@ espaces:
     groupe: public
     source: space2
     acces: { tous: complet }
+  fiche_lieu:
+    libelle: Fiche d'un lieu
+    groupe: public
+    source: space2
+    # Visiteurs et observateurs : nom, commune, catégories, résumé bref. Membres : toute la synthèse publique Space2.
+    acces: { tous: resume, badges: { adherent: complet, equipe: complet, actif: complet } }
   observatoire:
     libelle: Observatoire
     groupe: public

@@ -9,8 +9,31 @@
       "latitude": 50.4669,
       "longitude": 4.8675,
       "resume": "Atelier partagé et café associatif (exemple fictif).",
-      "besoins_mis_en_avant": ["Bénévoles pour l'accueil", "Matériel de menuiserie"],
-      "campagne": { "texte": "Rénover l'atelier pour accueillir des formations (exemple fictif).", "objectif": "15 000 €", "contact": null }
+      "besoins_mis_en_avant": [
+        "Bénévoles pour l'accueil",
+        "Matériel de menuiserie"
+      ],
+      "campagne": {
+        "texte": "Rénover l'atelier pour accueillir des formations (exemple fictif).",
+        "objectif": "15 000 €",
+        "contact": null
+      },
+      "space2_id": "exemple-1",
+      "categories": [
+        "Culturel"
+      ],
+      "activites": [
+        "Atelier bois partagé",
+        "Café associatif"
+      ],
+      "publics": [
+        "Habitants du quartier",
+        "Artisans"
+      ],
+      "partenaires": [
+        "Ville de Namur (exemple)"
+      ],
+      "enjeux": "Trouver un modèle économique durable (exemple fictif)."
     },
     {
       "tiers_lieu": "Le Hangar d'exemple",
@@ -20,7 +43,22 @@
       "latitude": 50.6326,
       "longitude": 5.5797,
       "resume": "Tiers-lieu culturel en bord de Meuse (exemple fictif).",
-      "besoins_mis_en_avant": ["Mécénat de compétences juridiques"],
+      "besoins_mis_en_avant": [
+        "Mécénat de compétences juridiques"
+      ],
+      "campagne": null,
+      "space2_id": "exemple-2"
+    },
+    {
+      "space2_id": "exemple-fr",
+      "tiers_lieu": "Lieu d'exemple en France",
+      "commune": "Lille",
+      "region": "Hauts-de-France",
+      "pays": "France",
+      "latitude": 50.63,
+      "longitude": 3.06,
+      "resume": "Exemple fictif hors Belgique, absent de la carte.",
+      "besoins_mis_en_avant": [],
       "campagne": null
     }
   ]

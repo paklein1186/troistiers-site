@@ -5,9 +5,24 @@
  */
 import exemple from "../../data/lieux.exemple.json";
 
+/** Un champ de synthèse Space2 : un texte, une liste, ou rien. */
+export type Champ = string | string[] | null | undefined;
+
 export interface Lieu {
   space2_id?: string;
   tiers_lieu: string;
+  adresse?: string | null;
+  code_postal?: string | null;
+  mots_cles?: Champ;
+  activites?: Champ;
+  publics?: Champ;
+  territoire?: Champ;
+  partenaires?: Champ;
+  competences?: Champ;
+  projets?: Champ;
+  enjeux?: Champ;
+  besoins?: Champ;
+  updated_at?: string | null;
   commune?: string | null;
   region?: string | null;
   pays?: string | null;
@@ -52,6 +67,7 @@ export const lieuxASoutenir = (lieux: Lieu[]) => lieux.filter((l) => l.campagne?
 export const CATEGORIES = ["Alimentaire", "Culturel", "Éducation", "Santé"] as const;
 
 export interface PointCarte {
+  id: string;
   nom: string;
   lat: number;
   lng: number;
@@ -80,15 +96,57 @@ export function pointsCarte(lieux: Lieu[]): PointCarte[] {
       const cats = Array.isArray(l.categories) ? l.categories : l.categories ? String(l.categories).split(/[,;]\s*/) : [];
       const lien = l.lien_externe && /^https?:\/\//i.test(l.lien_externe) ? l.lien_externe : null;
       return {
+        id: idLieu(l),
         nom: l.tiers_lieu,
         lat: l.latitude!,
         lng: l.longitude!,
         lieu: [l.commune, l.region].filter(Boolean).join(", "),
         categories: cats.filter((c) => (CATEGORIES as readonly string[]).includes(c)),
-        resume: coupe(l.resume, 240),
+        resume: resumeBref(l.resume), // la carte est publique : jamais plus que le résumé bref
         besoins: (l.besoins_mis_en_avant ?? []).slice(0, 3).map((b) => coupe(b, 80)),
         soutenir: Boolean(l.campagne?.texte),
         lien,
       };
     });
+}
+
+const sansAccents = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/** Identifiant d'un lieu dans les adresses du site : celui de Space2, sinon tiré du nom. */
+export function idLieu(l: Lieu): string {
+  if (l.space2_id && /^[\w-]{1,80}$/.test(l.space2_id)) return l.space2_id;
+  return sansAccents(l.tiers_lieu).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "lieu";
+}
+
+// Rectangle qui contient la Belgique (pour un lieu dont le pays n'est pas renseigné).
+const BELGIQUE = { latMin: 49.49, latMax: 51.51, lngMin: 2.54, lngMax: 6.41 };
+
+/**
+ * Le lieu est-il dans un des pays retenus (data/contenu.yaml, carte.pays) ?
+ * Pays non renseigné : on regarde si ses coordonnées tombent en Belgique.
+ */
+export function dansLesPays(l: Lieu, pays: string[]): boolean {
+  if (l.pays && l.pays.trim()) return pays.map(sansAccents).includes(sansAccents(l.pays));
+  const { latitude: la, longitude: lo } = l;
+  return Number.isFinite(la) && Number.isFinite(lo)
+    && la! >= BELGIQUE.latMin && la! <= BELGIQUE.latMax && lo! >= BELGIQUE.lngMin && lo! <= BELGIQUE.lngMax;
+}
+
+export async function trouverLieu(id: string): Promise<Lieu | null> {
+  const { lieux } = await chargerLieux();
+  return lieux.find((l) => idLieu(l) === id) ?? null;
+}
+
+/** Texte bref pour les visiteurs : la première phrase du résumé, 200 caractères au plus. */
+export function resumeBref(t: string | null | undefined): string {
+  const s = (t ?? "").trim();
+  const phrase = s.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? s;
+  return coupe(phrase, 200);
+}
+
+/** Un champ Space2 en liste d'éléments (texte découpé sur les retours à la ligne et points-virgules). */
+export function enListe(c: Champ): string[] {
+  if (Array.isArray(c)) return c.map(String).map((x) => x.trim()).filter(Boolean);
+  if (!c) return [];
+  return String(c).split(/\n|;\s*/).map((x) => x.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
 }

@@ -19,6 +19,7 @@ export interface Contenu {
   projets: (Element & { nature: "encours" | "idee" | "realisation"; famille: string })[];
   contact: Record<string, string>;
   liens: Record<string, string>;
+  carte?: { pays?: string[] };
 }
 
 let cache: Contenu | null = null;

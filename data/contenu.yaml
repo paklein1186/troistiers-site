@@ -116,6 +116,10 @@ contact:
   equipe: a_completer       # noms, rôles et photos de l'équipe et de l'organe d'administration
   partenaires_financiers: a_completer
 
+# Carte des lieux : pays affichés à ce stade (écritures acceptées, sans tenir compte des accents ni des majuscules).
+carte:
+  pays: [Belgique, Belgium, België, Belgien, BE]
+
 liens:
   space2: "https://space2.streamlit.app/"
   changethegame_guilde: "https://changethegame.xyz/guilds/4964c699-4684-43a9-b508-cee21c77e24e"
