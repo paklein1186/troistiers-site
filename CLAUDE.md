@@ -142,7 +142,8 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   (`assistants.adherent.inclus_par_mois`), comptées par le site dans `.donnees/quotas.json` (hors dépôt ; repart
   de zéro si le site change de machine sans ce fichier). Page `/membre/bibliotheque`, une question de suivi possible.
   space2#4 : `/ask` accepte la clé du site avec un **agent distinct, public par défaut** ; `SITE_ASK_FULL_ACCESS=true`
-  (Render) l'ouvrirait au mode complet hors confidentiel — décision à prendre par PA. Plafond site : 10/min.
+  (Render) l'ouvrirait au mode complet hors confidentiel. **Décision du 19/11 : rester en public** tant que les lieux
+  n'ont pas été prévenus que leurs réponses non confidentielles seraient lisibles par les adhérents. Plafond site : 10/min.
   Plus tard : comptage dans CTG avec les packs de tokens.
 
 ## Avant d'ouvrir les paiements réels
