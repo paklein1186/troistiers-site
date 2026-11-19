@@ -118,6 +118,12 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   guilde CTG, Space2, configurateur AMO, référentiel, charte des accompagnants, cadre de coordination, Pilote 3/3,
   Pilote du pivot. Accès proposés (à confirmer par PA) : Pilotes → équipe ; outils AMO → accompagnants + équipe.
 
+- **Copies synchronisées d'artefacts** (décision du 19/11 : les outils restent sur claude.ai, le site en garde une
+  copie derrière les badges) : `data/artefacts/` + `sources.yaml`, pages `/outils/<id>` (doc rendu en HTML,
+  page HTML dans un cadre isolé). Configurateur AMO, référentiel AMO, charte des accompagnants. Procédure :
+  `docs/synchro-artefacts.md`. Pilotes : restent sur claude.ai (données vivantes). Lien du « Cadre de coordination
+  des missions » erroné (page étrangère « Slides ») : à fournir par PA.
+
 ## Branchements à venir
 
 - Space2 → Portfolio et carte : le code lit déjà `GET /lieux` ; il manque `SPACE2_API_URL` et `SPACE2_API_SECRET`

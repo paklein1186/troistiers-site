@@ -1,0 +1,41 @@
+# Copies synchronisées d'artefacts claude.ai, servies par le site derrière les badges.
+# La source reste l'artefact : on le modifie sur claude.ai, puis la synchronisation recopie ici.
+# Chaque entrée renvoie à un espace « outil » de communaute.yaml, qui décide qui y accède.
+#
+#   type html : page autonome, recopiée telle quelle et affichée dans un cadre isolé
+#   type doc  : document Claude Docs, exporté en Markdown (un onglet)
+#
+# Synchronisation : voir docs/synchro-artefacts.md.
+
+configurateur-amo:
+  titre: Configurateur AMO
+  espace: outil_configurateur
+  type: html
+  source: "https://claude.ai/artifact/Fnjc3mFADsvEgajJcrrahf"
+  artefact: 77c2aaad-1a7b-4be2-9612-a198adc567b2
+  fichier: configurateur-amo.html
+  version: 1791367604-1734
+  synchronise_le: "2026-11-19"
+  note: "L'analyse de documents par Claude ne fonctionne que sur claude.ai."
+
+referentiel-amo:
+  titre: Portefeuille d'accompagnement — référentiel AMO
+  espace: outil_referentiel
+  type: doc
+  source: "https://claude.ai/artifact/91S4WAcaTiJJrm8Lh1xGK8"
+  artefact: 40d88da4-d71d-470f-8b45-9a44e9cd8b0f
+  onglet: 8177b706-3b57
+  fichier: referentiel-amo.md
+  version: "rev 22"
+  synchronise_le: "2026-11-19"
+
+charte-accompagnants:
+  titre: Charte et guide du réseau d'accompagnants
+  espace: outil_charte_accompagnants
+  type: doc
+  source: "https://claude.ai/artifact/9J5uf8xhxJKLd9wcC8Nods"
+  artefact: 432bc728-a178-4398-9736-c78244fc412a
+  onglet: 0295fba5-5e5c
+  fichier: charte-accompagnants.md
+  version: "rev 10"
+  synchronise_le: "2026-11-19"

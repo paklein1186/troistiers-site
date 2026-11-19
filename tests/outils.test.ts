@@ -30,9 +30,9 @@ describe("outils de l'espace membres", () => {
   it("l'équipe voit tous les outils", () => {
     expect(outils(qui("equipe", ["equipe", "effectif"]))).toHaveLength(Object.values(c.espaces).filter((e) => e.groupe === "outil").length);
   });
-  it("chaque outil a un lien et une description", () => {
+  it("chaque outil a une description, et un lien sûr s'il en a un", () => {
     for (const e of Object.values(c.espaces).filter((x) => x.groupe === "outil")) {
-      expect(e.lien).toMatch(/^https:\/\//);
+      if (e.lien) expect(e.lien).toMatch(/^(https:\/\/|\/outils\/)/);
       expect(e.description).toBeTruthy();
     }
   });
@@ -56,5 +56,38 @@ describe("contenu éditorial", () => {
   });
   it("les projets ont une nature connue", () => {
     for (const p of k.projets) expect(["encours", "idee", "realisation"]).toContain(p.nature);
+  });
+});
+
+import { existsSync } from "node:fs";
+import { chargerSources, copieAccessible, markdownEnHtml } from "../src/lib/artefacts";
+
+describe("copies synchronisées des artefacts", () => {
+  const sources = chargerSources();
+  it("chaque copie existe et dépend d'un espace outil qui pointe vers elle", () => {
+    for (const [id, s] of Object.entries(sources)) {
+      expect(existsSync(resolve(process.cwd(), "data/artefacts", s.fichier)), s.fichier).toBe(true);
+      expect(c.espaces[s.espace]?.groupe, id).toBe("outil");
+      expect(c.espaces[s.espace].lien).toBe(`/outils/${id}`);
+    }
+  });
+  it("le configurateur s'ouvre aux accompagnants et à l'équipe, pas aux autres", () => {
+    expect(copieAccessible(c, qui("accompagnant_freelance", ["adherent"]), "configurateur-amo")).not.toBeNull();
+    expect(copieAccessible(c, qui("equipe", ["equipe"]), "configurateur-amo")).not.toBeNull();
+    expect(copieAccessible(c, qui("lieu", ["adherent"]), "configurateur-amo")).toBeNull();
+    expect(copieAccessible(c, qui("observateur"), "charte-accompagnants")).toBeNull();
+    expect(copieAccessible(c, null, "referentiel-amo")).toBeNull();
+  });
+  it("un identifiant inconnu ou tordu ne donne rien", () => {
+    const eq = qui("equipe", ["equipe"]);
+    for (const id of ["inconnu", "../sources", "configurateur-amo/../x", ""]) expect(copieAccessible(c, eq, id)).toBeNull();
+  });
+  it("le Markdown n'exécute ni HTML ni lien javascript", () => {
+    const h = markdownEnHtml('<script>alert(1)</script>\n\n[a](javascript:alert(1)) [b](https://ok.example) [c](/membre)\n\n| x |\n| - |\n| y |');
+    expect(h).not.toContain("<script>");
+    expect(h).not.toContain("javascript:");
+    expect(h).toContain('href="https://ok.example"');
+    expect(h).toContain('href="/membre"');
+    expect(h).toContain("<table>");
   });
 });

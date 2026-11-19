@@ -1,0 +1,748 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Configurateur AMO Trois-Tiers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: criteria rail on the left, live histogram + parcours on the right; stacks on phones */
+:root{
+  --bg:#f3f4ef; --surface:#fbfbf8; --ink:#1f2620; --muted:#5f6a61; --line:#d9ddd3;
+  --amorce:#3f7a4f; --second:#c08a2b; --post:#4b6587; --accent:#2f5d3e; --na:#a3aaa2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141814; --surface:#1c211c; --ink:#e7ebe4; --muted:#9aa59b; --line:#2f362f;
+  --amorce:#6fb382; --second:#ddb05a; --post:#86a3c9; --accent:#8cc79c; --na:#5b635b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141814; --surface:#1c211c; --ink:#e7ebe4; --muted:#9aa59b; --line:#2f362f;
+  --amorce:#6fb382; --second:#ddb05a; --post:#86a3c9; --accent:#8cc79c; --na:#5b635b; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:24px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,3vw,2.3rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:.35rem 0 0;color:var(--muted);max-width:70ch}
+.grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+aside{display:grid;gap:18px;align-content:start;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 24px);overflow-y:auto;overscroll-behavior:contain;padding-right:4px;scrollbar-width:thin}
+@media (max-width:900px){aside{position:static;max-height:none;overflow:visible;padding-right:0}}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:6px;min-width:0}
+legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:inline-block;padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:.88rem;background:var(--bg);cursor:pointer;user-select:none}
+.chip input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.scen{display:grid;gap:6px}
+.scen button{all:unset;cursor:pointer;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:.88rem;background:var(--bg)}
+.scen button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.scen button:focus-visible{outline:2px solid var(--accent)}
+.scen small{display:block;color:var(--muted);font-size:.78rem}
+main{display:grid;gap:20px;min-width:0}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:620px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border-top:3px solid var(--line);padding-top:8px}
+.stat .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.stat .v{font-family:var(--mono);font-size:1rem;font-variant-numeric:tabular-nums;margin-top:2px}
+.stat .s{font-size:.8rem;color:var(--muted)}
+.stat.amorce{border-color:var(--amorce)} .stat.second{border-color:var(--second)} .stat.post{border-color:var(--post)} .stat.total{border-color:var(--ink)}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:5px 12px;font-size:.85rem;cursor:pointer}
+.seg input:checked+span{background:var(--ink);color:var(--surface)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+h2{font-family:var(--display);font-weight:600;font-size:1.15rem;margin:0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chart{overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:560px;height:auto}
+.chart text{font-family:var(--body)}
+.envmsg{font-size:.92rem;margin:8px 0 0}
+.envmsg b{font-family:var(--mono);font-weight:500}
+.steps{display:grid;gap:14px}
+.step h3{font-family:var(--display);font-weight:600;font-size:1rem;margin:0 0 2px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.step h3 .n{font-family:var(--mono);color:var(--muted);font-size:.85rem}
+.step h3 .tot{margin-left:auto;font-family:var(--mono);font-size:.82rem;color:var(--muted);font-weight:400}
+.step .hint{color:var(--muted);font-size:.85rem;margin:0 0 6px}
+.mod{display:grid;grid-template-columns:22px 34px minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 0;border-top:1px solid var(--line)}
+.mod input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
+.mod .code{font-family:var(--mono);font-size:.82rem;color:var(--muted);padding-top:1px}
+.mod .nm{font-weight:600}
+.mod .ct{display:block;color:var(--muted);font-size:.84rem}
+.mod .rt{text-align:right;font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mod .rt span{display:block;color:var(--muted)}
+.mod.off .nm,.mod.off .code{color:var(--muted)}
+.mod.na{opacity:.55}
+.tag{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:999px;border:1px solid currentColor;margin-left:6px;vertical-align:1px;font-weight:600}
+.tag.amorce{color:var(--amorce)} .tag.second{color:var(--second)} .tag.post{color:var(--post)}
+.tag.st{color:var(--muted);font-weight:400}
+.packs{display:flex;flex-wrap:wrap;gap:6px}
+.packs button,.btn{all:unset;cursor:pointer;font-size:.84rem;padding:5px 10px;border:1px dashed var(--line);border-radius:8px}
+.btn{border-style:solid;background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.packs button:hover{border-color:var(--accent)}
+.packs button:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.toggle{display:flex;gap:8px;align-items:center;font-size:.88rem}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.alert{border-left:3px solid var(--second);padding-left:10px}
+.travel{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:.88rem;border-top:1px solid var(--line);padding-top:12px}
+.travel input[type=number]{width:5.5em;font-family:var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;margin-left:4px}
+.travel .note{flex-basis:100%;margin:0}
+.drop{border:1.5px dashed var(--line);border-radius:10px;padding:16px;display:grid;gap:8px;justify-items:start;background:var(--bg);cursor:pointer}
+.drop.over{border-color:var(--accent)}
+.drop strong{font-family:var(--display);font-weight:600}
+.drop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.files{display:grid;gap:4px;font-size:.86rem;margin:0;padding:0;list-style:none}
+.files li{display:flex;gap:8px;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0}
+.files li span:last-child{color:var(--muted);font-family:var(--mono);font-size:.78rem;white-space:nowrap}
+.synth{display:grid;gap:12px}
+.synth h3{font-family:var(--display);font-weight:600;font-size:.98rem;margin:0}
+.synth ul{margin:0;padding-left:1.1em;display:grid;gap:3px;font-size:.92rem}
+.crit{width:100%;border-collapse:collapse;font-size:.86rem}
+.crit th,.crit td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.crit th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.crit td.q{color:var(--muted);font-style:italic}
+.conf{font-size:.7rem;padding:1px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.conf.haute{color:var(--amorce)} .conf.moyenne{color:var(--second)} .conf.basse{color:var(--muted)}
+.tablewrap{overflow-x:auto}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn[disabled]{opacity:.5;cursor:default}
+.conds{margin:0;padding-left:1.1em;display:grid;gap:4px;font-size:.92rem}
+textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:.8rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+.note{font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.bar{transition:height .25s ease,y .25s ease}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Configurateur AMO Trois-Tiers</h1>
+    <p>Choisissez un scénario ou décrivez le projet : le parcours recommandé, son budget par étape et ce que l'enveloppe de départ couvre se calculent en direct. Base 400 € HTVA la demi-journée de 4 h (340 € pour les porteurs aux moyens limités), régie au même tarif ; déplacements à 0,4761 €/km, inclus ou en sus. Les volumes s'ajustent à la surface, au nombre de bâtiments, au contexte et au profil du porteur.</p>
+  </header>
+  <div class="grid">
+    <aside>
+      <div class="panel">
+        <fieldset><legend>Scénarios types</legend><div class="scen" id="scen"></div></fieldset>
+      </div>
+      <div class="panel" style="display:grid;gap:16px">
+        <fieldset><legend>Périmètre de la mission</legend><div class="chips" id="f-perimetre"></div></fieldset>
+        <fieldset><legend>Durée de l'accompagnement</legend><div class="chips" id="f-blocs"></div></fieldset>
+        <fieldset><legend>Porteur</legend><div class="chips" id="f-porteur"></div></fieldset>
+        <fieldset><legend>Profil financier</legend><div class="chips" id="f-profil"></div></fieldset>
+        <fieldset><legend>Foncier et bâti</legend><div class="chips" id="f-bati"></div></fieldset>
+        <fieldset><legend>Surface</legend><div class="chips" id="f-surface"></div></fieldset>
+        <fieldset><legend>Nombre de bâtiments</legend><div class="chips" id="f-batiments"></div></fieldset>
+        <fieldset><legend>Contexte</legend><div class="chips" id="f-contexte"></div></fieldset>
+        <fieldset><legend>Architecte</legend><div class="chips" id="f-architecte"></div></fieldset>
+        <fieldset><legend>Maturité</legend><div class="chips" id="f-maturite"></div></fieldset>
+        <label class="toggle" for="f-urgence"><input type="checkbox" id="f-urgence"> Vacance imminente (occupation transitoire urgente)</label>
+        <fieldset><legend>Enveloppe de départ</legend><div class="chips" id="f-enveloppe"></div></fieldset>
+        <fieldset><legend>Vocation (plusieurs choix)</legend><div class="chips" id="f-vocations"></div></fieldset>
+      </div>
+    </aside>
+    <main>
+      <section class="panel" style="display:grid;gap:12px" id="import">
+        <div class="toolbar"><h2>Partir d'un document</h2><span class="note">PDF, Word, Excel, CSV ou texte</span></div>
+        <label class="drop" id="drop" for="file">
+          <strong>Déposez un cahier des charges, un compte rendu ou un tableur</strong>
+          <span class="note">ou cliquez pour choisir un ou plusieurs fichiers. Le texte est extrait dans votre navigateur ; il n'est envoyé à Claude que si vous lancez l'analyse.</span>
+          <input type="file" id="file" multiple accept=".pdf,.docx,.xlsx,.xls,.ods,.csv,.txt,.md">
+        </label>
+        <ul class="files" id="files" hidden></ul>
+        <div class="row" id="actions" hidden>
+          <button class="btn" type="button" id="analyse">Analyser avec Claude</button>
+          <button class="btn ghost" type="button" id="stop" hidden>Arrêter</button>
+          <button class="btn ghost" type="button" id="clear">Retirer les fichiers</button>
+          <span class="note" id="status"></span>
+        </div>
+        <div class="synth" id="synth" hidden></div>
+      </section>
+      <section class="panel" style="display:grid;gap:14px">
+        <div class="summary" id="summary"></div>
+        <div class="toolbar">
+          <h2>Budget par étape</h2>
+          <div class="seg" role="radiogroup" aria-label="Hypothèse de volume">
+            <label><input type="radio" name="hyp" id="hyp-min" value="min"><span>Basse</span></label>
+            <label><input type="radio" name="hyp" id="hyp-mid" value="mid" checked><span>Médiane</span></label>
+            <label><input type="radio" name="hyp" id="hyp-max" value="max"><span>Haute</span></label>
+          </div>
+        </div>
+        <div class="legend"><span><i style="background:var(--amorce)"></i>Amorce</span><span><i style="background:var(--second)"></i>Second temps</span><span><i style="background:var(--post)"></i>Post-financement</span></div>
+        <div class="chart" id="hist"></div>
+        <div class="chart" id="cumul"></div>
+        <p class="envmsg" id="envmsg"></p>
+        <p class="envmsg alert" id="seuil" hidden></p>
+        <div class="travel">
+          <label for="km">Distance aller-retour par déplacement <input type="number" id="km" min="0" step="1" value="60"> km</label>
+          <label for="trips">Nombre de déplacements <input type="number" id="trips" min="0" step="1"></label>
+          <label class="toggle" for="incl"><input type="checkbox" id="incl"> Inclure les déplacements dans les montants</label>
+          <p class="note" id="travelmsg"></p>
+        </div>
+      </section>
+      <section class="panel" style="display:grid;gap:12px">
+        <div class="toolbar">
+          <h2>Parcours</h2>
+          <label class="toggle" for="show-na"><input type="checkbox" id="show-na"> Afficher les modules non pertinents</label>
+        </div>
+        <div><div class="note" style="margin-bottom:6px">Ajouter un pack entier :</div><div class="packs" id="packs"></div></div>
+        <div class="steps" id="steps"></div>
+      </section>
+      <section class="panel" style="display:grid;gap:8px">
+        <h2>Ce que nous attendons du porteur</h2>
+        <ul class="conds" id="conds"></ul>
+      </section>
+      <section class="panel" style="display:grid;gap:10px">
+        <div class="toolbar"><h2>Résumé à coller dans une offre</h2><button class="btn" id="copy" type="button">Copier le résumé</button></div>
+        <textarea id="out" readonly aria-label="Résumé du parcours"></textarea>
+        <p class="note" id="copymsg"></p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+// Single source of truth: Trois-Tiers AMO portfolio (modules, rules, packs, scenarios)
+const RATE = 400;
+
+const STEPS = [
+  { id: 'P0', name: 'Prélude', verb: 'Sonder & cadrer', hint: 'Coup de sonde, intentions, inspiration, premières pistes de financement.' },
+  { id: 'P1', name: 'Comprendre', verb: 'Diagnostiquer', hint: 'Axiomes du lieu, territoire, bâti, contraintes, vivant.' },
+  { id: 'P2', name: 'Réunir', verb: 'Mobiliser', hint: 'Parties prenantes, communauté, groupes, appels à porteurs.' },
+  { id: 'P3', name: 'Programmer', verb: 'Programmer', hint: 'Programmation sourcée, hybridation, zonage, faisabilités.' },
+  { id: 'P4', name: 'Modéliser', verb: 'Modéliser', hint: 'Modèle économique, plan financier, blocs marchands.' },
+  { id: 'P5', name: 'Structurer', verb: 'Structurer', hint: 'Véhicule juridique, gouvernance, statuts, staff.' },
+  { id: 'P6', name: 'Financer', verb: 'Lever des fonds', hint: 'Stratégie, subsides, coopérateurs, investisseurs.' },
+  { id: 'P7', name: 'Aménager', verb: 'Aménager', hint: 'Programme architectural, AMO, éco-rénovation, chantiers.' },
+  { id: 'P8', name: 'Activer', verb: 'Activer', hint: 'Occupation transitoire, récit, numérique, événements, vivant.' },
+  { id: 'P9', name: 'Déployer', verb: 'Déployer & transmettre', hint: 'Coordination, incubation, supervision, impact.' },
+  { id: 'PT', name: 'Transversal', verb: 'Accompagner dans la durée', hint: 'Mentorat et coaching du porteur, pilotage et qualité, évaluation.' },
+];
+
+const TIERS = {
+  amorce: { name: 'Amorce', desc: 'activable tout de suite, sur petite enveloppe' },
+  second: { name: 'Second temps', desc: 'activé module par module une fois le cap posé' },
+  post: { name: 'Post-financement', desc: 'financé par la levée de fonds ou des bailleurs' },
+};
+
+// helpers for rules
+const any = (arr, vals) => vals.some(v => arr.includes(v));
+
+// f = { porteur, bati, maturite, urgence (bool), enveloppe (k€), vocations: [] }
+const MODULES = [
+  // P0 Prélude
+  { id: 'A1', step: 'P0', name: 'Amorce & cadrage', content: 'Rencontre de lancement, puis atelier de cadrage : choix d’un scénario, axiomes de travail, périmètre d’expérimentation, circuit de validation', deliverable: 'Axiomes de travail validés', min: 3, max: 6, tier: 'amorce', rule: () => 'rec' },
+  { id: 'A2', step: 'P0', name: 'Coup de sonde des acteurs', content: 'Visite et entretiens à deux, questionnaire, cartographie des acteurs (attentes, pouvoir de décision, besoin d’information), rapport à scénarios', deliverable: 'Rapport de sonde à scénarios', min: 4, max: 10, tier: 'amorce', rule: () => 'rec' },
+  { id: 'A3', step: 'P0', name: 'Benchmark & inspiration', content: 'Lieux comparables en Belgique et en Europe, panorama de modèles, visite apprenante', deliverable: "Fiches d'inspiration", min: 3, max: 8, tier: 'amorce', rule: f => f.maturite === 'actif' ? 'opt' : 'rec' },
+  { id: 'A4', step: 'P0', name: 'Veille financements', content: 'Repérage des appels, bailleurs, fonds et mécènes accessibles', deliverable: 'Fiches subsides, calendrier des appels', min: 2, max: 4, tier: 'amorce', rule: () => 'rec' },
+  { id: 'A5', step: 'P0', name: 'Recherche & évaluation de lieux', content: 'Critères, repérage, visites, grille de comparaison des biens', deliverable: 'Shortlist argumentée', min: 4, max: 10, tier: 'amorce', rule: f => f.bati === 'aucun' ? 'rec' : 'na' },
+  // P1 Comprendre
+  { id: 'B1', step: 'P1', name: 'Axiomes & raison d’être', content: 'Vision, valeurs, imaginaires, curseur de régénération, non-négociables', deliverable: 'Manifeste du lieu', min: 3, max: 6, tier: 'amorce', rule: () => 'rec' },
+  { id: 'B2', step: 'P1', name: 'Analyse territoriale', content: 'Besoins, acteurs, flux, complémentarités et manques du territoire', deliverable: 'Cartographie commentée', min: 4, max: 12, tier: 'amorce', rule: () => 'rec' },
+  { id: 'B3', step: 'P1', name: 'Diagnostic du bâti', content: 'Relevé, état, sécurité incendie, énergie, capacités, estimation des travaux par zone', deliverable: 'Note technique chiffrée', min: 6, max: 16, tier: 'second', rule: f => any([f.bati], ['vacant', 'partiel']) ? 'rec' : f.bati === 'renove' ? 'opt' : 'na' },
+  { id: 'B4', step: 'P1', name: 'Urbanisme & patrimoine', content: 'Plan de secteur, permis, classement, SAR, schéma d’orientation local', deliverable: 'Note de contraintes', min: 3, max: 8, tier: 'second', rule: f => any([f.bati], ['vacant', 'partiel', 'terrain']) ? 'rec' : f.bati === 'aucun' ? 'na' : 'opt' },
+  { id: 'B5', step: 'P1', name: 'Diagnostic écologique & biorégional', content: 'Biodiversité, sols, eau, ressources et acteurs de la biorégion', deliverable: 'Relevé et recommandations', min: 4, max: 10, tier: 'second', rule: f => (f.bati === 'terrain' || any(f.vocations, ['nourricier', 'agricole'])) ? 'rec' : 'opt' },
+  // P2 Réunir
+  { id: 'C1', step: 'P2', name: 'Mobilisation des parties prenantes', content: 'Plénière fédératrice, atelier multi-acteurs, noyau porteur', deliverable: 'Synthèse, noyau identifié', min: 3, max: 8, tier: 'amorce', rule: () => 'rec' },
+  { id: 'C2', step: 'P2', name: 'Blocs d’accompagnement de la communauté', content: 'Par bloc (un trimestre) : 3 réunions en 4 temps (se former, produire, valider, ancrer), sessions de 4 h sur place, coordination', deliverable: 'Méthode, proposition validée, plan d’action', perBloc: true, noUplift: true, min: 6, max: 9, tier: 'second', rule: f => (any([f.porteur], ['collectif', 'public', 'structure']) || f.maturite === 'collectif') ? 'rec' : 'opt' },
+  { id: 'C3', step: 'P2', name: 'Groupes & engagement', content: 'Groupes thématiques, canevas, niveaux d’engagement, accueil des nouveaux', deliverable: 'Carte des groupes, membrane', min: 3, max: 6, tier: 'second', rule: f => (any([f.porteur], ['collectif', 'public', 'structure']) || f.maturite === 'collectif') ? 'rec' : 'opt' },
+  { id: 'C4', step: 'P2', name: 'Appel à porteurs de projets', content: 'Appel, sélection et contractualisation d’occupants ou de porteurs', deliverable: 'Appel, grille, conventions', min: 4, max: 8, tier: 'second', rule: f => (any([f.porteur], ['prive', 'fondation', 'promoteur', 'structure']) || f.bati === 'vacant') && f.bati !== 'aucun' ? 'rec' : 'opt' },
+  // P3 Programmer
+  { id: 'D1', step: 'P3', name: 'Programmation & hybridation', content: 'Activités, imbrications thématiques, allocation des espaces, phasage', deliverable: 'Programme sourcé', min: 6, max: 12, tier: 'second', rule: () => 'rec' },
+  { id: 'D2', step: 'P3', name: 'Zonage & plan d’occupation', content: 'Schémas d’occupation, circulation, phasage spatial', deliverable: 'Plans schématiques', min: 4, max: 8, tier: 'second', rule: f => f.bati === 'aucun' ? 'na' : 'rec' },
+  { id: 'D3', step: 'P3', name: 'Faisabilité d’une activité clé', content: 'Cuisine collective, hébergement, campus, habitat, atelier : volumes, normes, équipements, RH', deliverable: 'Étude de faisabilité', min: 8, max: 16, tier: 'second', rule: f => any(f.vocations, ['nourricier', 'habitat', 'tourisme', 'eco', 'sante', 'education']) ? 'rec' : 'opt' },
+  // P3 Programmer — volets thématiques par vocation
+  { id: 'D4', step: 'P3', name: 'Volet culturel', content: 'Projet culturel, résidences, programmation, publics, lien aux opérateurs culturels et aux reconnaissances', deliverable: 'Projet culturel', min: 6, max: 12, tier: 'second', rule: f => f.vocations.includes('culturel') ? 'rec' : 'na' },
+  { id: 'D5', step: 'P3', name: 'Volet nourricier', content: 'Système alimentaire : débouchés (cantines, restauration), transformation, logistique, circuits courts, normes sanitaires', deliverable: 'Schéma alimentaire', min: 6, max: 12, tier: 'second', rule: f => f.vocations.includes('nourricier') ? 'rec' : 'na' },
+  { id: 'D6', step: 'P3', name: 'Volet agricole', content: 'Accès à la terre, baux, installation de producteur·ices, couveuse, outils partagés, agroécologie', deliverable: 'Plan d’installation agricole', min: 6, max: 12, tier: 'second', rule: f => f.vocations.includes('agricole') ? 'rec' : 'na' },
+  { id: 'D7', step: 'P3', name: 'Volet santé & soin', content: 'Offre de soin et de prévention, partenaires de santé, cadre réglementaire, financements dédiés', deliverable: 'Programme santé', min: 6, max: 12, tier: 'second', rule: f => f.vocations.includes('sante') ? 'rec' : 'na' },
+  { id: 'D8', step: 'P3', name: 'Volet éducatif & formation', content: 'École, campus, formations, publics apprenants, agréments et partenariats académiques', deliverable: 'Programme éducatif', min: 6, max: 12, tier: 'second', rule: f => f.vocations.includes('education') ? 'rec' : 'na' },
+  { id: 'D9', step: 'P3', name: 'Volet numérique', content: 'Fablab, espace public numérique, inclusion numérique, équipements, outils et données du lieu', deliverable: 'Programme numérique', min: 6, max: 12, tier: 'second', rule: f => f.vocations.includes('numerique') ? 'rec' : 'na' },
+  // P4 Modéliser
+  { id: 'E1', step: 'P4', name: 'Modèle économique', content: 'Business Model Canvas, hybridation marchand / non marchand, scénarios', deliverable: 'BMC, note de scénarios', min: 4, max: 8, tier: 'second', rule: () => 'rec' },
+  { id: 'E2', step: 'P4', name: 'Plan financier & viabilité', content: 'Compte d’exploitation, plan d’investissement, point mort, scénarios sur 5 ans', deliverable: 'Plan financier', min: 8, max: 14, tier: 'second', rule: () => 'rec' },
+  { id: 'E3', step: 'P4', name: 'Blocs marchands', content: 'Résidentiel, hébergement, campus, habitat groupé : marché, revenus, montage', deliverable: 'Rapport et plans financiers', min: 8, max: 16, tier: 'second', rule: f => (any(f.vocations, ['habitat', 'tourisme']) || any([f.porteur], ['fondation', 'promoteur'])) ? 'rec' : f.porteur === 'prive' ? 'opt' : 'na' },
+  // P5 Structurer
+  { id: 'F1', step: 'P5', name: 'Montage juridique & foncier', content: 'ASBL, coopérative, CLT, foncière, emphytéose, convention d’occupation', deliverable: 'Schéma de montage', min: 6, max: 12, tier: 'second', rule: f => f.maturite === 'actif' ? 'opt' : 'rec' },
+  { id: 'F2', step: 'P5', name: 'Gouvernance partagée', content: 'Instances, cercles, rôles, décision par consentement, articulation propriétaire / usagers', deliverable: 'Carte de la gouvernance', min: 4, max: 10, tier: 'second', rule: () => 'rec' },
+  { id: 'F3', step: 'P5', name: 'Statuts, charte & mise en structures', content: 'Rédaction accompagnée, coordination notaire et comptable', deliverable: 'Statuts, ROI, charte', min: 4, max: 8, tier: 'second', rule: f => f.maturite === 'actif' ? 'opt' : 'rec' },
+  { id: 'F4', step: 'P5', name: 'Portage humain & recrutement', content: 'Organigramme cible, fiches de poste, plan de recrutement, facilitation in situ', deliverable: 'Organigramme, fiches de poste', min: 4, max: 8, tier: 'post', rule: () => 'rec' },
+  { id: 'F5', step: 'P5', name: 'Formation de facilitateur·ices', content: 'Parcours de montée en compétences pour l’équipe et la communauté', deliverable: 'Parcours de 3 journées', min: 6, max: 10, tier: 'second', rule: f => (any([f.porteur], ['collectif', 'public', 'structure']) || f.maturite !== 'idee') ? 'rec' : 'opt' },
+  // P6 Financer
+  { id: 'G1', step: 'P6', name: 'Stratégie de financement', content: 'Plan de financement croisé, kit de levée, cibles, calendrier', deliverable: 'Stratégie et kit', min: 6, max: 10, tier: 'second', rule: () => 'rec' },
+  { id: 'G2', step: 'P6', name: 'Dossiers de subsides', content: 'Montage de dossiers régionaux ou européens (Interreg, Erasmus+, LEADER…)', deliverable: '1 à 2 dossiers déposés', min: 8, max: 16, tier: 'second', rule: () => 'rec' },
+  { id: 'G3', step: 'P6', name: 'Campagne coopérative', content: 'Parts coopérateur·ices ou financement participatif : récit, séances, suivi', deliverable: 'Campagne menée', min: 8, max: 14, tier: 'second', rule: f => any([f.porteur], ['collectif', 'structure', 'public']) ? 'rec' : 'opt' },
+  { id: 'G4', step: 'P6', name: 'Investisseurs, banques & mécénat', content: 'Certificats, obligations, prêts, fonds d’investissement, mécènes', deliverable: 'Dossier investisseur', min: 4, max: 8, tier: 'second', rule: f => (any([f.porteur], ['prive', 'fondation', 'promoteur']) || any(f.vocations, ['habitat'])) ? 'rec' : 'opt' },
+  // P7 Aménager
+  { id: 'H1', step: 'P7', name: 'Programme architectural', content: 'Cahier des charges architectural et programmatique pour l’auteur de projet', deliverable: 'Cahier des charges', min: 4, max: 8, tier: 'second', rule: f => any([f.bati], ['vacant', 'partiel']) ? 'rec' : f.bati === 'renove' ? 'na' : 'opt' },
+  { id: 'H2', step: 'P7', name: 'AMO architecturale', content: 'Dialogue avec l’architecte, scénarios d’aménagement, priorisation, permis', deliverable: 'Scénarios, arbitrages', min: 8, max: 20, tier: 'post', rule: f => any([f.bati], ['vacant', 'partiel']) ? 'rec' : f.bati === 'renove' ? 'na' : 'opt' },
+  { id: 'H3', step: 'P7', name: 'Éco-rénovation & systèmes', content: 'Bio-sourcé, réemploi, eau, chauffe et énergie, low tech', deliverable: 'Recommandations techniques', min: 4, max: 12, tier: 'post', rule: f => any([f.bati], ['vacant', 'partiel']) ? 'rec' : f.bati === 'renove' ? 'na' : 'opt' },
+  { id: 'H4', step: 'P7', name: 'Chantiers participatifs', content: 'Conception et encadrement de chantiers avec la communauté', deliverable: 'Chantiers menés', min: 4, max: 10, tier: 'post', rule: f => (any([f.bati], ['vacant', 'partiel', 'terrain']) && any([f.porteur], ['collectif', 'structure'])) ? 'rec' : f.bati === 'renove' || f.bati === 'aucun' ? 'na' : 'opt' },
+  // P8 Activer
+  { id: 'I1', step: 'P8', name: 'Faisabilité de l’occupation transitoire', content: 'Relevé des espaces, sécurité, conventions précaires, cadre d’occupation', deliverable: 'Note de faisabilité, modèles de conventions', min: 8, max: 16, tier: 'second', urgentTier: 'amorce', rule: f => (f.urgence || f.bati === 'vacant') ? 'rec' : f.bati === 'partiel' ? 'opt' : 'na' },
+  { id: 'I2', step: 'P8', name: 'Activation de l’occupation transitoire', content: 'Sélection des occupants, installation, règlement d’usage, animation du lancement', deliverable: 'Lieu occupé', min: 10, max: 20, tier: 'second', rule: f => (f.urgence || f.bati === 'vacant') ? 'rec' : f.bati === 'partiel' ? 'opt' : 'na' },
+  { id: 'I3', step: 'P8', name: 'Identité, récit & communication', content: 'Mise en récit, naming, charte graphique, site, plan de communication', deliverable: 'Identité et supports', min: 6, max: 12, tier: 'second', rule: () => 'rec' },
+  { id: 'I4', step: 'P8', name: 'Référencement numérique', content: 'Outil de coopération territoriale (Space2 / ChangeTheGame) : talents, ressources, documentation, capitalisation, pratiques inspirantes', deliverable: 'Fiche du lieu, base partagée', min: 3, max: 6, tier: 'amorce', rule: () => 'rec' },
+  { id: 'I5', step: 'P8', name: 'Activation territoriale & événements', content: 'Portes ouvertes, festival, marché, programmation test', deliverable: 'Événements menés', min: 4, max: 10, tier: 'second', rule: f => (any([f.porteur], ['public', 'fondation']) || any(f.vocations, ['culturel', 'tourisme'])) ? 'rec' : 'opt' },
+  { id: 'I6', step: 'P8', name: 'Design des espaces vivants', content: 'Agroécologie, forêt comestible, gestion de l’eau, chantiers biodiversité', deliverable: 'Design et premiers chantiers', min: 6, max: 16, tier: 'post', rule: f => (f.bati === 'terrain' || any(f.vocations, ['agricole', 'nourricier'])) ? 'rec' : 'opt' },
+  // P9 Déployer
+  { id: 'J1', step: 'P9', name: 'Coordination déléguée', content: 'Pilotage du déploiement en forfait mensuel (base 12 mois)', deliverable: 'Feuille de route tenue', min: 48, max: 96, tier: 'post', rule: f => any([f.porteur], ['public', 'fondation', 'promoteur']) ? 'rec' : 'opt' },
+  { id: 'J2', step: 'P9', name: 'Incubation & mentorat', content: 'Accompagnement des porteurs de projets installés, cadre d’incubation', deliverable: 'Cohorte accompagnée', min: 6, max: 12, tier: 'post', rule: f => any(f.vocations, ['eco', 'nourricier', 'agricole', 'numerique']) ? 'rec' : 'opt' },
+  { id: 'J3', step: 'P9', name: 'Supervision de la structure', content: 'Suivi trimestriel des instances, de la gestion et de l’équipe (1 an)', deliverable: 'Bilans trimestriels', min: 6, max: 8, tier: 'post', rule: () => 'rec' },
+  { id: 'J4', step: 'P9', name: 'Médiation & régulation', content: 'Traitement des tensions, médiation, à la demande', deliverable: 'Interventions ponctuelles', min: 2, max: 6, tier: 'second', rule: () => 'opt' },
+  // Transversal
+  { id: 'T1', step: 'PT', name: 'Mentorat du référent & coaching du porteur', content: 'Préparation et débrief de chaque session avec la personne référente, coaching du porteur ou du noyau fondateur (posture, arbitrages, moments clés)', deliverable: 'Méthode de pilotage autonome', perBloc: true, noUplift: true, min: 2, max: 3, tier: 'second', rule: () => 'rec' },
+  { id: 'T2', step: 'PT', name: 'Passation du référent', content: 'Mentorat de reprise en cas de changement de personne référente (6 h)', deliverable: 'Reprise outillée', noUplift: true, min: 2, max: 2, tier: 'second', rule: () => 'opt' },
+  { id: 'T3', step: 'PT', name: 'Pilotage & qualité', content: 'Comité de pilotage de fin de bloc, supervision de l’animation, coaching collectif des référent·es', deliverable: 'Relecture et cap ajusté à chaque bloc', perBloc: true, noUplift: true, min: 2, max: 3, tier: 'second', rule: () => 'rec' },
+  { id: 'T4', step: 'PT', name: 'Grille d’évaluation & point zéro', content: 'Axes et indicateurs co-construits, point zéro au coup de sonde, mise à jour à chaque comité', deliverable: 'Grille et tableau de bord', min: 2, max: 3, tier: 'amorce', rule: () => 'rec' },
+  { id: 'J5', step: 'P9', name: 'Impact & capitalisation', content: 'Suivi d’impact annuel sur la grille posée dès l’amorce, mise en récit pour les partenaires', deliverable: 'Rapport d’impact', min: 3, max: 6, tier: 'post', rule: () => 'rec' },
+  { id: 'J6', step: 'P9', name: 'Mise en réseau tiers-lieux', content: 'Visites apprenantes, pairs, formations et communauté Trois-Tiers', deliverable: 'Visites et échanges', min: 2, max: 4, tier: 'second', rule: () => 'opt' },
+];
+
+const PACKS = [
+  { id: 'sonde', name: 'Coup de sonde', goal: 'Qualifier la situation, poser les axiomes de travail et le point zéro', modules: ['A1', 'A2', 'T4'] },
+  { id: 'prelude-leger', name: 'Prélude léger', goal: 'Cadrer et sonder avec un petit budget', modules: ['A1', 'A2', 'B1', 'C1', 'I4'] },
+  { id: 'prelude', name: 'Prélude', goal: 'Savoir en 2 à 4 mois si le projet tient, pour qui et avec quel argent', modules: ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'C1', 'I4'] },
+  { id: 'communaute', name: 'Communauté & gouvernance', goal: 'Faire naître et outiller une communauté qui décide ensemble', modules: ['C2', 'T1', 'T3', 'C3', 'F2', 'F3', 'F5', 'J4'] },
+  { id: 'viabilite', name: 'Viabilité', goal: 'Un programme sourcé, un modèle économique et un véhicule juridique cohérents', modules: ['D1', 'E1', 'E2', 'F1'] },
+  { id: 'bati', name: 'Lieu & bâti', goal: 'Connaître le bâtiment et piloter sa transformation', modules: ['B3', 'B4', 'D2', 'H1', 'H2', 'H3'] },
+  { id: 'transitoire', name: 'Occupation transitoire', goal: 'Éviter la vacance et tester les usages sans attendre les travaux', modules: ['I1', 'I2', 'C4'] },
+  { id: 'financement', name: 'Financement', goal: 'Réunir subsides, coopérateur·ices, investisseurs et mécènes', modules: ['G1', 'G2', 'G3', 'G4', 'I3'] },
+  { id: 'nourricier', name: 'Lieu nourricier & agricole', goal: 'Ancrer le lieu dans le vivant, la terre et le système alimentaire', modules: ['B5', 'D3', 'D5', 'D6', 'I6', 'J2'] },
+  { id: 'lancement', name: 'Lancement & autonomie', goal: 'Recruter, lancer, puis rendre la structure autonome', modules: ['F4', 'J1', 'J2', 'J3', 'J5'] },
+];
+
+// Calibrage : +15 % sur les volumes de départ (retour d'expérience des missions)
+const UPLIFT = 1.15;
+MODULES.forEach(m => { if (m.noUplift) return; m.min = Math.ceil(m.min * UPLIFT); m.max = Math.ceil(m.max * UPLIFT); });
+
+// Modules dont le volume dépend de la taille du site
+const SITE = ['B3', 'B4', 'B5', 'D2', 'H1', 'H2', 'H3', 'H4', 'I1', 'I2', 'I6'];
+const PROG = ['D1', 'E2', 'E3', 'C4'];
+const TERRIT = ['B2', 'C1'];
+
+const FILTERS = {
+  perimetre: [['complete', 'AMO complète'], ['communaute', 'Communauté & gouvernance'], ['etude', 'Étude ciblée']],
+  blocs: [[0, 'Aucun bloc'], [2, '2 blocs (~6 mois)'], [4, '4 blocs (~12 mois)'], [6, '6 blocs (~18 mois)'], [8, '8 blocs (~24 mois)']],
+  porteur: [
+    ['prive', 'Propriétaire individuel'], ['collectif', 'Collectif citoyen'], ['structure', 'Coopérative / ASBL'],
+    ['public', 'Institution publique'], ['fondation', 'Fondation / philanthropie'], ['promoteur', 'Promoteur / investisseur'],
+  ],
+  profil: [['grand', 'Grands moyens'], ['standard', 'Moyens standards'], ['limite', 'Moyens limités']],
+  bati: [
+    ['aucun', 'Pas encore de lieu'], ['terrain', 'Terrain / foncier agricole'], ['vacant', 'Bâti vacant à rénover'],
+    ['partiel', 'Bâti en usage partiel'], ['renove', 'Bâti rénové, en usage'],
+  ],
+  surface: [['s', '< 500 m²'], ['m', '500 – 2.000 m²'], ['l', '2.000 – 5.000 m²'], ['xl', '> 5.000 m²']],
+  batiments: [['1', '1 bâtiment'], ['2', '2 – 3 bâtiments'], ['4', '4 et plus']],
+  contexte: [['rural', 'Rural'], ['periurbain', 'Périurbain'], ['urbain', 'Urbain']],
+  architecte: [['non', 'Pas d’architecte'], ['oui', 'Architecte désigné']],
+  maturite: [['idee', 'Idée / intention'], ['collectif', 'Collectif formé'], ['actif', 'Lieu déjà actif']],
+  vocations: [
+    ['culturel', 'Culturel / citoyen'], ['nourricier', 'Nourricier / alimentation'], ['agricole', 'Agricole / terres'],
+    ['habitat', 'Habitat'], ['eco', 'Économique / entrepreneurial'], ['social', 'Social / inclusion'],
+    ['tourisme', 'Tourisme / accueil'], ['sante', 'Santé / soin'], ['education', 'Éducation / formation'], ['numerique', 'Numérique'],
+  ],
+  enveloppe: [[10, '< 10 k€'], [30, '10 – 30 k€'], [80, '30 – 80 k€'], [150, '> 80 k€']],
+};
+
+// Multiplicateurs de volume
+const MULT = {
+  surface: { s: 0.8, m: 1, l: 1.3, xl: 1.6 },
+  batiments: { '1': 1, '2': 1.2, '4': 1.4 },
+  profil: { grand: 1.2, standard: 1, limite: 1 },
+  contexte: { rural: 1.15, periurbain: 1, urbain: 1 },
+};
+// Tarif par demi-journée selon le profil financier (remise solidaire de 15 % pour les moyens limités)
+const RATES = { grand: 400, standard: 400, limite: 340 };
+const rateOf = f => RATES[f.profil || 'standard'];
+
+const SCENARIOS = [
+  { id: 'S1', name: 'Commune qui déclenche un tiers-lieu dans un bâtiment communal', ex: 'La Louvière (Palace) — marché communauté & gouvernance', f: { perimetre: 'communaute', blocs: 2, porteur: 'public', profil: 'standard', bati: 'partiel', surface: 'l', batiments: '2', contexte: 'urbain', architecte: 'non', maturite: 'collectif', urgence: false, enveloppe: 30, vocations: ['culturel', 'social'] } },
+  { id: 'S2', name: 'Commune avec une friche à réhabiliter et une coopérative à créer', ex: 'Oupeye (hangar)', f: { perimetre: 'complete', blocs: 4, porteur: 'public', profil: 'standard', bati: 'vacant', surface: 'm', batiments: '1', contexte: 'periurbain', architecte: 'non', maturite: 'idee', urgence: false, enveloppe: 30, vocations: ['nourricier', 'agricole', 'tourisme'] } },
+  { id: 'S3', name: 'Fondation propriétaire d’un grand domaine', ex: 'Château de Grune', f: { perimetre: 'complete', blocs: 4, porteur: 'fondation', profil: 'grand', bati: 'partiel', surface: 'xl', batiments: '4', contexte: 'rural', architecte: 'oui', maturite: 'idee', urgence: true, enveloppe: 80, vocations: ['agricole', 'nourricier', 'habitat', 'tourisme', 'culturel'] } },
+  { id: 'S4', name: 'ASBL propriétaire dont des bâtiments se libèrent', ex: 'Institut Saint-Berthuin, Malonne', f: { perimetre: 'complete', blocs: 4, porteur: 'structure', profil: 'standard', bati: 'vacant', surface: 'l', batiments: '2', contexte: 'periurbain', architecte: 'non', maturite: 'idee', urgence: true, enveloppe: 30, vocations: ['habitat', 'social', 'eco', 'education'] } },
+  { id: 'S5', name: 'Collectif citoyen sans lieu', ex: 'collectifs issus des formations', f: { perimetre: 'complete', blocs: 4, porteur: 'collectif', profil: 'limite', bati: 'aucun', surface: 's', batiments: '1', contexte: 'urbain', architecte: 'non', maturite: 'collectif', urgence: false, enveloppe: 10, vocations: ['culturel', 'social'] } },
+  { id: 'S6', name: 'Propriétaire individuel avec un bâti à rénover', ex: 'demandes entrantes', f: { perimetre: 'complete', blocs: 2, porteur: 'prive', profil: 'standard', bati: 'vacant', surface: 's', batiments: '1', contexte: 'rural', architecte: 'non', maturite: 'idee', urgence: false, enveloppe: 10, vocations: ['habitat', 'eco'] } },
+  { id: 'S7', name: 'Lieu existant à consolider ou repositionner', ex: 'type Maison Folie', f: { perimetre: 'communaute', blocs: 4, porteur: 'structure', profil: 'limite', bati: 'renove', surface: 'm', batiments: '1', contexte: 'urbain', architecte: 'non', maturite: 'actif', urgence: false, enveloppe: 10, vocations: ['culturel', 'social'] } },
+];
+
+function multiplier(m, f) {
+  let k = MULT.profil[f.profil || 'standard'];
+  const site = (MULT.surface[f.surface || 'm']) * (MULT.batiments[f.batiments || '1']);
+  if (SITE.includes(m.id)) k *= site;
+  else if (PROG.includes(m.id)) k *= 1 + (site - 1) / 2;
+  if (TERRIT.includes(m.id)) k *= MULT.contexte[f.contexte || 'periurbain'];
+  if (m.id === 'H2' && f.architecte === 'oui') k *= 0.8;
+  return k;
+}
+
+const PERIM = {
+  communaute: ['A1', 'A2', 'C2', 'T1', 'T3', 'T4'],
+  etude: ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'B5', 'C1', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'E1', 'E2', 'E3', 'F1', 'G1', 'I4', 'T4'],
+};
+const KM_RATE = 0.4761;
+const SEUIL_MARCHE = 30000;
+
+function evaluate(f) {
+  return MODULES.map(m => {
+    let status = m.rule(f);
+    if (m.id === 'H1' && f.architecte === 'oui' && status === 'rec') status = 'opt';
+    if (m.id === 'C4' && f.contexte === 'urbain' && status === 'opt' && f.bati !== 'aucun') status = 'rec';
+    const per = f.perimetre || 'complete';
+    if (per !== 'complete' && status === 'rec' && !PERIM[per].includes(m.id)) status = 'opt';
+    if (m.perBloc && !(f.blocs > 0)) status = 'na';
+    const tier = (f.urgence && m.urgentTier) ? m.urgentTier : m.tier;
+    const k = multiplier(m, f) * (m.perBloc ? (f.blocs || 0) : 1);
+    return { ...m, status, tier, min: Math.max(1, Math.round(m.min * k)), max: Math.max(1, Math.round(m.max * k)), baseMin: m.min, baseMax: m.max };
+  });
+}
+
+
+(function(){
+  const $ = s => document.querySelector(s);
+  const fmt = n => n.toLocaleString('de-DE');
+  const curRate = () => rateOf(state.f);
+  const eur = h => fmt(Math.round(h * curRate())) + ' €';
+  const keur = h => (h * curRate() / 1000).toLocaleString('de-DE', {maximumFractionDigits: 1}) + ' k€';
+  let analysis = null;
+  const state = { f: JSON.parse(JSON.stringify(SCENARIOS[0].f)), scen: 'S1', overrides: {}, showNa: false, hyp: 'mid', km: 60, trips: null, incl: false };
+  let evals = [];
+
+  function chipGroup(id, group, multi){
+    const box = $('#f-' + group);
+    FILTERS[group].forEach(([v, label]) => {
+      const lab = document.createElement('label'); lab.className = 'chip';
+      const inp = document.createElement('input'); inp.type = multi ? 'checkbox' : 'radio'; inp.name = group; inp.value = v; inp.id = group + '-' + v;
+      inp.addEventListener('change', () => {
+        if (multi) { state.f.vocations = [...document.querySelectorAll('input[name="vocations"]:checked')].map(i => i.value); }
+        else state.f[group] = (group === 'enveloppe' || group === 'blocs') ? Number(v) : v;
+        state.scen = null; state.overrides = {}; render();
+      });
+      const sp = document.createElement('span'); sp.textContent = label;
+      lab.append(inp, sp); box.append(lab);
+    });
+  }
+  ['perimetre','blocs','porteur','profil','bati','surface','batiments','contexte','architecte','maturite','enveloppe'].forEach(g => chipGroup(g, g, false));
+  chipGroup('vocations', 'vocations', true);
+  $('#f-urgence').addEventListener('change', e => { state.f.urgence = e.target.checked; state.scen = null; state.overrides = {}; render(); });
+  $('#km').addEventListener('input', e => { state.km = Math.max(0, Number(e.target.value) || 0); render(); });
+  $('#trips').addEventListener('input', e => { state.trips = e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0); render(); });
+  $('#incl').addEventListener('change', e => { state.incl = e.target.checked; render(); });
+  $('#show-na').addEventListener('change', e => { state.showNa = e.target.checked; render(); });
+  document.querySelectorAll('input[name="hyp"]').forEach(i => i.addEventListener('change', e => { state.hyp = e.target.value; render(); }));
+
+  SCENARIOS.forEach(s => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = s.id;
+    b.innerHTML = '<strong></strong><small></small>';
+    b.querySelector('strong').textContent = s.id + '. ' + s.name;
+    b.querySelector('small').textContent = s.ex;
+    b.addEventListener('click', () => { state.f = JSON.parse(JSON.stringify(s.f)); state.scen = s.id; state.overrides = {}; state.trips = null; render(); });
+    $('#scen').append(b);
+  });
+  PACKS.forEach(p => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '+ ' + p.name; b.title = p.goal;
+    b.addEventListener('click', () => { p.modules.forEach(id => state.overrides[id] = true); render(); });
+    $('#packs').append(b);
+  });
+
+  const isOn = m => (m.id in state.overrides) ? state.overrides[m.id] : m.status === 'rec';
+  const vol = m => state.hyp === 'min' ? m.min : state.hyp === 'max' ? m.max : (m.min + m.max) / 2;
+  const TIERK = ['amorce','second','post'];
+
+  function syncControls(){
+    ['porteur','profil','bati','surface','batiments','contexte','architecte','maturite'].forEach(g => { const i = document.getElementById(g + '-' + state.f[g]); if (i) i.checked = true; });
+    const ie = document.getElementById('enveloppe-' + state.f.enveloppe); if (ie) ie.checked = true;
+    ['perimetre'].forEach(g => { const i = document.getElementById(g + '-' + (state.f[g] || 'complete')); if (i) i.checked = true; });
+    const ib = document.getElementById('blocs-' + (state.f.blocs || 0)); if (ib) ib.checked = true;
+    document.querySelectorAll('input[name="vocations"]').forEach(i => i.checked = state.f.vocations.includes(i.value));
+    $('#f-urgence').checked = !!state.f.urgence;
+    document.querySelectorAll('#scen button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === state.scen)));
+  }
+
+  function summary(sel){
+    const t = {}; TIERK.forEach(k => { const ms = sel.filter(m => m.tier === k); t[k] = [ms.reduce((a,m)=>a+m.min,0), ms.reduce((a,m)=>a+m.max,0)]; });
+    const tot = [t.amorce[0]+t.second[0]+t.post[0], t.amorce[1]+t.second[1]+t.post[1]];
+    const cell = (cls, k, r) => `<div class="stat ${cls}"><div class="k">${k}</div><div class="v">${keur(r[0])} – ${keur(r[1])}</div><div class="s">${r[0]}–${r[1]} ½ j. · ${r[0]*4}–${r[1]*4} h</div></div>`;
+    $('#summary').innerHTML = cell('amorce','Amorce',t.amorce) + cell('second','Second temps',t.second) + cell('post','Post-financement',t.post) + cell('total','Parcours complet',tot);
+    return t;
+  }
+
+  function hist(sel){
+    const W = 760, H = 300, L = 54, R = 12, T = 16, B = 58;
+    const data = STEPS.map(s => { const o = {step: s}; TIERK.forEach(k => o[k] = sel.filter(m => m.step === s.id && m.tier === k).reduce((a,m)=>a+vol(m),0) * curRate()); o.total = o.amorce + o.second + o.post; return o; });
+    const maxV = Math.max(5000, ...data.map(d => d.total));
+    const stepK = maxV > 60000 ? 20000 : maxV > 30000 ? 10000 : 5000;
+    const top = Math.ceil(maxV / stepK) * stepK;
+    const y = v => T + (H - T - B) * (1 - v / top);
+    const bw = (W - L - R) / data.length;
+    let g = '';
+    for (let v = 0; v <= top; v += stepK) g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v/1000} k€</text>`;
+    data.forEach((d, i) => {
+      const x = L + i * bw + bw * 0.18, w = bw * 0.64; let acc = 0;
+      TIERK.forEach(k => { if (d[k] > 0) { const y1 = y(acc + d[k]), y0 = y(acc); g += `<rect class="bar" x="${x}" y="${y1}" width="${w}" height="${Math.max(0, y0 - y1)}" fill="var(--${k})"><title>${d.step.name} · ${TIERS[k].name} : ${fmt(Math.round(d[k]))} €</title></rect>`; acc += d[k]; } });
+      if (d.total > 0) g += `<text x="${x + w/2}" y="${y(d.total) - 6}" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="var(--mono)">${(d.total/1000).toLocaleString('de-DE',{maximumFractionDigits:1})}</text>`;
+      g += `<text x="${x + w/2}" y="${H - B + 18 + (i % 2) * 15}" text-anchor="middle" font-size="11" fill="var(--ink)" font-weight="600">${d.step.name}</text>`;
+    });
+    g += `<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)"/>`;
+    $('#hist').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Budget par étape, en milliers d'euros HTVA">${g}</svg>`;
+  }
+
+  function cumul(sel){
+    const W = 760, H = 92, L = 12, R = 12, by = 30, bh = 26;
+    const v = {}; TIERK.forEach(k => v[k] = sel.filter(m => m.tier === k).reduce((a,m)=>a+vol(m),0) * curRate());
+    const trc = state.incl ? travel(sel).cost : 0;
+    const tot = v.amorce + v.second + v.post + trc, env = state.f.enveloppe * 1000;
+    const scale = Math.max(tot, env) * 1.04 || 1;
+    const x = n => L + (W - L - R) * n / scale;
+    let g = `<text x="${L}" y="18" font-size="12" fill="var(--muted)">Parcours cumulé (hypothèse ${state.hyp === 'min' ? 'basse' : state.hyp === 'max' ? 'haute' : 'médiane'}) face à l'enveloppe de départ</text>`, acc = 0;
+    TIERK.forEach(k => { if (v[k] > 0) { g += `<rect x="${x(acc)}" y="${by}" width="${x(acc + v[k]) - x(acc)}" height="${bh}" fill="var(--${k})"><title>${TIERS[k].name} : ${fmt(Math.round(v[k]))} €</title></rect>`; acc += v[k]; } });
+    const ex = x(env);
+    g += `<line x1="${ex}" x2="${ex}" y1="${by - 8}" y2="${by + bh + 8}" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>`;
+    const anchor = ex > W * 0.8 ? 'end' : 'start', dx = anchor === 'end' ? -6 : 6;
+    g += `<text x="${ex + dx}" y="${by + bh + 24}" text-anchor="${anchor}" font-size="12" fill="var(--ink)" font-weight="600">Plafond de l'enveloppe ${FILTERS.enveloppe.find(o => o[0] === state.f.enveloppe)[1]}</text>`;
+    $('#cumul').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Parcours cumulé face à l'enveloppe">${g}</svg>`;
+    const amorceTxt = fmt(Math.round(v.amorce)) + ' €';
+    const covered = env >= tot ? 'couvre tout le parcours' : env >= v.amorce + v.second ? 'couvre l’amorce et le second temps ; le post-financement reste à lever' : env >= v.amorce ? 'couvre l’amorce ; le second temps et le post-financement restent à financer' : 'ne couvre pas toute l’amorce : proposez le Prélude léger ou cherchez un cofinancement dès le départ';
+    const share = tot ? Math.round(v.amorce / tot * 100) : 0;
+    $('#envmsg').innerHTML = `L'amorce coûte <b>${amorceTxt}</b>, soit ${share} % du parcours. L'enveloppe ${covered}.`;
+    const tr = travel(sel);
+    $('#travelmsg').textContent = `${tr.trips} déplacements × ${state.km} km × ${KM_RATE.toLocaleString('de-DE')} €/km = ${fmt(Math.round(tr.cost))} € HTVA${state.incl ? ', inclus dans les montants de l’histogramme' : ', en sus des montants affichés'}${state.trips == null ? ' (nombre estimé à partir du parcours, modifiable)' : ''}.`;
+    const marche = v.amorce + v.second + (state.incl ? tr.cost : 0);
+    const s = $('#seuil');
+    if (state.f.porteur === 'public' && marche > SEUIL_MARCHE) { s.hidden = false; s.innerHTML = `Amorce et second temps : <b>${fmt(Math.round(marche))} € HTVA</b>, au-delà du seuil des marchés de faible montant (30.000 € HTVA). Prévoir une autre procédure ou limiter le marché initial à l'amorce et aux premiers modules.`; }
+    else if (state.f.porteur === 'public') { s.hidden = false; s.innerHTML = `Amorce et second temps : <b>${fmt(Math.round(marche))} € HTVA</b>, sous le seuil des marchés de faible montant (30.000 € HTVA). Les modules activés en cours de route s'ajoutent au montant du marché.`; }
+    else s.hidden = true;
+  }
+
+  function travel(sel){
+    const blocsOn = sel.some(m => m.id === 'C2') ? (state.f.blocs || 0) : 0;
+    const others = sel.filter(m => m.tier !== 'amorce' && !m.perBloc && m.step !== 'PT').length;
+    const auto = (sel.some(m => m.tier === 'amorce') ? 3 : 0) + 2 * blocsOn + Math.ceil(others / 2);
+    const trips = state.trips == null ? auto : state.trips;
+    if (state.trips == null) $('#trips').value = auto;
+    return { trips, cost: trips * state.km * KM_RATE };
+  }
+
+  function conds(){
+    const f = state.f, L = [];
+    L.push('Une personne référente désignée dès le départ, avec environ 4 h par mois en plus des sessions ; en cas de changement, une passation (module T2).');
+    L.push('Un circuit de validation qui fonctionne : les personnes à informer et celles qui décident répondent entre deux sessions (2 à 3 semaines).');
+    L.push('Le respect des axiomes de travail posés au cadrage ; toute évolution du périmètre se discute en comité de pilotage.');
+    if ((f.blocs || 0) > 0) L.push('Des référent·es de groupes disponibles pour co-animer les sessions internes.');
+    if (f.porteur === 'public') L.push('Un bon de commande par module activé et une personne relais dans l’administration tant que la coordination n’est pas recrutée.');
+    if (['vacant', 'partiel', 'renove', 'terrain'].includes(f.bati)) L.push('L’accès au site et la transmission des plans, études et documents techniques existants.');
+    if (f.architecte === 'oui') L.push('Un contact direct avec le bureau d’architecture désigné et son calendrier.');
+    if (f.porteur === 'collectif' || f.maturite === 'idee') L.push('Un noyau porteur disponible pour le coaching mensuel (module T1).');
+    L.push('Les frais externes à charge du porteur : salle, impressions, catering, notaire, études techniques.');
+    $('#conds').innerHTML = ''; L.forEach(x => { const li = document.createElement('li'); li.textContent = x; $('#conds').append(li); });
+    return L;
+  }
+
+  function steps(all){
+    const box = $('#steps'); box.innerHTML = '';
+    STEPS.forEach((s, i) => {
+      const ms = all.filter(m => m.step === s.id && (state.showNa || m.status !== 'na' || state.overrides[m.id]));
+      if (!ms.length) return;
+      const on = ms.filter(isOn);
+      const sec = document.createElement('div'); sec.className = 'step';
+      const a = on.reduce((x,m)=>x+m.min,0), b = on.reduce((x,m)=>x+m.max,0);
+      sec.innerHTML = `<h3><span class="n">${i}</span>${s.name}<span class="tot">${on.length ? eur(a) + ' – ' + eur(b) : '—'}</span></h3><p class="hint">${s.hint}</p>`;
+      ms.forEach(m => {
+        const row = document.createElement('label'); row.className = 'mod' + (isOn(m) ? '' : ' off') + (m.status === 'na' ? ' na' : ''); row.htmlFor = 'm-' + m.id;
+        const st = m.status === 'rec' ? 'recommandé' : m.status === 'opt' ? 'optionnel' : 'non pertinent';
+        row.innerHTML = `<input type="checkbox" id="m-${m.id}"><span class="code">${m.id}</span><span><span class="nm"></span><span class="tag ${m.tier}">${TIERS[m.tier].name}</span><span class="tag st">${st}</span><span class="ct"></span></span><span class="rt">${m.min}–${m.max} ½ j. · ${m.min*4}–${m.max*4} h<span>${eur(m.min)} – ${eur(m.max)}</span></span>`;
+        row.querySelector('.nm').textContent = m.name;
+        row.querySelector('.ct').textContent = m.content + ' → ' + m.deliverable;
+        const cb = row.querySelector('input'); cb.checked = isOn(m);
+        cb.addEventListener('change', () => { state.overrides[m.id] = cb.checked; render(); });
+        sec.append(row);
+      });
+      box.append(sec);
+    });
+  }
+
+  function output(sel, t){
+    const lines = [];
+    const sc = SCENARIOS.find(s => s.id === state.scen);
+    const lab = (g, v) => (FILTERS[g].find(o => o[0] === v) || [, v])[1];
+    lines.push('Parcours AMO Trois-Tiers' + (sc ? ' — ' + sc.name : '') + (typeof analysis !== 'undefined' && analysis?.titre ? ' — ' + analysis.titre : ''));
+    if (typeof analysis !== 'undefined' && analysis?.synthese?.length) { lines.push('', 'SYNTHÈSE DES DOCUMENTS'); analysis.synthese.forEach(s => lines.push('- ' + s)); }
+    lines.push(`Périmètre : ${lab('perimetre', state.f.perimetre || 'complete')} · Durée : ${lab('blocs', state.f.blocs || 0)}`);
+    lines.push(`Porteur : ${lab('porteur', state.f.porteur)} (${lab('profil', state.f.profil)}) · Bâti : ${lab('bati', state.f.bati)}, ${lab('surface', state.f.surface)}, ${lab('batiments', state.f.batiments)}, ${lab('contexte', state.f.contexte)}, ${lab('architecte', state.f.architecte)} · Maturité : ${lab('maturite', state.f.maturite)}${state.f.urgence ? ' · urgence' : ''} · Vocation : ${state.f.vocations.map(v => lab('vocations', v)).join(', ') || '—'}`);
+    TIERK.forEach(k => {
+      const ms = sel.filter(m => m.tier === k); if (!ms.length) return;
+      lines.push('', `${TIERS[k].name.toUpperCase()} — ${eur(t[k][0])} à ${eur(t[k][1])} HTVA (${t[k][0]}–${t[k][1]} ½ j.)`);
+      ms.forEach(m => lines.push(`- ${m.id} ${m.name} : ${m.deliverable} (${m.min}–${m.max} ½ j., ${m.min*4}–${m.max*4} h)`));
+    });
+    const tr = travel(sel);
+    lines.push('', `Déplacements : ${tr.trips} × ${state.km} km A/R à ${KM_RATE.toLocaleString('de-DE')} €/km = ${fmt(Math.round(tr.cost))} € HTVA${state.incl ? ' (inclus)' : ' (en sus)'}.`);
+    if (!$('#seuil').hidden) lines.push($('#seuil').textContent);
+    lines.push('', 'CE QUE NOUS ATTENDONS DU PORTEUR'); conds().forEach(c => lines.push('- ' + c));
+    lines.push('', `Base ${curRate()} € HTVA la demi-journée (½ j. = 4 h), régie au même tarif.`);
+    $('#out').value = lines.join('\n');
+  }
+  $('#copy').addEventListener('click', () => {
+    const txt = $('#out').value;
+    const ok = () => { $('#copymsg').textContent = 'Résumé copié.'; };
+    const fail = () => { $('#out').select(); $('#copymsg').textContent = 'Copie automatique refusée : le texte est sélectionné, copiez-le avec Ctrl+C ou Cmd+C.'; };
+    try { navigator.clipboard.writeText(txt).then(ok, fail); } catch (e) { fail(); }
+  });
+
+  function render(){
+    syncControls();
+    evals = evaluate(state.f);
+    const sel = evals.filter(isOn);
+    const t = summary(sel); hist(sel); cumul(sel); steps(evals); conds(); output(sel, t);
+  }
+  render();
+
+  // ---------- Import de documents ----------
+  const LIBS = {
+    pdf: ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'],
+    docx: ['https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js'],
+    xlsx: ['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'],
+  };
+  const loaded = {};
+  const loadScript = src => loaded[src] || (loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('Bibliothèque de lecture indisponible')); }; document.head.append(s); }));
+  const loadLib = async k => { for (const src of LIBS[k]) await loadScript(src); };
+  const docs = [];
+  let sampleFn = null, ctl = null;
+
+  async function extract(file){
+    const name = file.name.toLowerCase(), ext = name.split('.').pop();
+    if (ext === 'pdf') {
+      await loadLib('pdf');
+      const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+      const parts = [];
+      for (let i = 1; i <= Math.min(pdf.numPages, 80); i++) { const c = await (await pdf.getPage(i)).getTextContent(); parts.push(c.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('')); }
+      return { text: parts.join('\n\n'), info: `${pdf.numPages} page${pdf.numPages > 1 ? 's' : ''}` };
+    }
+    if (ext === 'docx') {
+      await loadLib('docx');
+      const r = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+      return { text: r.value, info: 'document Word' };
+    }
+    if (['xlsx', 'xls', 'ods'].includes(ext)) {
+      await loadLib('xlsx');
+      const wb = window.XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' });
+      const text = wb.SheetNames.map(n => `## Feuille « ${n} »\n` + window.XLSX.utils.sheet_to_csv(wb.Sheets[n], { blankrows: false })).join('\n\n');
+      return { text, info: `${wb.SheetNames.length} feuille${wb.SheetNames.length > 1 ? 's' : ''}` };
+    }
+    if (['csv', 'txt', 'md'].includes(ext)) return { text: await file.text(), info: 'texte' };
+    throw new Error('Format non pris en charge');
+  }
+
+  function renderFiles(){
+    const ul = $('#files'); ul.innerHTML = '';
+    docs.forEach(d => { const li = document.createElement('li'); const a = document.createElement('span'); a.textContent = d.name; const b = document.createElement('span'); b.textContent = d.error ? d.error : d.text == null ? 'lecture…' : `${d.info} · ${fmt(d.text.length)} caractères`; li.append(a, b); ul.append(li); });
+    ul.hidden = !docs.length; $('#actions').hidden = !docs.length;
+    $('#analyse').hidden = !sampleFn;
+    if (!sampleFn && docs.length) $('#status').textContent = 'L’analyse par Claude n’est pas disponible dans cette vue ; le texte extrait reste consultable.';
+  }
+
+  async function addFiles(list){
+    for (const file of list) {
+      const d = { name: file.name, text: null, info: '' }; docs.push(d); renderFiles();
+      try { Object.assign(d, await extract(file)); if (!d.text.trim()) d.error = 'aucun texte lisible (document scanné ?)'; }
+      catch (e) { d.error = e.message || 'lecture impossible'; }
+      renderFiles();
+    }
+  }
+  $('#file').addEventListener('change', e => { addFiles([...e.target.files]); e.target.value = ''; });
+  const drop = $('#drop');
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => addFiles([...e.dataTransfer.files]));
+  $('#clear').addEventListener('click', () => { docs.length = 0; analysis = null; $('#synth').hidden = true; $('#status').textContent = ''; renderFiles(); output(evals.filter(isOn), summary(evals.filter(isOn))); });
+
+  function buildPrompt(){
+    const opts = g => FILTERS[g].map(o => `"${o[0]}" (${o[1]})`).join(', ');
+    const fields = ['perimetre', 'blocs', 'porteur', 'profil', 'bati', 'surface', 'batiments', 'contexte', 'architecte', 'maturite', 'enveloppe'];
+    const mods = MODULES.map(m => `${m.id} ${m.name}`).join(' ; ');
+    const budget = 80000, chunks = [], okd = docs.filter(d => d.text && !d.error), total = okd.reduce((s, d) => s + d.text.length, 0);
+    for (const d of okd) { const part = total <= budget ? d.text : d.text.slice(0, Math.max(2000, Math.floor(d.text.length * budget / total))); chunks.push(`=== Document : ${d.name} (${d.info}) ===\n${part}${part.length < d.text.length ? '\n[…texte tronqué…]' : ''}`); }
+    return `Tu assistes le bureau d'assistance à maîtrise d'ouvrage (AMO) de Trois-Tiers, réseau belge d'accompagnement de tiers-lieux. On te transmet un ou plusieurs documents d'un porteur de projet (cahier des charges, compte rendu, tableur…). Lis-les et pré-remplis le configurateur d'accompagnement.
+
+Pour chaque critère, choisis UNE valeur parmi celles autorisées, ou null si les documents ne permettent pas de trancher. N'invente rien : une valeur seulement si un passage la justifie.
+${fields.map(f => `- ${f} : ${opts(f)}`).join('\n')}
+- urgence : true (vacance imminente, bâtiment qui se libère, occupation transitoire urgente) ou false, ou null
+- vocations : liste parmi ${opts('vocations')}
+
+Modules du catalogue (pour suggérer ceux que le porteur demande explicitement ou qui répondent à un besoin nommé) : ${mods}
+
+Réponds UNIQUEMENT par un objet JSON de cette forme :
+{"titre":"nom court du projet","porteur_nom":"organisation porteuse ou null","synthese":["3 à 6 phrases courtes : contexte, demande, livrables attendus, budget, calendrier"],"criteres":{"perimetre":{"valeur":"communaute","confiance":"haute|moyenne|basse","indice":"citation courte du document"}, "...":{}},"modules_suggeres":[{"id":"C2","raison":"..."}],"echeances":["date limite de réponse, démarrage…"],"criteres_attribution":["prix 40 %…"],"points_attention":["risques, ambiguïtés, contraintes juridiques ou financières"],"questions":["questions à poser au porteur"]}
+Inclure dans "criteres" toutes les clés : ${fields.join(', ')}, urgence, vocations (pour vocations, "valeur" est une liste). Écris en français.
+
+Documents :
+${chunks.join('\n\n')}`;
+  }
+
+  const CRIT_LABEL = { perimetre: 'Périmètre', blocs: 'Durée', porteur: 'Porteur', profil: 'Profil financier', bati: 'Foncier et bâti', surface: 'Surface', batiments: 'Bâtiments', contexte: 'Contexte', architecte: 'Architecte', maturite: 'Maturité', enveloppe: 'Enveloppe', urgence: 'Urgence', vocations: 'Vocations' };
+  function valid(g, v){
+    if (g === 'urgence') return typeof v === 'boolean' ? v : null;
+    if (g === 'vocations') return Array.isArray(v) ? v.filter(x => FILTERS.vocations.some(o => o[0] === x)) : null;
+    const o = FILTERS[g] && FILTERS[g].find(o => String(o[0]) === String(v));
+    return o ? o[0] : null;
+  }
+  function labelOf(g, v){
+    if (g === 'urgence') return v ? 'Oui' : 'Non';
+    if (g === 'vocations') return v.map(x => FILTERS.vocations.find(o => o[0] === x)[1]).join(', ') || '—';
+    return FILTERS[g].find(o => o[0] === v)[1];
+  }
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const list = a => Array.isArray(a) && a.length ? '<ul>' + a.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '<p class="note">Rien de relevé.</p>';
+
+  function renderSynth(){
+    const a = analysis, box = $('#synth'); if (!a) { box.hidden = true; return; }
+    const rows = Object.keys(CRIT_LABEL).map(g => { const c = a.criteres?.[g]; const v = c ? valid(g, c.valeur) : null; if (v === null || (Array.isArray(v) && !v.length)) return `<tr><td>${CRIT_LABEL[g]}</td><td class="note">non déterminé</td><td></td><td></td></tr>`; const conf = ['haute', 'moyenne', 'basse'].includes(c.confiance) ? c.confiance : 'basse'; return `<tr><td>${CRIT_LABEL[g]}</td><td><strong>${esc(labelOf(g, v))}</strong></td><td><span class="conf ${conf}">${conf}</span></td><td class="q">${esc(c.indice || '')}</td></tr>`; }).join('');
+    const mods = (a.modules_suggeres || []).filter(m => MODULES.some(x => x.id === m.id));
+    box.innerHTML = `<div><h3>${esc(a.titre || 'Synthèse')}${a.porteur_nom ? ' · ' + esc(a.porteur_nom) : ''}</h3>${list(a.synthese)}</div>
+      <div><h3>Critères détectés</h3><div class="tablewrap"><table class="crit"><thead><tr><th>Critère</th><th>Valeur</th><th>Confiance</th><th>Indice dans le document</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+      ${mods.length ? `<div><h3>Modules demandés ou suggérés</h3><ul>${mods.map(m => `<li><b>${esc(m.id)}</b> ${esc(MODULES.find(x => x.id === m.id).name)} : ${esc(m.raison || '')}</li>`).join('')}</ul></div>` : ''}
+      ${a.echeances?.length ? `<div><h3>Échéances</h3>${list(a.echeances)}</div>` : ''}
+      ${a.criteres_attribution?.length ? `<div><h3>Critères d'attribution</h3>${list(a.criteres_attribution)}</div>` : ''}
+      <div><h3>Points d'attention</h3>${list(a.points_attention)}</div>
+      <div><h3>Questions à poser au porteur</h3>${list(a.questions)}</div>
+      <div class="row"><button class="btn" type="button" id="apply">Appliquer au configurateur</button><span class="note">Seuls les critères déterminés sont modifiés ; vous pouvez tout ajuster ensuite.</span></div>`;
+    box.hidden = false;
+    $('#apply').addEventListener('click', applyAnalysis);
+  }
+
+  function applyAnalysis(){
+    const a = analysis; if (!a) return;
+    Object.keys(CRIT_LABEL).forEach(g => { const c = a.criteres?.[g]; if (!c) return; const v = valid(g, c.valeur); if (v === null || (Array.isArray(v) && !v.length)) return; state.f[g] = v; });
+    state.scen = null; state.overrides = {}; state.trips = null;
+    (a.modules_suggeres || []).forEach(m => { if (MODULES.some(x => x.id === m.id)) state.overrides[m.id] = true; });
+    render();
+    $('#status').textContent = 'Critères appliqués. Le parcours ci-dessous en tient compte.';
+    document.querySelector('main section:nth-of-type(2)').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('#analyse').addEventListener('click', async () => {
+    if (!sampleFn) return;
+    const ok = docs.filter(d => d.text && !d.error); if (!ok.length) { $('#status').textContent = 'Aucun texte lisible à analyser.'; return; }
+    ctl = new AbortController();
+    $('#analyse').disabled = true; $('#stop').hidden = false; $('#status').textContent = 'Claude lit les documents… (30 secondes à 2 minutes)';
+    try {
+      const res = await sampleFn.json(buildPrompt(), { signal: ctl.signal, cache: { gcTime: 3600000 } });
+      if (!res || typeof res !== 'object') throw { code: 'invalid_json' };
+      analysis = res; renderSynth(); $('#status').textContent = 'Synthèse prête. Vérifiez les critères avant de les appliquer.';
+      output(evals.filter(isOn), summary(evals.filter(isOn)));
+    } catch (e) {
+      const msg = { cancelled: 'Analyse arrêtée.', not_granted: 'Analyse non autorisée dans cette vue.', sampling_disabled: 'Claude n’est pas disponible pour ce compte.', rate_limited: 'Trop de demandes pour le moment ; réessayez dans quelques minutes.', prompt_too_large: 'Documents trop longs : retirez-en un ou gardez les pages utiles.', invalid_json: 'La réponse n’a pas pu être lue ; relancez l’analyse.', refused: 'Claude n’a pas pu traiter ce contenu.', session_expired: 'Votre session a expiré ; reconnectez-vous.' }[e.code] || 'L’analyse a échoué ; vous pouvez relancer.';
+      $('#status').textContent = msg;
+      if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled'].includes(e.code)) { sampleFn = null; renderFiles(); }
+    } finally { $('#analyse').disabled = false; $('#stop').hidden = true; }
+  });
+  $('#stop').addEventListener('click', () => ctl?.abort());
+  (async () => { try { sampleFn = window.claude?.use ? await window.claude.use('sample') : null; } catch (e) { sampleFn = null; } renderFiles(); })();
+})();
+</script>
+
+</body></html>

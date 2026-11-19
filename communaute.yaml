@@ -131,7 +131,8 @@ espaces:
     portee: projet
     acces: { badges: { actif: filtre, equipe: complet, administrateur: agrege } }
   # Outils de l'espace membres : chaque outil est un espace comme les autres (lien + règles d'accès).
-  # Les liens claude.ai ne s'ouvrent que pour les personnes avec qui l'outil est partagé.
+  # Lien « /outils/… » : copie synchronisée d'un artefact, servie par le site derrière ces mêmes règles
+  # (data/artefacts/sources.yaml). Lien claude.ai : ne s'ouvre que pour qui l'artefact est partagé.
   outil_guilde_ctg:
     libelle: La guilde Trois-Tiers sur ChangeTheGame
     groupe: outil
@@ -147,25 +148,25 @@ espaces:
   outil_configurateur:
     libelle: Configurateur AMO
     groupe: outil
-    lien: "https://claude.ai/artifact/Fnjc3mFADsvEgajJcrrahf"
+    lien: /outils/configurateur-amo
     description: "Compose un parcours d'accompagnement et son budget à partir de la situation du porteur."
     acces: { badges: { equipe: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
   outil_referentiel:
     libelle: Portefeuille d'accompagnement — référentiel AMO
     groupe: outil
-    lien: "https://claude.ai/artifact/91S4WAcaTiJJrm8Lh1xGK8"
+    lien: /outils/referentiel-amo
     description: "Le référentiel des prestations d'accompagnement."
     acces: { badges: { equipe: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
   outil_charte_accompagnants:
     libelle: Charte et guide du réseau d'accompagnants
     groupe: outil
-    lien: "https://claude.ai/artifact/9J5uf8xhxJKLd9wcC8Nods"
+    lien: /outils/charte-accompagnants
     description: "Les règles de fonctionnement du réseau d'accompagnants."
     acces: { badges: { equipe: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
   outil_coordination_missions:
     libelle: Cadre de coordination des missions
     groupe: outil
-    lien: "https://claude.ai/artifact/P3NbXUrnYHznAQ3jQZAbsa"
+    # Lien à fournir par PA : https://claude.ai/artifact/P3NbXUrnYHznAQ3jQZAbsa ouvre une page étrangère (« Slides »).
     description: "Comment les missions se coordonnent entre l'équipe et les accompagnants."
     acces: { badges: { equipe: complet, actif: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
   outil_pilote:
