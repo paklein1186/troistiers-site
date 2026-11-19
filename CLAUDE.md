@@ -132,7 +132,14 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   À surveiller : les tuiles OSM conviennent à un trafic modéré ; au-delà, prendre un fournisseur de tuiles.
 - ChangeTheGame → Projets et Agenda : nouvelle fonction CTG qui ne renvoie que les quêtes et événements publics de la
   guilde (le flux `site-feed` actuel ne filtre peut-être pas la visibilité).
-- Space2 → Observatoire : nouvelle route d'API Space2 (statistiques agrégées), dépôt `space2` à ouvrir en écriture.
+- Space2 → Observatoire et enquêtes (19/11) : space2#3 ajoute `GET /observatoire` (agrégats seulement, rien sous
+  3 lieux par périmètre) et `GET /campagnes` (enquêtes actives), lisibles avec la clé du site. Site : `/observatoire`
+  (Belgique, filtre par région) et « Nourrir votre lieu » sur `/membre` (entretien `?entretien=general`, enquêtes
+  `?campagne=<code>` ; espace `nourrir_lieu`). Le compte Space2 reste distinct (code par e-mail).
+  Gradient prévu par `communaute.yaml` (actif → son territoire, équipe → tout) : pour l'instant tout le monde voit
+  les agrégats ; le détail par lieu n'existe pas encore dans l'API.
+- Space2 → Bibliothèque (questions RAG) : décision du 19/11 = ouvert aux adhérents avec quota mensuel par personne
+  (option A) ; quota à fixer par PA.
 
 ## Avant d'ouvrir les paiements réels
 

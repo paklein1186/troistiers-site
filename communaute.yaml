@@ -121,6 +121,11 @@ espaces:
     groupe: membre
     lien: guilde_ctg
     acces: { badges: { adherent: complet, equipe: complet }, profils: { observateur: resume } }
+  nourrir_lieu:
+    libelle: Nourrir votre lieu (entretien et enquêtes Space2)
+    groupe: membre
+    source: space2
+    acces: { badges: { adherent: complet, equipe: complet, actif: complet }, profils: { observateur: complet } }
   groupes_travail:
     libelle: Groupes de travail
     groupe: membre

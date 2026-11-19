@@ -1,0 +1,43 @@
+---
+// Barres horizontales d'une seule série (nombre de lieux par valeur) : une seule couleur, le chiffre
+// écrit à côté de chaque barre (pas de légende, pas de couleur porteuse de sens), info-bulle au survol.
+import type { Effectif } from "../lib/space2";
+interface Props { titre: string; donnees: Effectif[]; note?: string; libelles?: Record<string, string> }
+const { titre, donnees, note, libelles = {} } = Astro.props;
+const max = Math.max(1, ...donnees.map((d) => d.n));
+const total = donnees.reduce((a, d) => a + d.n, 0);
+---
+<figure class="barres">
+  <figcaption><h3>{titre}</h3></figcaption>
+  {donnees.length === 0 ? (
+    <p class="doux" style="font-size:.92rem">Pas encore assez de réponses.</p>
+  ) : (
+    <ul>
+      {donnees.map((d) => {
+        const lib = libelles[d.valeur] ?? d.valeur;
+        return (
+          <li title={`${lib} : ${d.n} lieu${d.n > 1 ? "x" : ""}`} tabindex="0">
+            <span class="lib">{lib}</span>
+            <span class="piste"><span class="barre" style={`width:${Math.max(2, (d.n / max) * 100)}%`}></span></span>
+            <span class="val">{d.n}</span>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+  {(note || total > 0) && <p class="doux note">{note ?? `${total} réponse${total > 1 ? "s" : ""}`}</p>}
+</figure>
+
+<style>
+  .barres { margin: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  li { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) 2.5rem; gap: 10px; align-items: center; font-size: .92rem; border-radius: 4px; }
+  li:hover .barre, li:focus .barre { background: var(--encre); }
+  li:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .lib { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .piste { height: 14px; display: block; }
+  .barre { display: block; height: 100%; background: var(--relier); border-radius: 0 4px 4px 0; }
+  .val { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--encre); }
+  .note { font-size: .85rem; margin: 0; }
+  @media (max-width: 520px) { li { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 2.2rem; } }
+</style>

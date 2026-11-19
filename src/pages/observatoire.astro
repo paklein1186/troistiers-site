@@ -1,0 +1,104 @@
+---
+import Base from "../layouts/Base.astro";
+import Barres from "../components/Barres.astro";
+import { chargerContenu } from "../lib/contenu";
+import { chargerObservatoire, space2Configure, type Observatoire } from "../lib/space2";
+
+// Observatoire des lieux : uniquement des chiffres agrégés de Space2 (jamais une ligne par lieu).
+// Sous 3 lieux dans le périmètre, Space2 ne renvoie que les totaux.
+const pays = chargerContenu().carte?.pays ?? ["Belgique"];
+const regionDemandee = (Astro.url.searchParams.get("region") ?? "").slice(0, 80) || null;
+
+let national: Observatoire | null = null;
+let vue: Observatoire | null = null;
+let erreur = "";
+try {
+  national = await chargerObservatoire(pays);
+  vue = regionDemandee ? await chargerObservatoire(pays, regionDemandee) : national;
+} catch (e) {
+  console.error("Observatoire :", e);
+  erreur = "L'observatoire n'est pas disponible pour le moment.";
+}
+const regions = national?.repartitions?.regions.map((r) => r.valeur) ?? [];
+const r = vue?.repartitions;
+const t = vue?.totaux;
+const nombre = (n: number) => n.toLocaleString("fr-BE");
+const MODES: Record<string, string> = { voiture: "En voiture", velo: "À vélo", pied: "À pied", transport_commun: "En transport en commun" };
+const PROVENANCE: Record<string, string> = { commune: "De la commune", limitrophe: "Des communes voisines", plus_loin: "De plus loin" };
+---
+<Base titre="Observatoire" description="Ce que les tiers-lieux de Belgique déclarent dans Space2, en chiffres agrégés.">
+  <section class="hero">
+    <p class="surtitre">Observatoire des lieux</p>
+    <h1>Les tiers-lieux en chiffres</h1>
+    <p class="lead">Ce que les lieux de Belgique déclarent dans leur entretien Space2, additionné : jamais une fiche individuelle. Chaque lieu qui complète son profil fait progresser l'image commune.</p>
+  </section>
+
+  {!space2Configure() && <p class="avertissement">L'API de Space2 n'est pas encore configurée : l'observatoire s'affichera une fois branché.</p>}
+  {erreur && <p class="avertissement">{erreur}</p>}
+
+  {vue && t && (
+    <>
+      {regions.length > 0 && (
+        <form method="get" class="rangee filtre-region" aria-label="Choisir un territoire">
+          <label for="region">Territoire</label>
+          <select id="region" name="region">
+            <option value="">Toute la Belgique</option>
+            {regions.map((x) => <option value={x} selected={x === regionDemandee}>{x}</option>)}
+          </select>
+          <button type="submit">Afficher</button>
+        </form>
+      )}
+
+      <section class="tuiles">
+        <div class="tuile"><span class="chiffre">{nombre(t.lieux)}</span><span>lieux recensés</span></div>
+        <div class="tuile"><span class="chiffre">{nombre(t.regions)}</span><span>régions</span></div>
+        {t.surface_batie_m2 && <div class="tuile"><span class="chiffre">{nombre(t.surface_batie_m2.total)} m²</span><span>de surface bâtie ({t.surface_batie_m2.n} lieux)</span></div>}
+        {t.etp_geres && <div class="tuile"><span class="chiffre">{nombre(Math.round(t.etp_geres.total))}</span><span>emplois équivalents temps plein ({t.etp_geres.n} lieux)</span></div>}
+        {t.frequentation_semaine_moyenne && <div class="tuile"><span class="chiffre">{nombre(t.frequentation_semaine_moyenne.moyenne)}</span><span>passages par semaine en moyenne ({t.frequentation_semaine_moyenne.n} lieux)</span></div>}
+      </section>
+
+      {!r ? (
+        <p class="avertissement">Moins de {vue.seuil_min_lieux} lieux sur ce territoire : le détail n'est pas affiché, pour qu'aucun lieu ne soit reconnaissable.</p>
+      ) : (
+        <>
+          <section class="bloc">
+            <h2>Qui sont les lieux ?</h2>
+            <div class="t2">
+              <Barres titre="Catégories" donnees={r.categories} note="Un lieu peut avoir plusieurs catégories." />
+              {!regionDemandee && <Barres titre="Régions" donnees={r.regions} />}
+              <Barres titre="Milieu" donnees={r.milieu} />
+              <Barres titre="Statut juridique" donnees={r.statut_juridique} />
+              <Barres titre="Année d'ouverture" donnees={r.annee_ouverture} />
+            </div>
+          </section>
+          <section class="bloc">
+            <h2>Fréquentation</h2>
+            <div class="t2">
+              <Barres titre="Évolution de la fréquentation sur 3 ans" donnees={r.evolution_frequentation_3ans} />
+              {Object.entries(MODES).map(([k, lib]) => <Barres titre={`Usagers qui viennent ${lib.charAt(0).toLowerCase()}${lib.slice(1)}`} donnees={r.mode_acces[k] ?? []} />)}
+              {Object.entries(PROVENANCE).map(([k, lib]) => <Barres titre={`Usagers venant ${lib.charAt(0).toLowerCase()}${lib.slice(1)}`} donnees={r.provenance[k] ?? []} />)}
+            </div>
+          </section>
+          <section class="bloc">
+            <h2>De quoi parlent les lieux ?</h2>
+            <Barres titre="Les 20 mots-clés les plus fréquents" donnees={r.mots_cles} note="Nombre de lieux qui citent chaque mot-clé." />
+          </section>
+        </>
+      )}
+
+      <section class="bloc panneau">
+        <h2>Faire progresser l'observatoire</h2>
+        <p>Vous faites vivre un lieu ? Son entretien Space2 l'ajoute à la carte et à ces chiffres.</p>
+        <div class="rangee"><a class="bouton" href="/membre#nourrir">Nourrir votre lieu</a><a class="bouton creux" href="/carte">Voir la carte</a></div>
+      </section>
+    </>
+  )}
+</Base>
+
+<style>
+  .filtre-region select { min-height: 44px; }
+  .tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 20px; }
+  .tuile { background: var(--surface); border: 1px solid var(--trait); border-radius: 10px; padding: 14px 16px; display: grid; gap: 2px; }
+  .tuile span:last-child { color: var(--doux); font-size: .92rem; }
+  .chiffre { font-family: var(--titre); font-weight: 700; font-size: 1.9rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+</style>
