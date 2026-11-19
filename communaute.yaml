@@ -156,3 +156,21 @@ correspondances_ctg:
     partenaire_beneficiaire: partenaire_beneficiaire
     lieu_moins_20: lieu
     lieu_20_et_plus: lieu
+  # Comment chaque formule se présente sur la page « Adhérer » : le libellé du choix, et les
+  # quantités à demander (extra_persons, small_places, large_places, comme dans guild-euro-checkout).
+  # Les montants ne sont pas répétés ici : CTG les recalcule toujours à partir de la formule.
+  choix:
+    citoyen:                   { libelle: Par an }
+    citoyen_mensuel:           { libelle: Par mois }
+    accompagnant_freelance:    { libelle: Par an }
+    accompagnant_organisation:
+      libelle: Par an
+      quantites: { extra_persons: Personnes en plus de la première }
+    partenaire_allie:          { libelle: Par an }
+    partenaire_beneficiaire:
+      libelle: Par an
+      quantites:
+        small_places: Lieux portés de moins de 20 usagers réguliers
+        large_places: Lieux portés de 20 usagers réguliers ou plus
+    lieu_moins_20:             { libelle: Moins de 20 usagers réguliers }
+    lieu_20_et_plus:           { libelle: 20 usagers réguliers ou plus }

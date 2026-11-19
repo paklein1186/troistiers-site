@@ -16,6 +16,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { BadgePorte, Utilisateur } from "./acces";
+import type { Jetons } from "./jetons";
 import { chargerCommunaute, type Communaute } from "./config";
 
 // Une variable vide dans .env (ex. « CTG_FUNCTIONS_URL= ») compte comme absente.
@@ -112,30 +113,133 @@ export interface ProfilCtg {
   badges: { code: string; expires_at: string | null; scope: { type: string; id: string } | null }[];
 }
 
-export async function echangerCode(code: string, verifieur: string): Promise<Utilisateur> {
+interface ReponseJeton {
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number;
+}
+
+const versJetons = (r: ReponseJeton, ancien?: Jetons): Jetons => ({
+  acces: r.access_token,
+  renouvellement: r.refresh_token ?? ancien?.renouvellement,
+  expire_a: Date.now() + (r.expires_in ?? 3600) * 1000,
+});
+
+async function demanderJeton(champs: Record<string, string>): Promise<ReponseJeton> {
   const [d, client] = await Promise.all([decouvrir(), obtenirClient()]);
-  const corps = new URLSearchParams({
-    grant_type: "authorization_code",
-    code,
-    redirect_uri: env("CTG_REDIRECT_URI")!,
-    client_id: client.client_id,
-    code_verifier: verifieur,
-  });
+  const corps = new URLSearchParams({ ...champs, client_id: client.client_id });
   if (client.client_secret) corps.set("client_secret", client.client_secret);
   const r = await fetch(d.token_endpoint, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: corps,
   });
-  if (!r.ok) throw new Error(`Échange du code refusé par CTG (${r.status})`);
-  const { access_token } = (await r.json()) as { access_token: string };
+  if (!r.ok) throw new Error(`Jeton refusé par CTG (${r.status})`);
+  return (await r.json()) as ReponseJeton;
+}
 
-  const fonctions = (env("CTG_FUNCTIONS_URL") ?? `${new URL(env("CTG_ISSUER")!).origin}/functions/v1`).replace(/\/$/, "");
-  const p = await fetch(`${fonctions}/guild-member-profile?guild_id=${encodeURIComponent(env("CTG_GUILD_ID")!)}`, {
-    headers: { authorization: `Bearer ${access_token}` },
+/** Étape 3 de la connexion : code → jetons, puis profil de la personne dans la guilde. */
+export async function echangerCode(code: string, verifieur: string): Promise<{ utilisateur: Utilisateur; jetons: Jetons }> {
+  const r = await demanderJeton({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: env("CTG_REDIRECT_URI")!,
+    code_verifier: verifieur,
   });
-  if (!p.ok) throw new Error(`Profil CTG indisponible (${p.status})`);
-  return versUtilisateur((await p.json()) as ProfilCtg, chargerCommunaute());
+  const jetons = versJetons(r);
+  return { utilisateur: await lireProfil(jetons.acces), jetons };
+}
+
+/**
+ * Rend un jeton d'accès encore valable (marge d'une minute), en le renouvelant si besoin.
+ * Renvoie null si la personne doit se reconnecter.
+ */
+export async function jetonsValides(j: Jetons | null): Promise<Jetons | null> {
+  if (!j) return null;
+  if (j.expire_a - 60_000 > Date.now()) return j;
+  if (!j.renouvellement) return null;
+  try {
+    return versJetons(await demanderJeton({ grant_type: "refresh_token", refresh_token: j.renouvellement }), j);
+  } catch {
+    return null;
+  }
+}
+
+const urlFonctions = () => (env("CTG_FUNCTIONS_URL") ?? `${new URL(env("CTG_ISSUER")!).origin}/functions/v1`).replace(/\/$/, "");
+
+/** Appelle une fonction de CTG au nom de la personne. Renvoie le statut HTTP et le corps JSON. */
+async function appeler(nom: string, jeton: string, corps?: unknown, query = ""): Promise<{ statut: number; donnees: any }> {
+  const r = await fetch(`${urlFonctions()}/${nom}${query}`, {
+    method: corps === undefined ? "GET" : "POST",
+    headers: {
+      authorization: `Bearer ${jeton}`,
+      ...(corps === undefined ? {} : { "content-type": "application/json" }),
+    },
+    body: corps === undefined ? undefined : JSON.stringify(corps),
+  });
+  const donnees = await r.json().catch(() => null);
+  return { statut: r.status, donnees };
+}
+
+/** Profil de la personne dans la guilde Trois-Tiers, traduit en utilisateur du site. */
+export async function lireProfil(jeton: string): Promise<Utilisateur> {
+  const guilde = encodeURIComponent(env("CTG_GUILD_ID")!);
+  const { statut, donnees } = await appeler("guild-member-profile", jeton, undefined, `?guild_id=${guilde}`);
+  if (statut !== 200) throw new Error(`Profil CTG indisponible (${statut})`);
+  return versUtilisateur(donnees as ProfilCtg, chargerCommunaute());
+}
+
+export interface DemandeCotisation {
+  plan_code: string;
+  extra_persons?: number;
+  small_places?: number;
+  large_places?: number;
+}
+
+/** Erreur de paiement, avec un code court que la page /adherer sait expliquer. */
+export class ErreurPaiement extends Error {
+  constructor(public code: string, message: string) {
+    super(message);
+  }
+}
+
+function codeErreur(statut: number, message: string): string {
+  if (statut === 401) return "reconnexion";
+  if (/apply to this guild first/i.test(message)) return "candidature";
+  if (/not been approved/i.test(message)) return "candidature_en_attente";
+  if (/does not accept membership payments|not configured/i.test(message)) return "paiement_ferme";
+  if (/plan not found/i.test(message)) return "formule";
+  if (/Quantities/i.test(message)) return "quantites";
+  return "paiement";
+}
+
+/**
+ * Démarre une cotisation chez CTG (fonction guild-euro-checkout) et renvoie l'adresse de la page
+ * de paiement Stripe. Le montant est toujours recalculé par CTG à partir de la formule.
+ */
+export async function demarrerCotisation(jeton: string, d: DemandeCotisation, retour: string): Promise<string> {
+  const { statut, donnees } = await appeler("guild-euro-checkout", jeton, {
+    guild_id: env("CTG_GUILD_ID"),
+    ...d,
+    return_url: retour,
+  });
+  if (statut === 200 && typeof donnees?.url === "string") return donnees.url;
+  const message = String(donnees?.error ?? `HTTP ${statut}`);
+  throw new ErreurPaiement(codeErreur(statut, message), message);
+}
+
+/**
+ * Au retour de Stripe : demande à CTG d'activer l'adhésion sans attendre le webhook
+ * (fonction guild-euro-confirm). « attente » si Stripe n'a pas encore validé le paiement.
+ */
+export async function confirmerCotisation(jeton: string, sessionStripe: string): Promise<"active" | "attente" | "erreur"> {
+  const { statut, donnees } = await appeler("guild-euro-confirm", jeton, {
+    guild_id: env("CTG_GUILD_ID"),
+    session_id: sessionStripe,
+  });
+  if (statut === 200 && donnees?.ok) return "active";
+  if (statut === 200 && donnees?.pending) return "attente";
+  return "erreur";
 }
 
 /**

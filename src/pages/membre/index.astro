@@ -12,9 +12,19 @@ const badges = badgesValides(u);
 const libelles: Record<string, string> = {
   aucun: "Fermé", resume: "Résumé", agrege: "Vues agrégées", filtre: "Filtré (vos missions, votre territoire)", complet: "Complet",
 };
+const adhesion = Astro.url.searchParams.get("adhesion");
+const messagesAdhesion: Record<string, string> = {
+  active: "Merci ! Votre adhésion est active : le badge « Adhérent » et ses accès sont à vous.",
+  attente: "Merci ! Le paiement est en cours de validation chez Stripe : votre badge « Adhérent » apparaîtra dans quelques minutes (bouton « Actualiser mon profil » plus bas).",
+  erreur: "Le paiement a bien été reçu par Stripe, mais l'activation n'a pas pu être confirmée tout de suite. Elle se fera automatiquement ; sinon, écrivez à l'équipe.",
+};
+const profilMaj = Astro.url.searchParams.get("profil");
 const groupes: Record<string, string> = { public: "Partie publique", membre: "Espace membre", cle: "Clés", gouvernance: "Gouvernance" };
 ---
 <Base titre="Espace membre">
+  {adhesion && messagesAdhesion[adhesion] && <p class="avertissement" role="status">{messagesAdhesion[adhesion]}</p>}
+  {profilMaj === "actualise" && <p class="avertissement" role="status">Profil relu chez ChangeTheGame.</p>}
+  {profilMaj === "erreur" && <p class="avertissement" role="status">Le profil n'a pas pu être relu chez ChangeTheGame. Réessayez plus tard.</p>}
   <h1>Bonjour{u.nom ? `, ${u.nom}` : ""}</h1>
   <p class="chapo">Profil : <strong>{c.profils[u.profil]?.libelle ?? u.profil}</strong> · {u.email}</p>
   <p>
@@ -22,6 +32,10 @@ const groupes: Record<string, string> = { public: "Partie publique", membre: "Es
       ? badges.map((b) => <span class="pastille" style="margin-right:6px">{c.badges[b.id]?.libelle ?? b.id}{b.portee ? ` · ${b.portee.type} ${b.portee.id}` : ""}{b.expire_le ? ` · jusqu'au ${b.expire_le.slice(0, 10)}` : ""}</span>)
       : <span style="color:var(--doux)">Aucun badge : vous voyez la partie publique et les annonces de la communauté.</span>}
   </p>
+
+  {!badges.some((b) => b.id === "adherent") && u.profil !== "equipe" && (
+    <p><a class="bouton" href="/adherer">Adhérer à Trois-Tiers</a></p>
+  )}
 
   <h2 style="font-size:20px;margin-top:28px">Ce que vous voyez</h2>
   <div class="defile">
@@ -37,5 +51,8 @@ const groupes: Record<string, string> = { public: "Partie publique", membre: "Es
     </table>
   </div>
 
-  <form method="post" action="/deconnexion" style="margin-top:24px"><button type="submit">Se déconnecter</button></form>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">
+    {!u.email.startsWith("demo+") && <form method="post" action="/membre/actualiser"><button type="submit">Actualiser mon profil</button></form>}
+    <form method="post" action="/deconnexion"><button type="submit">Se déconnecter</button></form>
+  </div>
 </Base>
