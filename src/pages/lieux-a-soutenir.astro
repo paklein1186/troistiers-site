@@ -1,6 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
-import { chargerLieux, lieuxASoutenir } from "../lib/space2";
+import { chargerLieux, idLieu, lieuxASoutenir } from "../lib/space2";
 
 let erreur = "";
 let lieux: Awaited<ReturnType<typeof chargerLieux>>["lieux"] = [];
@@ -25,7 +25,7 @@ try {
   <div class="grille">
     {lieux.map((l) => (
       <article class="carte">
-        <h2 style="font-size:18px;margin:0 0 4px">{l.tiers_lieu}</h2>
+        <h2 style="font-size:18px;margin:0 0 4px"><a href={`/lieux/${idLieu(l)}`}>{l.tiers_lieu}</a></h2>
         <p style="margin:0 0 8px;font-size:14px;color:var(--doux)">{[l.commune, l.region].filter(Boolean).join(", ")}</p>
         {l.campagne && <p style="margin:0 0 8px">{l.campagne.texte}</p>}
         {l.campagne?.objectif && <p style="margin:0 0 8px"><span class="pastille">Objectif : {l.campagne.objectif}</span></p>}

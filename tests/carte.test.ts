@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { pointsCarte, type Lieu } from "../src/lib/space2";
+import { resolve } from "node:path";
+import { dansLesPays, enListe, idLieu, pointsCarte, resumeBref, type Lieu } from "../src/lib/space2";
+import { chargerCommunaute } from "../src/lib/config";
+import { niveauAcces } from "../src/lib/acces";
 
 const lieu = (x: Partial<Lieu>): Lieu => ({ tiers_lieu: "L", ...x });
 
@@ -21,8 +24,8 @@ describe("points de la carte", () => {
       resume: "x".repeat(500), besoins_mis_en_avant: ["a", "b", "c", "d"],
       campagne: { texte: "Rénover", objectif: "10 000 €", contact: "secret@example.org" },
     })]);
-    expect(Object.keys(p).sort()).toEqual(["besoins", "categories", "lat", "lieu", "lng", "nom", "resume", "soutenir"].concat("lien").sort());
-    expect(p.resume.length).toBeLessThanOrEqual(240);
+    expect(Object.keys(p).sort()).toEqual(["besoins", "categories", "id", "lat", "lien", "lieu", "lng", "nom", "resume", "soutenir"]);
+    expect(p.resume.length).toBeLessThanOrEqual(200);
     expect(p.besoins).toEqual(["a", "b", "c"]);
     expect(p.soutenir).toBe(true);
     expect(JSON.stringify(p)).not.toContain("secret@example.org"); // le contact de campagne ne part pas sur la carte
@@ -37,5 +40,47 @@ describe("points de la carte", () => {
   it("lien externe accepté seulement en http(s)", () => {
     expect(pointsCarte([lieu({ latitude: 1, longitude: 1, lien_externe: "javascript:alert(1)" })])[0].lien).toBeNull();
     expect(pointsCarte([lieu({ latitude: 1, longitude: 1, lien_externe: "https://lieu.example" })])[0].lien).toBe("https://lieu.example");
+  });
+});
+
+describe("carte limitée à la Belgique", () => {
+  const pays = ["Belgique", "Belgium", "België", "BE"];
+  it("garde les lieux belges, quelle que soit l'écriture", () => {
+    for (const p of ["Belgique", "belgique", "BELGIUM", "Belgie", "België", "BE"]) expect(dansLesPays(lieu({ pays: p }), pays), p).toBe(true);
+  });
+  it("écarte les autres pays", () => {
+    for (const p of ["France", "Luxembourg", "Pays-Bas"]) expect(dansLesPays(lieu({ pays: p, latitude: 50.6, longitude: 4.5 }), pays), p).toBe(false);
+  });
+  it("pays non renseigné : décidé par les coordonnées", () => {
+    expect(dansLesPays(lieu({ latitude: 50.46, longitude: 4.87 }), pays)).toBe(true); // Namur
+    expect(dansLesPays(lieu({ latitude: 48.85, longitude: 2.35 }), pays)).toBe(false); // Paris
+    expect(dansLesPays(lieu({}), pays)).toBe(false);
+  });
+});
+
+describe("fiche d'un lieu", () => {
+  it("identifiant : celui de Space2, sinon tiré du nom", () => {
+    expect(idLieu(lieu({ space2_id: "abc-123" }))).toBe("abc-123");
+    expect(idLieu(lieu({ tiers_lieu: "La Fabrique d'Été !" }))).toBe("la-fabrique-d-ete");
+    expect(idLieu(lieu({ space2_id: "../x", tiers_lieu: "Lieu" }))).toBe("lieu");
+  });
+  it("résumé bref : première phrase, 200 caractères au plus", () => {
+    expect(resumeBref("Un atelier partagé. Il accueille aussi un café.")).toBe("Un atelier partagé.");
+    expect(resumeBref("x".repeat(400)).length).toBeLessThanOrEqual(200);
+    expect(resumeBref(null)).toBe("");
+  });
+  it("champs Space2 en liste", () => {
+    expect(enListe(["a", " b ", ""])).toEqual(["a", "b"]);
+    expect(enListe("- a\n- b")).toEqual(["a", "b"]);
+    expect(enListe("a; b")).toEqual(["a", "b"]);
+    expect(enListe(null)).toEqual([]);
+  });
+  it("gradient d'accès : visiteurs et observateurs en résumé, membres en complet", () => {
+    const c = chargerCommunaute(resolve(process.cwd(), "communaute.yaml"));
+    const qui = (profil: string, badges: string[] = []) => ({ email: "x@y.z", profil, badges: badges.map((id) => ({ id })) });
+    expect(niveauAcces(c, null, "fiche_lieu")).toBe("resume");
+    expect(niveauAcces(c, qui("observateur"), "fiche_lieu")).toBe("resume");
+    expect(niveauAcces(c, qui("lieu", ["adherent"]), "fiche_lieu")).toBe("complet");
+    expect(niveauAcces(c, qui("equipe", ["equipe"]), "fiche_lieu")).toBe("complet");
   });
 });

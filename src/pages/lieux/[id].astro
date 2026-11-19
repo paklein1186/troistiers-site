@@ -1,0 +1,102 @@
+---
+import Base from "../../layouts/Base.astro";
+import { chargerCommunaute } from "../../lib/config";
+import { niveauAcces } from "../../lib/acces";
+import { dansLesPays, enListe, resumeBref, trouverLieu, type Champ } from "../../lib/space2";
+import { chargerContenu } from "../../lib/contenu";
+
+// Fiche d'un lieu, à niveau d'accès gradué (espace « fiche_lieu » de communaute.yaml) :
+// visiteurs → l'essentiel en bref ; membres → toute la synthèse publique de Space2.
+let lieu = null;
+try {
+  lieu = await trouverLieu(Astro.params.id ?? "");
+} catch (e) {
+  console.error("Fiche lieu :", e);
+}
+// Mêmes pays que la carte (data/contenu.yaml, carte.pays).
+if (lieu && !dansLesPays(lieu, chargerContenu().carte?.pays ?? ["Belgique"])) lieu = null;
+if (!lieu) return new Response("Lieu introuvable", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
+
+const u = Astro.locals.utilisateur;
+const niveau = niveauAcces(chargerCommunaute(), u, "fiche_lieu");
+const complet = niveau === "complet" || niveau === "filtre";
+const categories = enListe(lieu.categories as Champ);
+const ou = [lieu.commune, lieu.region, lieu.pays].filter(Boolean).join(", ");
+const lien = lieu.lien_externe && /^https?:\/\//i.test(lieu.lien_externe) ? lieu.lien_externe : null;
+const photo = lieu.photo_url && /^https:\/\//i.test(lieu.photo_url) ? lieu.photo_url : null;
+
+// Rubriques détaillées, dans l'ordre d'affichage (membres seulement).
+const rubriques: [string, Champ][] = [
+  ["Activités", lieu.activites], ["Publics", lieu.publics], ["Ancrage territorial", lieu.territoire],
+  ["Partenaires", lieu.partenaires], ["Compétences présentes", lieu.competences], ["Projets", lieu.projets],
+  ["Enjeux", lieu.enjeux], ["Besoins", lieu.besoins],
+].filter(([, v]) => enListe(v).length > 0) as [string, Champ][];
+const besoins = (lieu.besoins_mis_en_avant ?? []).filter(Boolean);
+---
+<Base titre={lieu.tiers_lieu} description={resumeBref(lieu.resume)}>
+  <p class="surtitre"><a href="/carte">Carte des lieux</a> · Fiche</p>
+  <section class="hero">
+    <h1>{lieu.tiers_lieu}</h1>
+    {ou && <p class="doux">{ou}</p>}
+    {categories.length > 0 && <p>{categories.map((c) => <span class="pastille" style="margin-right:6px">{c}</span>)}</p>}
+    <p class="lead">{complet ? lieu.resume : resumeBref(lieu.resume)}</p>
+  </section>
+
+  {lieu.campagne && (
+    <section class="panneau bloc">
+      <p class="surtitre">Ce lieu cherche du soutien</p>
+      <p>{lieu.campagne.texte}</p>
+      {lieu.campagne.objectif && <p><span class="pastille">Objectif : {lieu.campagne.objectif}</span></p>}
+      <div class="rangee"><a class="bouton" href="/contact">Soutenir ce lieu</a></div>
+    </section>
+  )}
+
+  {complet ? (
+    <>
+      {photo && <img src={photo} alt={`Photo : ${lieu.tiers_lieu}`} class="photo" loading="lazy" referrerpolicy="no-referrer" />}
+      {besoins.length > 0 && (
+        <section class="bloc">
+          <h2>Besoins mis en avant</h2>
+          <ul class="simple">{besoins.map((b) => <li>{b}</li>)}</ul>
+        </section>
+      )}
+      {rubriques.length > 0 && (
+        <section class="bloc">
+          <h2>Le lieu en détail</h2>
+          <div class="t2">
+            {rubriques.map(([titre, v]) => {
+              const items = enListe(v);
+              return (
+                <div class="cellule">
+                  <h3>{titre}</h3>
+                  {items.length === 1 ? <p>{items[0]}</p> : <ul class="simple">{items.map((x) => <li>{x}</li>)}</ul>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      <section class="bloc">
+        <div class="rangee">
+          {lien && <a class="bouton creux" href={lien} rel="noopener">Site du lieu</a>}
+          <a class="bouton creux" href="/carte">Retour à la carte</a>
+        </div>
+        {lieu.updated_at && <p class="doux" style="font-size:.85rem">Fiche Space2 mise à jour le {lieu.updated_at.slice(0, 10)}.</p>}
+      </section>
+    </>
+  ) : (
+    <section class="panneau bloc">
+      <h2>En savoir plus sur ce lieu</h2>
+      <p>Activités, publics, partenaires, projets et besoins détaillés du lieu sont réservés aux membres de Trois-Tiers.</p>
+      <div class="rangee">
+        {u ? <a class="bouton" href="/adherer">Adhérer à Trois-Tiers</a> : <a class="bouton" href={`/connexion?suite=${encodeURIComponent(Astro.url.pathname)}`}>Se connecter</a>}
+        {!u && <a class="bouton creux" href="/adherer">Adhérer</a>}
+        <a class="bouton creux" href="/carte">Retour à la carte</a>
+      </div>
+    </section>
+  )}
+</Base>
+
+<style>
+  .photo { width: 100%; max-width: 720px; max-height: 420px; object-fit: cover; border-radius: 10px; border: 1px solid var(--trait); margin-top: 24px; }
+</style>

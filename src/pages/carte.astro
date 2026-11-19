@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
-import { CATEGORIES, chargerLieux, pointsCarte } from "../lib/space2";
+import { CATEGORIES, chargerLieux, dansLesPays, idLieu, pointsCarte } from "../lib/space2";
+import { chargerContenu } from "../lib/contenu";
 
 let lieux: Awaited<ReturnType<typeof chargerLieux>>["lieux"] = [];
 let exemple = false;
@@ -13,6 +14,9 @@ try {
   console.error("Carte des lieux :", e);
   erreur = "Les lieux ne sont pas disponibles pour le moment.";
 }
+// À ce stade, seulement les pays retenus dans data/contenu.yaml (carte.pays) : la Belgique.
+const pays = chargerContenu().carte?.pays ?? ["Belgique"];
+lieux = lieux.filter((l) => dansLesPays(l, pays));
 const points = pointsCarte(lieux);
 const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_lieu));
 ---
@@ -20,7 +24,7 @@ const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_l
   <section class="hero">
     <p class="surtitre">Cartographie</p>
     <h1>Carte des lieux</h1>
-    <p class="lead">{lieux.length} lieux connus de Space2, dont {points.length} localisés. Cliquez sur un point pour voir le lieu et ce dont il a besoin.</p>
+    <p class="lead">{lieux.length} lieux en Belgique connus de Space2, dont {points.length} localisés. Cliquez sur un point pour ouvrir la fiche du lieu.</p>
   </section>
   {exemple && <p class="avertissement">Données d'exemple : l'API de Space2 n'est pas encore configurée.</p>}
   {erreur && <p class="avertissement">{erreur}</p>}
@@ -44,7 +48,7 @@ const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_l
       <table>
         <thead><tr><th>Lieu</th><th>Commune</th><th>Région</th><th>Pays</th></tr></thead>
         <tbody>
-          {lieux.map((l) => <tr><td>{l.tiers_lieu}</td><td>{l.commune ?? "—"}</td><td>{l.region ?? "—"}</td><td>{l.pays ?? "—"}</td></tr>)}
+          {lieux.map((l) => <tr><td><a href={`/lieux/${idLieu(l)}`}>{l.tiers_lieu}</a></td><td>{l.commune ?? "—"}</td><td>{l.region ?? "—"}</td><td>{l.pays ?? "—"}</td></tr>)}
         </tbody>
       </table>
     </div>
@@ -66,13 +70,14 @@ const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_l
   :global(.popup-lieu h3) { font: 700 15px/1.2 var(--titre); margin: 0 0 4px; }
   :global(.popup-lieu p) { margin: 4px 0; }
   :global(.popup-lieu ul) { margin: 4px 0; padding-left: 18px; }
+  :global(.infobulle-lieu) { white-space: normal; width: 260px; }
 </style>
 
 <script>
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
 
-  type Point = { nom: string; lat: number; lng: number; lieu: string; categories: string[]; resume: string; besoins: string[]; soutenir: boolean; lien: string | null };
+  type Point = { id: string; nom: string; lat: number; lng: number; lieu: string; categories: string[]; resume: string; besoins: string[]; soutenir: boolean; lien: string | null };
 
   const COULEURS: Record<string, string> = { Alimentaire: "#b8791f", Culturel: "#44608a", "Éducation": "#2f6f47", "Santé": "#a3476b" };
   const el = document.getElementById("carte");
@@ -91,15 +96,14 @@ const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_l
       const h = document.createElement("h3"); h.textContent = p.nom; d.append(h);
       if (p.lieu) { const s = document.createElement("p"); s.style.color = "#55625a"; s.textContent = p.lieu; d.append(s); }
       if (p.categories.length) { const s = document.createElement("p"); s.textContent = p.categories.join(" · "); d.append(s); }
-      if (p.resume) { const s = document.createElement("p"); s.textContent = p.resume; d.append(s); }
       if (p.besoins.length) {
         const t = document.createElement("p"); t.textContent = "Besoins mis en avant :"; t.style.fontWeight = "600"; d.append(t);
         const ul = document.createElement("ul");
         p.besoins.forEach((b) => { const li = document.createElement("li"); li.textContent = b; ul.append(li); });
         d.append(ul);
       }
-      if (p.soutenir) { const a = document.createElement("a"); a.href = "/lieux-a-soutenir"; a.textContent = "Ce lieu cherche du soutien →"; d.append(a); }
-      if (p.lien) { const a = document.createElement("a"); a.href = p.lien; a.rel = "noopener"; a.target = "_blank"; a.textContent = " Site du lieu"; d.append(a); }
+      if (p.soutenir) { const s = document.createElement("p"); s.style.fontWeight = "600"; s.textContent = "Ce lieu cherche du soutien"; d.append(s); }
+      const c = document.createElement("p"); c.style.color = "#2f6f47"; c.textContent = "Cliquer pour ouvrir la fiche →"; d.append(c);
       return d;
     };
 
@@ -110,8 +114,10 @@ const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_l
         color: "#1c2a22",
         fillColor: COULEURS[p.categories[0]] ?? "#55625a",
         fillOpacity: 0.9,
-      }).bindPopup(() => fiche(p));
-      m.bindTooltip(p.nom);
+      });
+      // Survol : aperçu (nom, commune, besoins) ; clic : la fiche complète du lieu.
+      m.bindTooltip(() => fiche(p), { direction: "top", className: "infobulle-lieu" });
+      m.on("click", () => { window.location.href = `/lieux/${encodeURIComponent(p.id)}`; });
       return { p, m };
     });
 
