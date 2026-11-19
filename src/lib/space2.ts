@@ -39,25 +39,74 @@ export interface Lieu {
 // Une variable vide dans .env (ex. « CTG_FUNCTIONS_URL= ») compte comme absente.
 const env = (k: string) => ((import.meta.env?.[k] as string | undefined) || process.env[k]) || undefined;
 
-let cache: { quand: number; lieux: Lieu[]; exemple: boolean } | null = null;
 const DUREE_CACHE_MS = 10 * 60 * 1000;
+const caches = new Map<string, { quand: number; valeur: unknown }>();
+
+/** Space2 est-il configuré (adresse + clé de lecture du site) ? Sinon le site montre des exemples. */
+export const space2Configure = () => Boolean(env("SPACE2_API_URL") && env("SPACE2_API_SECRET"));
+
+/** Lecture d'une route de l'API Space2 avec la clé du site, gardée 10 minutes en mémoire. */
+async function lireSpace2<T>(chemin: string): Promise<T> {
+  const enCache = caches.get(chemin);
+  if (enCache && Date.now() - enCache.quand < DUREE_CACHE_MS) return enCache.valeur as T;
+  const r = await fetch(`${env("SPACE2_API_URL")!.replace(/\/$/, "")}${chemin}`, {
+    headers: { "X-Webhook-Secret": env("SPACE2_API_SECRET")! },
+  });
+  if (!r.ok) {
+    const raison = r.status === 401 ? " : clé refusée (SITE_READ_SECRET absente de Render, différente de SPACE2_API_SECRET, ou API pas encore mise à jour)"
+      : r.status === 404 ? " : route inconnue (API Space2 pas encore mise à jour)" : "";
+    throw new Error(`Space2 a répondu ${r.status} sur ${chemin.split("?")[0]}${raison}`);
+  }
+  const valeur = (await r.json()) as T;
+  caches.set(chemin, { quand: Date.now(), valeur });
+  return valeur;
+}
 
 export async function chargerLieux(): Promise<{ lieux: Lieu[]; exemple: boolean }> {
-  if (cache && Date.now() - cache.quand < DUREE_CACHE_MS) return cache;
-  const url = env("SPACE2_API_URL");
-  const secret = env("SPACE2_API_SECRET");
-  if (!url || !secret) {
-    cache = { quand: Date.now(), lieux: exemple.lieux as Lieu[], exemple: true };
-    return cache;
-  }
-  const r = await fetch(`${url.replace(/\/$/, "")}/lieux`, { headers: { "X-Webhook-Secret": secret } });
-  if (!r.ok) {
-    const raison = r.status === 401 ? " : clé refusée (SITE_READ_SECRET absente de Render, différente de SPACE2_API_SECRET, ou API pas encore mise à jour)" : "";
-    throw new Error(`Space2 a répondu ${r.status}${raison}`);
-  }
-  const corps = (await r.json()) as { lieux: Lieu[] };
-  cache = { quand: Date.now(), lieux: corps.lieux, exemple: false };
-  return cache;
+  if (!space2Configure()) return { lieux: exemple.lieux as Lieu[], exemple: true };
+  const corps = await lireSpace2<{ lieux: Lieu[] }>("/lieux");
+  return { lieux: corps.lieux, exemple: false };
+}
+
+/** Enquête active de Space2 : un bouton vers le lien direct ?campagne=<code>. */
+export interface Enquete { code: string; titre: string; description?: string | null; date_fin?: string | null }
+
+export async function chargerEnquetes(): Promise<Enquete[]> {
+  if (!space2Configure()) return [];
+  return (await lireSpace2<{ campagnes: Enquete[] }>("/campagnes")).campagnes ?? [];
+}
+
+/** Lien vers l'application Space2 : entretien général, ou une enquête précise. */
+export function lienSpace2(base: string, quoi: { enquete?: string } = {}): string {
+  const u = new URL(base);
+  if (quoi.enquete) u.searchParams.set("campagne", quoi.enquete);
+  else u.searchParams.set("entretien", "general");
+  return u.toString();
+}
+
+export interface Effectif { valeur: string; n: number }
+export interface Observatoire {
+  perimetre: { pays: string[]; region: string | null };
+  seuil_min_lieux: number;
+  totaux: {
+    lieux: number; pays: number; regions: number;
+    surface_batie_m2?: { total: number; n: number } | null;
+    etp_geres?: { total: number; n: number } | null;
+    frequentation_semaine_moyenne?: { moyenne: number; n: number } | null;
+  };
+  repartitions: null | {
+    categories: Effectif[]; pays: Effectif[]; regions: Effectif[]; milieu: Effectif[];
+    annee_ouverture: Effectif[]; statut_juridique: Effectif[]; evolution_frequentation_3ans: Effectif[];
+    mode_acces: Record<string, Effectif[]>; provenance: Record<string, Effectif[]>; mots_cles: Effectif[];
+  };
+}
+
+/** Agrégats de l'observatoire pour des pays (et éventuellement une région). Jamais une ligne par lieu. */
+export async function chargerObservatoire(pays: string[], region?: string | null): Promise<Observatoire | null> {
+  if (!space2Configure()) return null;
+  const q = new URLSearchParams({ pays: pays.join(",") });
+  if (region) q.set("region", region);
+  return lireSpace2<Observatoire>(`/observatoire?${q}`);
 }
 
 /** « Lieux à soutenir » : seuls les lieux dont Space2 publie une campagne (lieux retenus pour le Portfolio). */

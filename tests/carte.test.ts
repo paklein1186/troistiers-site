@@ -84,3 +84,12 @@ describe("fiche d'un lieu", () => {
     expect(niveauAcces(c, qui("equipe", ["equipe"]), "fiche_lieu")).toBe("complet");
   });
 });
+
+import { lienSpace2 } from "../src/lib/space2";
+describe("liens vers Space2", () => {
+  it("entretien général par défaut, enquête précise sinon", () => {
+    expect(lienSpace2("https://space2.streamlit.app/")).toBe("https://space2.streamlit.app/?entretien=general");
+    expect(lienSpace2("https://space2.streamlit.app/", { enquete: "ka122" })).toBe("https://space2.streamlit.app/?campagne=ka122");
+    expect(lienSpace2("https://space2.streamlit.app/", { enquete: "a&b=c" })).toBe("https://space2.streamlit.app/?campagne=a%26b%3Dc");
+  });
+});

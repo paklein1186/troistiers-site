@@ -25,6 +25,7 @@ const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_l
     <p class="surtitre">Cartographie</p>
     <h1>Carte des lieux</h1>
     <p class="lead">{lieux.length} lieux en Belgique connus de Space2, dont {points.length} localisés. Cliquez sur un point pour ouvrir la fiche du lieu.</p>
+    <p><a href="/observatoire">Les mêmes lieux en chiffres : l'observatoire →</a></p>
   </section>
   {exemple && <p class="avertissement">Données d'exemple : l'API de Space2 n'est pas encore configurée.</p>}
   {erreur && <p class="avertissement">{erreur}</p>}

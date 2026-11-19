@@ -5,6 +5,9 @@ import { badgesValides, carteDesAcces } from "../../lib/acces";
 import { formulesDuProfil } from "../../lib/config";
 import { jetonsValides, listerCodes, type CodeAchete } from "../../lib/ctg";
 import { garderJetons, lireJetons } from "../../lib/jetons";
+import { niveauAcces } from "../../lib/acces";
+import { chargerEnquetes, lienSpace2, type Enquete } from "../../lib/space2";
+import { chargerContenu } from "../../lib/contenu";
 
 const u = Astro.locals.utilisateur;
 if (!u) return Astro.redirect("/connexion");
@@ -34,6 +37,18 @@ const pourQui = (planCode: string) => {
 };
 const lien = (code: string) => `${Astro.url.origin}/code?c=${code}`;
 const nbLibres = codes.filter((x) => !x.used).length;
+
+// « Nourrir votre lieu » : entretien Space2 et enquêtes en cours (espace nourrir_lieu de communaute.yaml).
+const nourrir = niveauAcces(c, u, "nourrir_lieu") !== "aucun";
+const space2 = chargerContenu().liens.space2;
+let enquetes: Enquete[] = [];
+if (nourrir) {
+  try {
+    enquetes = await chargerEnquetes();
+  } catch (e) {
+    console.error("Enquêtes Space2 :", e);
+  }
+}
 
 const adhesion = Astro.url.searchParams.get("adhesion");
 const messagesAdhesion: Record<string, string> = {
@@ -87,6 +102,37 @@ const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" 
           </tbody>
         </table>
       </div>
+    </section>
+  )}
+
+  {nourrir && (
+    <section class="bloc" id="nourrir">
+      <h2>Nourrir votre lieu</h2>
+      <p>Plus la fiche de votre lieu est complète, mieux le réseau peut vous relier à des pairs, des ressources et des soutiens. Elle alimente la carte, le Portfolio et l'observatoire.</p>
+      <div class="t2">
+        <div class="cellule">
+          <h3>Présenter ou mettre à jour votre lieu</h3>
+          <p>Un entretien de quelques minutes avec Space2 : activités, publics, bâtiment, gouvernance, besoins. Vous pouvez le reprendre là où vous l'avez laissé.</p>
+          <p><a class="bouton" href={lienSpace2(space2)} rel="noopener">Commencer l'entretien</a></p>
+        </div>
+        <div class="cellule">
+          <h3>Enquêtes en cours</h3>
+          {enquetes.length === 0 ? (
+            <p class="doux">Aucune enquête ouverte en ce moment.</p>
+          ) : (
+            <ul class="simple">
+              {enquetes.map((q) => (
+                <li>
+                  <a href={lienSpace2(space2, { enquete: q.code })} rel="noopener"><strong>{q.titre}</strong></a>
+                  {q.date_fin && <span class="doux"> · jusqu'au {q.date_fin.slice(0, 10)}</span>}
+                  {q.description && <br />}{q.description && <span class="doux" style="font-size:.94rem">{q.description}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+      <p class="doux" style="font-size:.9rem">Space2 vous demandera de vous identifier (un code reçu par e-mail) : son compte est encore distinct de celui de ChangeTheGame.</p>
     </section>
   )}
 
