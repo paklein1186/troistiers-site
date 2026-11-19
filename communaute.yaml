@@ -126,6 +126,11 @@ espaces:
     groupe: membre
     source: space2
     acces: { badges: { adherent: complet, equipe: complet, actif: complet }, profils: { observateur: complet } }
+  bibliotheque:
+    libelle: Bibliothèque (questions à l'assistant Space2)
+    groupe: membre
+    source: space2
+    acces: { badges: { adherent: complet, equipe: complet, actif: complet } }
   groupes_travail:
     libelle: Groupes de travail
     groupe: membre
@@ -203,7 +208,7 @@ espaces:
 
 assistants:
   public:   { questions_par_mois: 5 }          # exemple, à fixer
-  adherent: { inclus_par_mois: a_fixer }       # usage de base inclus dans la cotisation
+  adherent: { inclus_par_mois: 50 }            # questions à la bibliothèque Space2 par personne et par mois (décision du 19/11)
   packs:    a_fixer                             # packs mensuels de tokens
 
 # Correspondance entre les formules de cotisation de la guilde Trois-Tiers sur

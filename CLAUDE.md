@@ -138,8 +138,13 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   `?campagne=<code>` ; espace `nourrir_lieu`). Le compte Space2 reste distinct (code par e-mail).
   Gradient prévu par `communaute.yaml` (actif → son territoire, équipe → tout) : pour l'instant tout le monde voit
   les agrégats ; le détail par lieu n'existe pas encore dans l'API.
-- Space2 → Bibliothèque (questions RAG) : décision du 19/11 = ouvert aux adhérents avec quota mensuel par personne
-  (option A) ; quota à fixer par PA.
+- Space2 → Bibliothèque (décision du 19/11) : adhérents, actifs et équipe ; **50 questions par personne et par mois**
+  (`assistants.adherent.inclus_par_mois`), comptées par le site dans `.donnees/quotas.json` (hors dépôt ; repart
+  de zéro si le site change de machine sans ce fichier). Page `/membre/bibliotheque`, une question de suivi possible.
+  space2#4 : `/ask` accepte la clé du site avec un **agent distinct, public par défaut** ; `SITE_ASK_FULL_ACCESS=true`
+  (Render) l'ouvrirait au mode complet hors confidentiel. **Décision du 19/11 : rester en public** tant que les lieux
+  n'ont pas été prévenus que leurs réponses non confidentielles seraient lisibles par les adhérents. Plafond site : 10/min.
+  Plus tard : comptage dans CTG avec les packs de tokens.
 
 ## Avant d'ouvrir les paiements réels
 
