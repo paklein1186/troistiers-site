@@ -1,0 +1,25 @@
+{
+  "name": "troistiers-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Site Trois-Tiers : partie publique, espace membre et administration, connexion via ChangeTheGame",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "start": "node ./dist/server/entry.mjs",
+    "check": "astro check",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@astrojs/node": "8.3.4",
+    "astro": "4.16.18",
+    "yaml": "2.6.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.4",
+    "@types/node": "22.10.2",
+    "typescript": "5.6.3",
+    "vitest": "2.1.8"
+  }
+}

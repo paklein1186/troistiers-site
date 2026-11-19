@@ -1,0 +1,40 @@
+---
+import Base from "../../layouts/Base.astro";
+import { chargerCommunaute } from "../../lib/config";
+import { aLeBadge } from "../../lib/acces";
+
+const u = Astro.locals.utilisateur;
+if (!u) return Astro.redirect("/connexion");
+if (!aLeBadge(u, "equipe")) return new Response("Accès réservé à l'équipe de coordination.", { status: 403 });
+
+const c = chargerCommunaute();
+---
+<Base titre="Administration">
+  <h1>Administration</h1>
+  <p class="chapo">Les comptes, badges et cotisations sont maîtres dans ChangeTheGame ; cette section en affichera une copie synchronisée. Les contenus de la vitrine et la configuration des membranes se gèrent ici.</p>
+
+  <section class="carte" style="margin-top:16px">
+    <h2 style="font-size:18px;margin:0 0 8px">Membres et cotisations</h2>
+    <p class="avertissement">À brancher : synchronisation depuis ChangeTheGame (API et notifications), en lecture seule.</p>
+  </section>
+
+  <section class="carte" style="margin-top:16px">
+    <h2 style="font-size:18px;margin:0 0 8px">Configuration des membranes</h2>
+    <p style="margin:0 0 12px;font-size:14px;color:var(--doux)">Lue depuis communaute.yaml (version {c.version}). {Object.keys(c.profils).length} profils, {Object.keys(c.badges).length} badges, {Object.keys(c.espaces).length} espaces.</p>
+    <div class="defile">
+      <table>
+        <thead><tr><th>Espace</th><th>Public</th><th>Par badge</th><th>Par profil</th></tr></thead>
+        <tbody>
+          {Object.entries(c.espaces).map(([id, e]) => (
+            <tr>
+              <td>{e.libelle}<br /><code style="font-size:12px">{id}</code></td>
+              <td>{e.acces.tous ?? "aucun"}</td>
+              <td>{Object.entries(e.acces.badges ?? {}).map(([b, n]) => `${b} : ${n}`).join(", ") || "—"}</td>
+              <td>{Object.entries(e.acces.profils ?? {}).map(([p, n]) => `${p} : ${n}`).join(", ") || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</Base>

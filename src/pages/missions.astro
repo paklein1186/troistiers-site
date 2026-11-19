@@ -1,0 +1,29 @@
+---
+import Base from "../layouts/Base.astro";
+import { chargerCommunaute } from "../lib/config";
+import { niveauAcces } from "../lib/acces";
+import donnees from "../../data/missions.exemple.json";
+
+const c = chargerCommunaute();
+const u = Astro.locals.utilisateur;
+const niveau = niveauAcces(c, u, "missions_en_cours");
+const voitDetail = niveau === "filtre" || niveau === "complet";
+---
+<Base titre="Nos missions en cours">
+  <h1>Nos missions en cours</h1>
+  <p class="chapo">Quelques missions actuelles et emblématiques. Le détail de chaque mission est réservé aux membres.</p>
+  <p class="avertissement">Missions d'exemple : la liste viendra des quêtes de la guilde Trois-Tiers sur ChangeTheGame.</p>
+  <div class="grille" style="margin-top:16px">
+    {donnees.missions.map((m) => (
+      <article class="carte">
+        <span class="pastille">{m.statut === "en_cours" ? "En cours" : m.statut}</span>
+        <h2 style="font-size:18px;margin:8px 0 4px">{m.titre}</h2>
+        <p style="margin:0 0 8px">{m.resume}</p>
+        <p style="margin:0;font-size:14px;color:var(--doux)">{m.personnes.join(" · ")}</p>
+        {voitDetail
+          ? <p style="margin:10px 0 0;font-size:14px">{m.detail_membres}</p>
+          : <p style="margin:10px 0 0;font-size:14px;color:var(--doux)">Le détail est accessible aux membres.</p>}
+      </article>
+    ))}
+  </div>
+</Base>

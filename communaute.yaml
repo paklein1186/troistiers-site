@@ -1,0 +1,145 @@
+# Configuration des membranes de Trois-Tiers.
+#
+# Ce fichier décrit la communauté comme des DONNÉES : profils, badges,
+# espaces et règles d'accès. Les pages le lisent ; aucune règle d'accès
+# n'est codée en dur. Le même format servira au futur configurateur de
+# communauté apprenante (ChangeTheGame et studio).
+#
+# Identifiants : en minuscules, stables. Ne jamais renommer un identifiant
+# déjà utilisé (comptes, badges et historiques y font référence).
+#
+# Niveaux d'accès, du plus fermé au plus ouvert :
+#   aucun   : l'espace est invisible
+#   resume  : titre, résumé, personnes (part publique)
+#   agrege  : chiffres et synthèses, sans le détail
+#   filtre  : le détail, limité à son territoire ou à ses missions
+#   complet : tout le détail
+
+version: 1
+
+communaute:
+  id: trois-tiers
+  nom: Trois-Tiers
+  source_comptes: changethegame   # CTG est maître des comptes, badges et cotisations
+  guilde_ctg: null                # identifiant de la guilde Trois-Tiers, à renseigner
+  devise: EUR
+
+badges:
+  adherent:       { libelle: Adhérent,       attribue_par: cotisation, duree: 12 mois }
+  actif:          { libelle: Actif,          attribue_par: mission,    expire_avec: mission, portees: [projet, territoire] }
+  effectif:       { libelle: Effectif,       attribue_par: gouvernance }
+  equipe:         { libelle: Équipe,         attribue_par: coordination }
+  administrateur: { libelle: Administrateur, attribue_par: ag }
+
+profils:
+  public:
+    libelle: Grand public
+    cotisation: null
+    badges: []
+  observateur:
+    libelle: Observateur
+    description: A rejoint la guilde Trois-Tiers sur ChangeTheGame sans cotiser.
+    cotisation: null
+    badges: []
+  citoyen:
+    libelle: Citoyen soutenant
+    cotisation: { annuel: 60, mensuel: 5 }
+    badges: [adherent]
+  accompagnant_freelance:
+    libelle: Accompagnant freelance
+    cotisation: { annuel: 100 }
+    badges: [adherent]
+  accompagnant_organisation:
+    libelle: Organisation d'accompagnement
+    cotisation: { base: 100, par_personne_supplementaire: 50 }
+    payeur_distinct: true          # la structure paie, chaque personne porte son badge
+    badges: [adherent]
+  partenaire_allie:
+    libelle: Partenaire allié
+    cotisation: { annuel: 350 }
+    badges: [adherent]
+  partenaire_beneficiaire:
+    libelle: Partenaire bénéficiaire
+    cotisation: { base: 350, par_lieu_porte: { moins_de_20_usagers: 60, a_partir_de_20_usagers: 100 } }
+    payeur_distinct: true          # peut payer l'adhésion de lieux de son territoire
+    badges: [adherent]
+  lieu:
+    libelle: Lieu
+    cotisation: { moins_de_20_usagers: 60, a_partir_de_20_usagers: 100 }
+    badges: [adherent]
+  financeur:
+    libelle: Financeur ou investisseur
+    cotisation: { pourcentage_des_soutiens: a_fixer }
+    badges: []
+  equipe:
+    libelle: Équipe coordination
+    cotisation: null
+    badges: [equipe, effectif]
+  oa:
+    libelle: Administrateur (OA)
+    cotisation: selon_autre_profil
+    badges: [effectif, administrateur]
+
+# Chaque espace déclare qui y accède et à quel niveau. Le niveau retenu pour
+# une personne est le plus ouvert parmi les règles qui la concernent.
+espaces:
+  vitrine:
+    libelle: Vitrine
+    groupe: public
+    acces: { tous: complet }
+  missions_en_cours:
+    libelle: Nos missions en cours
+    groupe: public
+    acces: { tous: resume, badges: { adherent: filtre, equipe: complet } }
+  lieux_a_soutenir:
+    libelle: Lieux à soutenir
+    groupe: public
+    source: space2
+    acces: { tous: complet }
+  carte:
+    libelle: Carte des lieux
+    groupe: public
+    source: space2
+    acces: { tous: complet }
+  observatoire:
+    libelle: Observatoire
+    groupe: public
+    source: space2
+    acces: { tous: agrege, badges: { actif: filtre, equipe: complet } }
+  commun:
+    libelle: Commun
+    groupe: membre
+    acces: { badges: { adherent: complet, equipe: complet }, profils: { financeur: filtre } }
+  communaute_apprenante:
+    libelle: Communauté apprenante
+    groupe: membre
+    lien: guilde_ctg
+    acces: { badges: { adherent: complet, equipe: complet }, profils: { observateur: resume } }
+  groupes_travail:
+    libelle: Groupes de travail
+    groupe: membre
+    sur_inscription: true
+    acces: { badges: { adherent: filtre, equipe: filtre } }
+  cle_territoire:
+    libelle: Territoire
+    groupe: cle
+    portee: territoire
+    acces: { badges: { actif: filtre, equipe: complet, administrateur: agrege } }
+  cle_projet:
+    libelle: Projet / mission
+    groupe: cle
+    portee: projet
+    acces: { badges: { actif: filtre, equipe: complet, administrateur: agrege } }
+  equipe:
+    libelle: Équipe coordination
+    groupe: gouvernance
+    acces: { badges: { equipe: complet, administrateur: agrege } }
+  oa:
+    libelle: OA
+    groupe: gouvernance
+    acces: { badges: { administrateur: complet }, profils: { financeur: aucun } }
+
+assistants:
+  public:   { questions_par_mois: 5 }          # exemple, à fixer
+  adherent: { inclus_par_mois: a_fixer }       # usage de base inclus dans la cotisation
+  packs:    a_fixer                             # packs mensuels de tokens

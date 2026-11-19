@@ -1,0 +1,24 @@
+---
+import Base from "../layouts/Base.astro";
+
+// Accueil par profil : chaque porte d'entrée mène à ce dont ce profil a besoin en premier.
+const portes = [
+  { titre: "J'ai un lieu ou un projet de lieu", texte: "Rejoindre des pairs, faire connaître vos besoins, être accompagné.", href: "/adherer#lieu" },
+  { titre: "J'accompagne des lieux", texte: "Accéder aux missions, au commun et à la communauté des accompagnants.", href: "/adherer#accompagnant_freelance" },
+  { titre: "Je représente un territoire", texte: "Commune, GAL, institution : suivre les lieux de votre bassin.", href: "/adherer#partenaire_beneficiaire" },
+  { titre: "Je veux soutenir des lieux", texte: "Découvrir les lieux qui ont besoin d'aide : financement, compétences, dons.", href: "/lieux-a-soutenir" },
+  { titre: "Je découvre", texte: "Voir ce que fait Trois-Tiers, en moins de cinq minutes.", href: "/missions" },
+];
+---
+<Base titre="Accueil">
+  <h1>Des lieux qui font tenir les territoires</h1>
+  <p class="chapo">Trois-Tiers est le réseau et la communauté apprenante des tiers-lieux. Dites-nous qui vous êtes, nous vous montrons par où commencer.</p>
+  <div class="grille" style="margin-top:20px">
+    {portes.map((p) => (
+      <a class="carte" href={p.href} style="text-decoration:none;color:inherit">
+        <strong>{p.titre}</strong>
+        <p style="margin:6px 0 0;color:var(--doux)">{p.texte}</p>
+      </a>
+    ))}
+  </div>
+</Base>

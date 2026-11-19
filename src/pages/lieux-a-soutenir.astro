@@ -1,0 +1,34 @@
+---
+import Base from "../layouts/Base.astro";
+import { chargerLieux, lieuxASoutenir } from "../lib/space2";
+
+let erreur = "";
+let lieux: Awaited<ReturnType<typeof chargerLieux>>["lieux"] = [];
+let exemple = false;
+try {
+  const r = await chargerLieux();
+  lieux = lieuxASoutenir(r.lieux);
+  exemple = r.exemple;
+} catch (e) {
+  erreur = "Les lieux ne sont pas disponibles pour le moment.";
+}
+---
+<Base titre="Lieux à soutenir">
+  <h1>Lieux à soutenir</h1>
+  <p class="chapo">Des lieux qui ont besoin d'aide pour naître ou grandir. Le soutien peut être financier, mais aussi du mécénat de compétences ou des dons de matériel.</p>
+  {exemple && <p class="avertissement">Données d'exemple : l'API de Space2 n'est pas encore configurée.</p>}
+  {erreur && <p class="avertissement">{erreur}</p>}
+  <div class="grille" style="margin-top:16px">
+    {lieux.map((l) => (
+      <article class="carte">
+        <h2 style="font-size:18px;margin:0 0 4px">{l.tiers_lieu}</h2>
+        <p style="margin:0 0 8px;font-size:14px;color:var(--doux)">{[l.commune, l.region].filter(Boolean).join(", ")}</p>
+        {l.campagne && <p style="margin:0 0 8px">{l.campagne.texte}</p>}
+        {l.campagne?.objectif && <p style="margin:0 0 8px"><span class="pastille">Objectif : {l.campagne.objectif}</span></p>}
+        {l.besoins_mis_en_avant && l.besoins_mis_en_avant.length > 0 && (
+          <ul style="margin:0;padding-left:18px;font-size:14px">{l.besoins_mis_en_avant.map((b) => <li>{b}</li>)}</ul>
+        )}
+      </article>
+    ))}
+  </div>
+</Base>

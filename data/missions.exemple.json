@@ -1,0 +1,23 @@
+{
+  "_avertissement": "Missions d'exemple. À terme, la liste vient des quêtes de la guilde Trois-Tiers sur ChangeTheGame.",
+  "missions": [
+    {
+      "id": "palace-la-louviere",
+      "titre": "La Louvière — Tiers-lieu du Palace",
+      "resume": "Accompagnement au déploiement d'une dynamique citoyenne autour d'un nouveau lieu.",
+      "personnes": ["Équipe Trois-Tiers", "Accompagnants du réseau"],
+      "territoire": "la-louviere",
+      "statut": "en_cours",
+      "detail_membres": "Avancement, ateliers et livrables visibles par les membres actifs sur la mission."
+    },
+    {
+      "id": "spw-23-tiers-lieux",
+      "titre": "Service public de Wallonie — 23 tiers-lieux",
+      "resume": "Accompagnement de 23 tiers-lieux et capitalisation de leurs apprentissages.",
+      "personnes": ["Équipe Trois-Tiers"],
+      "territoire": "wallonie",
+      "statut": "en_cours",
+      "detail_membres": "Synthèses de capitalisation versées au commun."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+---
+import Base from "../../layouts/Base.astro";
+import { chargerCommunaute } from "../../lib/config";
+import { badgesValides, carteDesAcces } from "../../lib/acces";
+
+const u = Astro.locals.utilisateur;
+if (!u) return Astro.redirect("/connexion");
+
+const c = chargerCommunaute();
+const acces = carteDesAcces(c, u);
+const badges = badgesValides(u);
+const libelles: Record<string, string> = {
+  aucun: "Fermé", resume: "Résumé", agrege: "Vues agrégées", filtre: "Filtré (vos missions, votre territoire)", complet: "Complet",
+};
+const groupes: Record<string, string> = { public: "Partie publique", membre: "Espace membre", cle: "Clés", gouvernance: "Gouvernance" };
+---
+<Base titre="Espace membre">
+  <h1>Bonjour{u.nom ? `, ${u.nom}` : ""}</h1>
+  <p class="chapo">Profil : <strong>{c.profils[u.profil]?.libelle ?? u.profil}</strong> · {u.email}</p>
+  <p>
+    {badges.length
+      ? badges.map((b) => <span class="pastille" style="margin-right:6px">{c.badges[b.id]?.libelle ?? b.id}{b.portee ? ` · ${b.portee.type} ${b.portee.id}` : ""}{b.expire_le ? ` · jusqu'au ${b.expire_le.slice(0, 10)}` : ""}</span>)
+      : <span style="color:var(--doux)">Aucun badge : vous voyez la partie publique et les annonces de la communauté.</span>}
+  </p>
+
+  <h2 style="font-size:20px;margin-top:28px">Ce que vous voyez</h2>
+  <div class="defile">
+    <table>
+      <thead><tr><th>Espace</th><th>Où</th><th>Votre accès</th></tr></thead>
+      <tbody>
+        {acces.map((e) => (
+          <tr style={e.niveau === "aucun" ? "color:var(--doux)" : ""}>
+            <td>{e.libelle}</td><td>{groupes[e.groupe]}</td><td>{libelles[e.niveau]}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <form method="post" action="/deconnexion" style="margin-top:24px"><button type="submit">Se déconnecter</button></form>
+</Base>

@@ -1,0 +1,36 @@
+---
+import Base from "../layouts/Base.astro";
+import { chargerCommunaute } from "../lib/config";
+
+const c = chargerCommunaute();
+const stripePret = Boolean(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY);
+
+// Traduit une formule de cotisation du fichier en phrase lisible.
+function decrire(cot: unknown): string {
+  if (cot === null || cot === undefined) return "Sans cotisation";
+  if (typeof cot === "string") return cot === "selon_autre_profil" ? "Selon votre autre profil" : cot;
+  const f = cot as Record<string, any>;
+  if (f.pourcentage_des_soutiens) return "Pourcentage sur les soutiens apportés (à fixer)";
+  if (f.annuel && f.mensuel) return `${f.annuel} € par an ou ${f.mensuel} € par mois`;
+  if (f.annuel) return `${f.annuel} € par an`;
+  if (f.base && f.par_personne_supplementaire) return `${f.base} € + ${f.par_personne_supplementaire} € par personne supplémentaire`;
+  if (f.base && f.par_lieu_porte) return `${f.base} € + ${f.par_lieu_porte.moins_de_20_usagers} ou ${f.par_lieu_porte.a_partir_de_20_usagers} € par lieu porté`;
+  if (f.moins_de_20_usagers) return `${f.moins_de_20_usagers} € (moins de 20 usagers réguliers) ou ${f.a_partir_de_20_usagers} €`;
+  return "À préciser";
+}
+const offerts = Object.entries(c.profils).filter(([id]) => !["public", "observateur", "equipe", "oa"].includes(id));
+---
+<Base titre="Adhérer">
+  <h1>Adhérer à Trois-Tiers</h1>
+  <p class="chapo">Un seul statut, membre adhérent ; la cotisation dépend de votre profil. Vous pouvez aussi rejoindre la guilde Trois-Tiers sur ChangeTheGame : le compte est le même.</p>
+  <p class="avertissement">Le paiement passera par ChangeTheGame, sur le compte Stripe de Trois-Tiers ({stripePret ? "clé de test présente" : "clé de test absente"}). Il n'est pas encore branché.</p>
+  <div class="grille" style="margin-top:16px">
+    {offerts.map(([id, p]) => (
+      <article class="carte" id={id}>
+        <h2 style="font-size:18px;margin:0 0 6px">{p.libelle}</h2>
+        <p style="margin:0 0 12px">{decrire(p.cotisation)}</p>
+        <button type="button" disabled>Adhérer (bientôt)</button>
+      </article>
+    ))}
+  </div>
+</Base>

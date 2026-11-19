@@ -1,0 +1,27 @@
+{
+  "_avertissement": "Lieux fictifs d'exemple, affichés tant que l'API Space2 n'est pas configurée.",
+  "lieux": [
+    {
+      "tiers_lieu": "La Fabrique d'exemple",
+      "commune": "Namur",
+      "region": "Wallonie",
+      "pays": "Belgique",
+      "latitude": 50.4669,
+      "longitude": 4.8675,
+      "resume": "Atelier partagé et café associatif (exemple fictif).",
+      "besoins_mis_en_avant": ["Bénévoles pour l'accueil", "Matériel de menuiserie"],
+      "campagne": { "texte": "Rénover l'atelier pour accueillir des formations (exemple fictif).", "objectif": "15 000 €", "contact": null }
+    },
+    {
+      "tiers_lieu": "Le Hangar d'exemple",
+      "commune": "Liège",
+      "region": "Wallonie",
+      "pays": "Belgique",
+      "latitude": 50.6326,
+      "longitude": 5.5797,
+      "resume": "Tiers-lieu culturel en bord de Meuse (exemple fictif).",
+      "besoins_mis_en_avant": ["Mécénat de compétences juridiques"],
+      "campagne": null
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+---
+import Base from "../layouts/Base.astro";
+import { chargerLieux } from "../lib/space2";
+
+let lieux: Awaited<ReturnType<typeof chargerLieux>>["lieux"] = [];
+let exemple = false;
+try {
+  const r = await chargerLieux();
+  lieux = r.lieux;
+  exemple = r.exemple;
+} catch {}
+const localises = lieux.filter((l) => typeof l.latitude === "number" && typeof l.longitude === "number");
+---
+<Base titre="Carte des lieux">
+  <h1>Carte des lieux</h1>
+  <p class="chapo">{lieux.length} lieux connus, dont {localises.length} localisés. La carte interactive sera branchée à l'étape suivante ; voici déjà la liste.</p>
+  {exemple && <p class="avertissement">Données d'exemple : l'API de Space2 n'est pas encore configurée.</p>}
+  <div class="defile" style="margin-top:16px">
+    <table>
+      <thead><tr><th>Lieu</th><th>Commune</th><th>Région</th><th>Pays</th></tr></thead>
+      <tbody>
+        {lieux.map((l) => <tr><td>{l.tiers_lieu}</td><td>{l.commune ?? "—"}</td><td>{l.region ?? "—"}</td><td>{l.pays ?? "—"}</td></tr>)}
+      </tbody>
+    </table>
+  </div>
+</Base>

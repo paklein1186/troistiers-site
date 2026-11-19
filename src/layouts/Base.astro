@@ -1,0 +1,61 @@
+---
+import { aLeBadge } from "../lib/acces";
+interface Props { titre: string }
+const { titre } = Astro.props;
+const u = Astro.locals.utilisateur;
+const chemin = Astro.url.pathname;
+const liens = [
+  ["/", "Accueil"],
+  ["/missions", "Nos missions"],
+  ["/lieux-a-soutenir", "Lieux à soutenir"],
+  ["/carte", "Carte des lieux"],
+  ["/adherer", "Adhérer"],
+];
+---
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{titre} · Trois-Tiers</title>
+    <style is:global>
+      :root { --fond:#f4f6f2; --surface:#fff; --encre:#18241d; --doux:#5b6b61; --trait:#cfd9d1; --accent:#2e6b4e; --accent-doux:#dcebe2; }
+      @media (prefers-color-scheme: dark) { :root { --fond:#111814; --surface:#18221c; --encre:#e6eee8; --doux:#9db0a4; --trait:#2e3d34; --accent:#6fc197; --accent-doux:#1e3a2c; } }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--fond); color:var(--encre); font:16px/1.55 system-ui, sans-serif; }
+      a { color: var(--accent); }
+      header, main, footer { max-width: 1080px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+      header { display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between; padding-block:18px; }
+      header nav { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:15px; }
+      header nav a { text-decoration:none; color:var(--encre); }
+      header nav a[aria-current="page"] { color:var(--accent); font-weight:600; }
+      .marque { font-weight:700; font-size:18px; text-decoration:none; color:var(--encre); }
+      main { padding-block: 12px 48px; }
+      h1 { font-size: clamp(26px, 4vw, 36px); margin: 8px 0 12px; }
+      .chapo { color: var(--doux); max-width: 68ch; }
+      .grille { display:grid; gap:14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+      .carte { background:var(--surface); border:1px solid var(--trait); border-radius:12px; padding:16px; }
+      .pastille { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; background:var(--accent-doux); color:var(--accent); }
+      .avertissement { border-left:3px solid #b7791f; padding:6px 12px; background:var(--surface); font-size:14px; color:var(--doux); }
+      table { border-collapse: collapse; width: 100%; font-size: 14px; }
+      th, td { text-align:left; padding:8px; border-bottom:1px solid var(--trait); vertical-align: top; }
+      .defile { overflow-x:auto; }
+      button, .bouton { font:inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:var(--surface); cursor:pointer; text-decoration:none; display:inline-block; }
+      button[disabled] { opacity:.5; cursor:not-allowed; }
+      footer { color: var(--doux); font-size: 13px; padding-block: 24px; border-top: 1px solid var(--trait); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="marque" href="/">Trois-Tiers</a>
+      <nav aria-label="Navigation principale">
+        {liens.map(([href, lib]) => <a href={href} aria-current={chemin === href ? "page" : undefined}>{lib}</a>)}
+        {u ? <a href="/membre">Espace membre</a> : <a href="/connexion">Se connecter</a>}
+        {aLeBadge(u, "equipe") && <a href="/admin">Administration</a>}
+      </nav>
+    </header>
+    <main><slot /></main>
+    <footer>Prototype non public · les accès sont décidés par communaute.yaml et les badges reçus de ChangeTheGame.</footer>
+  </body>
+</html>

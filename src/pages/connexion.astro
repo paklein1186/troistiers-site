@@ -1,0 +1,39 @@
+---
+import Base from "../layouts/Base.astro";
+import { chargerCommunaute } from "../lib/config";
+import { ctgConfiguree } from "../lib/ctg";
+
+const c = chargerCommunaute();
+const demo = (import.meta.env.MODE_DEMO ?? process.env.MODE_DEMO) === "true";
+const erreur = Astro.url.searchParams.get("erreur");
+---
+<Base titre="Se connecter">
+  <h1>Se connecter</h1>
+  <p class="chapo">Un seul compte pour Trois-Tiers, ChangeTheGame et Space2.</p>
+  {erreur && <p class="avertissement">La connexion n'a pas abouti. Réessayez ; si le problème persiste, écrivez à l'équipe.</p>}
+
+  <section class="carte" style="margin-top:16px;max-width:560px">
+    <h2 style="font-size:18px;margin:0 0 8px">Avec ChangeTheGame</h2>
+    {ctgConfiguree()
+      ? <a class="bouton" href="/auth/ctg">Se connecter avec ChangeTheGame</a>
+      : <p style="margin:0;color:var(--doux)">Pas encore disponible : troistiers.space doit d'abord être enregistré comme application cliente de ChangeTheGame.</p>}
+  </section>
+
+  {demo && (
+    <section class="carte" style="margin-top:16px;max-width:560px">
+      <h2 style="font-size:18px;margin:0 0 8px">Mode démonstration</h2>
+      <p style="margin:0 0 12px;font-size:14px;color:var(--doux)">Pour tester les membranes sans ChangeTheGame : choisissez un profil, le site vous donne ses badges par défaut.</p>
+      <form method="post" action="/auth/demo" style="display:flex;flex-direction:column;gap:10px">
+        <label for="profil">Profil</label>
+        <select id="profil" name="profil">
+          {Object.entries(c.profils).filter(([id]) => id !== "public").map(([id, p]) => <option value={id}>{p.libelle}</option>)}
+        </select>
+        <label style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="actif" name="actif" value="palace-la-louviere" />
+          Actif sur la mission « La Louvière — Tiers-lieu du Palace »
+        </label>
+        <button type="submit">Entrer avec ce profil</button>
+      </form>
+    </section>
+  )}
+</Base>
