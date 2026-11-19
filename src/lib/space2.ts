@@ -1,6 +1,6 @@
 /**
  * Lecture des lieux depuis l'API de Space2 (GET /lieux), côté serveur uniquement :
- * le secret partagé ne doit jamais arriver dans le navigateur.
+ * la clé de lecture du site (SITE_READ_SECRET côté Space2) ne doit jamais arriver dans le navigateur.
  * Sans configuration, on affiche des lieux d'exemple clairement signalés.
  */
 import exemple from "../../data/lieux.exemple.json";
