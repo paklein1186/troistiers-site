@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolve } from "node:path";
 import { chargerCommunaute, formulesDuProfil } from "../src/lib/config";
 import { cheminInterne, chiffrer, dechiffrer } from "../src/lib/jetons";
-import { confirmerCotisation, demarrerCotisation, ErreurPaiement, jetonsValides } from "../src/lib/ctg";
+import { confirmerCotisation, demarrerCotisation, ErreurPaiement, jetonsValides, listerCodes, utiliserCode } from "../src/lib/ctg";
 
 const SECRET = "x".repeat(40);
 const c = chargerCommunaute(resolve(process.cwd(), "communaute.yaml"));
@@ -32,6 +32,9 @@ describe("retour après connexion", () => {
   it("accepte un chemin du site", () => {
     expect(cheminInterne("/adherer")).toBe("/adherer");
     expect(cheminInterne("/membre?adhesion=ok")).toBe("/membre?adhesion=ok");
+  });
+  it("ramène sur la saisie d'un code, code compris", () => {
+    expect(cheminInterne("/code?c=ABCD-EFGH-JKMN")).toBe("/code?c=ABCD-EFGH-JKMN");
   });
   it("refuse une adresse extérieure", () => {
     for (const v of ["https://pirate.example", "//pirate.example", "/\\pirate.example", "javascript:alert(1)", "", null])
@@ -133,5 +136,35 @@ describe("appels à ChangeTheGame pour la cotisation", () => {
 
     expect(await jetonsValides({ acces: "A", expire_a: Date.now() - 1 })).toBeNull(); // rien pour renouveler : se reconnecter
     expect(await jetonsValides(null)).toBeNull();
+  });
+
+  it("utilise un code d'adhésion et traduit les refus", async () => {
+    reponses = [{ status: 200, body: { ok: true, plan_code: "lieu_moins_20" } }];
+    expect(await utiliserCode("J", "abcd efgh jkmn")).toBe("active");
+    expect(appels[0].url).toBe("https://ctg.example/functions/v1/guild-membership-redeem");
+    expect(JSON.parse(String(appels[0].init.body))).toEqual({ code: "abcd efgh jkmn" }); // CTG remet le code en forme
+    const cas: [number, unknown, string][] = [
+      [400, { ok: false, reason: "invalid" }, "invalide"],
+      [409, { ok: false, reason: "used" }, "utilise"],
+      [409, { ok: false, reason: "expired" }, "expire"],
+      [409, { ok: false, reason: "already_member" }, "deja_adherent"],
+      [409, { ok: false, reason: "own_code" }, "propre_code"],
+      [401, { error: "Not authenticated" }, "reconnexion"],
+      [500, { error: "boom" }, "erreur"],
+    ];
+    for (const [status, body, attendu] of cas) {
+      reponses = [{ status, body }];
+      expect(await utiliserCode("J", "ABCD-EFGH-JKMN")).toBe(attendu);
+    }
+  });
+
+  it("liste les codes achetés pour la guilde", async () => {
+    const code = { code: "ABCD-EFGH-JKMN", slot: "small_place", plan_code: "lieu_moins_20", valid_until: "2027-11-19T00:00:00Z", used: false, used_at: null };
+    reponses = [{ status: 200, body: { codes: [code] } }];
+    expect(await listerCodes("J")).toEqual([code]);
+    expect(appels[0].url).toBe("https://ctg.example/functions/v1/guild-membership-codes?guild_id=4964c699-4684-43a9-b508-cee21c77e24e");
+    expect(appels[0].init.method).toBe("GET");
+    reponses = [{ status: 500, body: {} }];
+    await expect(listerCodes("J")).rejects.toThrow();
   });
 });
