@@ -1,6 +1,6 @@
 /**
  * Lecture des lieux depuis l'API de Space2 (GET /lieux), côté serveur uniquement :
- * le secret partagé ne doit jamais arriver dans le navigateur.
+ * la clé de lecture du site (SITE_READ_SECRET côté Space2) ne doit jamais arriver dans le navigateur.
  * Sans configuration, on affiche des lieux d'exemple clairement signalés.
  */
 import exemple from "../../data/lieux.exemple.json";
@@ -35,7 +35,10 @@ export async function chargerLieux(): Promise<{ lieux: Lieu[]; exemple: boolean 
     return cache;
   }
   const r = await fetch(`${url.replace(/\/$/, "")}/lieux`, { headers: { "X-Webhook-Secret": secret } });
-  if (!r.ok) throw new Error(`Space2 a répondu ${r.status}`);
+  if (!r.ok) {
+    const raison = r.status === 401 ? " : clé refusée (SITE_READ_SECRET absente de Render, différente de SPACE2_API_SECRET, ou API pas encore mise à jour)" : "";
+    throw new Error(`Space2 a répondu ${r.status}${raison}`);
+  }
   const corps = (await r.json()) as { lieux: Lieu[] };
   cache = { quand: Date.now(), lieux: corps.lieux, exemple: false };
   return cache;
