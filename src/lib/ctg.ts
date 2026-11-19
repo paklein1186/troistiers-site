@@ -242,6 +242,44 @@ export async function confirmerCotisation(jeton: string, sessionStripe: string):
   return "erreur";
 }
 
+// ---------------------------------------------------------------------------
+// Codes d'adhésion : un GAL ou une organisation paie des places, chacun active la sienne.
+// ---------------------------------------------------------------------------
+
+export type ResultatCode = "active" | "invalide" | "utilise" | "expire" | "deja_adherent" | "propre_code" | "reconnexion" | "erreur";
+
+/** Utilise un code d'adhésion pour la personne connectée (fonction guild-membership-redeem). */
+export async function utiliserCode(jeton: string, code: string): Promise<ResultatCode> {
+  const { statut, donnees } = await appeler("guild-membership-redeem", jeton, { code });
+  if (statut === 200 && donnees?.ok) return "active";
+  if (statut === 401) return "reconnexion";
+  const raisons: Record<string, ResultatCode> = {
+    invalid: "invalide",
+    used: "utilise",
+    expired: "expire",
+    already_member: "deja_adherent",
+    own_code: "propre_code",
+  };
+  return raisons[String(donnees?.reason)] ?? "erreur";
+}
+
+export interface CodeAchete {
+  code: string;
+  slot: "extra_person" | "small_place" | "large_place";
+  plan_code: string;
+  valid_until: string | null;
+  used: boolean;
+  used_at: string | null;
+}
+
+/** Codes achetés par la personne connectée pour la guilde (vide si elle n'en a pas). */
+export async function listerCodes(jeton: string): Promise<CodeAchete[]> {
+  const guilde = encodeURIComponent(env("CTG_GUILD_ID")!);
+  const { statut, donnees } = await appeler("guild-membership-codes", jeton, undefined, `?guild_id=${guilde}`);
+  if (statut !== 200) throw new Error(`Codes CTG indisponibles (${statut})`);
+  return Array.isArray(donnees?.codes) ? donnees.codes : [];
+}
+
 /**
  * Traduit le profil CTG en utilisateur Trois-Tiers, selon communaute.yaml :
  *  - administrateur de la guilde → profil « equipe » ;

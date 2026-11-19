@@ -2,6 +2,9 @@
 import Base from "../../layouts/Base.astro";
 import { chargerCommunaute } from "../../lib/config";
 import { badgesValides, carteDesAcces } from "../../lib/acces";
+import { formulesDuProfil } from "../../lib/config";
+import { jetonsValides, listerCodes, type CodeAchete } from "../../lib/ctg";
+import { garderJetons, lireJetons } from "../../lib/jetons";
 
 const u = Astro.locals.utilisateur;
 if (!u) return Astro.redirect("/connexion");
@@ -12,8 +15,29 @@ const badges = badgesValides(u);
 const libelles: Record<string, string> = {
   aucun: "Fermé", resume: "Résumé", agrege: "Vues agrégées", filtre: "Filtré (vos missions, votre territoire)", complet: "Complet",
 };
+// Codes achetés pour d'autres (GAL, organisation) : affichés seulement s'il y en a.
+let codes: CodeAchete[] = [];
+const jetons = await jetonsValides(lireJetons(Astro.cookies));
+if (jetons) {
+  garderJetons(Astro.cookies, jetons);
+  try {
+    codes = await listerCodes(jetons.acces);
+  } catch (e) {
+    console.error("Codes d'adhésion :", e);
+  }
+}
+const pourQui = (planCode: string) => {
+  const profil = c.correspondances_ctg?.formules?.[planCode];
+  const libelle = profil ? c.profils[profil]?.libelle ?? profil : planCode;
+  const choix = c.correspondances_ctg?.choix?.[planCode]?.libelle;
+  return profil && choix && formulesDuProfil(c, profil).length > 1 ? `${libelle} · ${choix}` : libelle;
+};
+const lien = (code: string) => `${Astro.url.origin}/code?c=${code}`;
+const nbLibres = codes.filter((x) => !x.used).length;
+
 const adhesion = Astro.url.searchParams.get("adhesion");
 const messagesAdhesion: Record<string, string> = {
+  code: "Bienvenue ! Votre code est activé : votre adhésion est active, avec le badge « Adhérent » et ses accès.",
   active: "Merci ! Votre adhésion est active : le badge « Adhérent » et ses accès sont à vous.",
   attente: "Merci ! Le paiement est en cours de validation chez Stripe : votre badge « Adhérent » apparaîtra dans quelques minutes (bouton « Actualiser mon profil » plus bas).",
   erreur: "Le paiement a bien été reçu par Stripe, mais l'activation n'a pas pu être confirmée tout de suite. Elle se fera automatiquement ; sinon, écrivez à l'équipe.",
@@ -37,6 +61,33 @@ const groupes: Record<string, string> = { public: "Partie publique", membre: "Es
     <p><a class="bouton" href="/adherer">Adhérer à Trois-Tiers</a></p>
   )}
 
+  {codes.length > 0 && (
+    <section style="margin-top:28px">
+      <h2 style="font-size:20px;margin:0 0 6px">Vos codes d'adhésion</h2>
+      <p style="margin:0 0 12px;color:var(--doux);font-size:14px">
+        Vous avez payé {codes.length} {codes.length > 1 ? "places" : "place"} ({nbLibres} {nbLibres > 1 ? "encore libres" : "encore libre"}).
+        Transmettez à chaque lieu ou personne son code, ou directement son lien : il active l'adhésion avec son propre compte.
+        Chaque code ne sert qu'une fois.
+      </p>
+      <div class="defile">
+        <table>
+          <thead><tr><th>Code</th><th>Pour</th><th>Valable jusqu'au</th><th>État</th><th>Lien à transmettre</th></tr></thead>
+          <tbody>
+            {codes.map((x) => (
+              <tr style={x.used ? "color:var(--doux)" : ""}>
+                <td style="font-family:ui-monospace,monospace;white-space:nowrap">{x.code}</td>
+                <td>{pourQui(x.plan_code)}</td>
+                <td style="white-space:nowrap">{x.valid_until?.slice(0, 10) ?? "—"}</td>
+                <td>{x.used ? `Utilisé le ${x.used_at?.slice(0, 10)}` : "Libre"}</td>
+                <td>{x.used ? "—" : <button type="button" class="copier" data-lien={lien(x.code)} style="padding:4px 10px;font-size:13px">Copier le lien</button>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+
   <h2 style="font-size:20px;margin-top:28px">Ce que vous voyez</h2>
   <div class="defile">
     <table>
@@ -56,3 +107,17 @@ const groupes: Record<string, string> = { public: "Partie publique", membre: "Es
     <form method="post" action="/deconnexion"><button type="submit">Se déconnecter</button></form>
   </div>
 </Base>
+
+<script>
+  // « Copier le lien » d'un code d'adhésion.
+  document.querySelectorAll<HTMLButtonElement>("button.copier").forEach((b) => {
+    b.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(b.dataset.lien ?? "");
+        b.textContent = "Lien copié";
+      } catch {
+        window.prompt("Copiez ce lien :", b.dataset.lien ?? "");
+      }
+    });
+  });
+</script>

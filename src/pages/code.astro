@@ -1,0 +1,63 @@
+---
+import Base from "../layouts/Base.astro";
+import { ctgConfiguree, jetonsValides, lireProfil, utiliserCode, type ResultatCode } from "../lib/ctg";
+import { garderJetons, lireJetons } from "../lib/jetons";
+import { ouvrirSession } from "../lib/session";
+
+// « J'ai un code d'adhésion » : un GAL ou une organisation a payé votre adhésion et vous a
+// transmis un code (ou un lien /code?c=XXXX-XXXX-XXXX). On l'active avec votre propre compte.
+const u = Astro.locals.utilisateur;
+const prerempli = (Astro.url.searchParams.get("c") ?? "").slice(0, 20);
+let resultat: ResultatCode | null = null;
+let saisi = prerempli;
+
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const form = await Astro.request.formData();
+  saisi = String(form.get("code") ?? "").slice(0, 40);
+  const suite = `/code?c=${saisi.replace(/[^A-Za-z0-9-]/g, "")}`;
+  if (!u) return Astro.redirect(`/auth/ctg?suite=${encodeURIComponent(suite)}`);
+  const jetons = await jetonsValides(lireJetons(Astro.cookies));
+  if (!jetons) return Astro.redirect(`/auth/ctg?suite=${encodeURIComponent(suite)}`);
+  garderJetons(Astro.cookies, jetons);
+  try {
+    resultat = await utiliserCode(jetons.acces, saisi);
+    if (resultat === "reconnexion") return Astro.redirect(`/auth/ctg?suite=${encodeURIComponent(suite)}`);
+    if (resultat === "active") {
+      ouvrirSession(Astro.cookies, await lireProfil(jetons.acces));
+      return Astro.redirect("/membre?adhesion=code");
+    }
+  } catch (e) {
+    console.error("Code d'adhésion :", e);
+    resultat = "erreur";
+  }
+}
+
+const messages: Partial<Record<ResultatCode, string>> = {
+  invalide: "Ce code n'existe pas. Vérifiez-le (12 caractères, par exemple ABCD-EFGH-JKMN) ou demandez-le à nouveau à qui vous l'a transmis.",
+  utilise: "Ce code a déjà été utilisé. Chaque code ne sert qu'une fois : demandez-en un autre à qui vous l'a transmis.",
+  expire: "Ce code n'est plus valable : l'adhésion qui l'accompagnait est arrivée à échéance.",
+  deja_adherent: "Vous avez déjà votre propre cotisation en cours : gardez ce code pour quelqu'un d'autre.",
+  propre_code: "C'est un code que vous avez payé : transmettez-le à la personne ou au lieu concerné.",
+  erreur: "Le code n'a pas pu être utilisé. Réessayez ; si le problème persiste, écrivez à l'équipe.",
+};
+---
+<Base titre="J'ai un code d'adhésion">
+  <h1>J'ai un code d'adhésion</h1>
+  <p class="chapo">Votre adhésion a été payée par un partenaire (un GAL, votre organisation…) qui vous a transmis un code. Saisissez-le ici : votre adhésion sera liée à votre propre compte.</p>
+  {resultat && messages[resultat] && <p class="avertissement" role="status">{messages[resultat]}</p>}
+
+  {ctgConfiguree() ? (
+    <form method="post" class="carte" style="max-width:520px;display:flex;flex-direction:column;gap:12px;margin-top:16px">
+      <label for="code" style="font-weight:600">Code</label>
+      <input id="code" name="code" value={saisi} required autocomplete="off" autocapitalize="characters" spellcheck="false"
+        placeholder="ABCD-EFGH-JKMN" style="font:inherit;font-size:20px;letter-spacing:.08em;padding:8px 10px;text-transform:uppercase" />
+      <button type="submit">Activer mon adhésion</button>
+      {!u && <span style="font-size:13px;color:var(--doux)">On vous demandera de vous connecter avec ChangeTheGame (ou de créer un compte) : le code reste rempli.</span>}
+    </form>
+  ) : (
+    <p class="avertissement">L'activation des codes n'est pas encore ouverte. Écrivez à l'équipe.</p>
+  )}
+  <p style="margin-top:20px;font-size:14px"><a href="/adherer">Vous n'avez pas de code ? Adhérer et payer vous-même</a></p>
+</Base>

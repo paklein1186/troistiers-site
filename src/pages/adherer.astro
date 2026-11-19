@@ -43,6 +43,7 @@ const dejaAdherent = aLeBadge(u, "adherent");
   <h1>Adhérer à Trois-Tiers</h1>
   <p class="chapo">Un seul statut, membre adhérent ; la cotisation dépend de votre profil. Vous pouvez aussi rejoindre la guilde Trois-Tiers sur ChangeTheGame : le compte est le même.</p>
   {message && <p class="avertissement" role="status">{message}</p>}
+  <p style="font-size:15px">Un partenaire a déjà payé votre adhésion ? <a href="/code">J'ai un code d'adhésion</a></p>
   {dejaAdherent && <p class="avertissement">Vous êtes déjà adhérent : votre cotisation se renouvelle automatiquement. Pour la modifier ou l'arrêter, passez par la guilde Trois-Tiers sur ChangeTheGame.</p>}
   {!u && paiementOuvert && <p style="font-size:14px;color:var(--doux)">Le paiement passe par votre compte ChangeTheGame : on vous demandera de vous connecter (ou de créer un compte) avant la page de paiement.</p>}
 
@@ -73,6 +74,9 @@ const dejaAdherent = aLeBadge(u, "adherent");
                 <input type="number" name={q} min="0" max="500" step="1" value="0" inputmode="numeric" style="font:inherit;padding:6px 8px;max-width:120px" />
               </label>
             ))}
+            {formules.some((f) => f.choix.quantites) && (
+              <span style="font-size:13px;color:var(--doux)">Vous recevrez un code par lieu ou par personne payé, à leur transmettre : chacun active ainsi sa propre adhésion.</span>
+            )}
             <button type="submit">Adhérer et payer</button>
             <span style="font-size:13px;color:var(--doux)">Paiement sécurisé par Stripe, sur le compte de Trois-Tiers. Le montant exact s'affiche avant de payer.</span>
           </form>

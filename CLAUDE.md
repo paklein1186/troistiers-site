@@ -35,6 +35,10 @@ Réponds en français, simplement : PA n'est pas développeur, il décide de la 
   (porté par ChangeTheGame et le futur studio, pas par l'ASBL).
 - Badges dynamiques : `adherent` (cotisation, 12 mois), `actif` (le temps d'une mission, avec portée projet ou
   territoire), `effectif` (gouvernance), `equipe`, `administrateur`.
+- **Adhérer sans candidature** (19/11) : qui paie devient adhérent ; la guilde CTG ne demande plus de candidature
+  avant paiement (`requires_application_before_payment = false`, entrée ouverte) ; l'équipe peut retirer après coup.
+- **Payer pour d'autres = codes d'adhésion** (19/11) : le payeur (GAL, organisation) reçoit un code par place payée et
+  le transmet ; chaque lieu ou personne l'active avec son propre compte sur `/code`.
 - Données des Pilotes : dans une base qui filtre selon badges et étiquettes ; les artefacts ne sont que des vues.
 - Captation automatique : restructurer d'abord les droits du Drive ; WhatsApp et Zoom hors périmètre au départ.
 
@@ -96,7 +100,22 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   4. si la guilde exige une candidature, le compte de test doit être accepté avant de payer.
 - Test : compte de test (pas un vrai membre), carte `4242 4242 4242 4242`, puis vérifier le badge « Adhérent ».
 
-Puis, dans l'ordre de la feuille de route : paiement pour d'autres (un GAL ou une organisation paie, l'adhésion va à chaque lieu ou personne) ;
+## Phase 3 : codes d'adhésion (branche `phase3/codes-adhesion`, 19/11)
+
+- CTG : PR changethegame #13 (`trois-tiers/codes-adhesion`) — table `guild_membership_codes`, fonctions
+  `guild-membership-redeem` et `guild-membership-codes`, codes créés à l'activation du paiement, prolongés au
+  renouvellement ; bénéficiaires liés à l'abonnement du payeur (impayé/résiliation suivent). 12 tests Deno.
+- Site : `/code` (saisie, lien direct `/code?c=XXXX-XXXX-XXXX`), tableau « Vos codes d'adhésion » sur `/membre`.
+
+## Avant d'ouvrir les paiements réels
+
+- Fenêtre de test (décision du 19/11) : après les essais, **désactiver le paiement en euros** de la guilde jusqu'à
+  la vraie clé Stripe (sinon un vrai membre pourrait « payer » avec la carte de test).
+- Nettoyer les traces de test dans la base de production : adhésion et codes du compte de test (références `sub_…`
+  du mode test Stripe).
+- Poser la clé `sk_live_…`, le secret du webhook réel, et `https://troistiers.space` dans `GUILD_CHECKOUT_RETURN_ORIGINS`.
+
+Puis, dans l'ordre de la feuille de route :
 notifications sortantes de CTG vers le site ; missions lues depuis les quêtes de la guilde ; carte et
 observatoire depuis Space2 ; assistants et packs de tokens.
 
