@@ -143,3 +143,16 @@ assistants:
   public:   { questions_par_mois: 5 }          # exemple, à fixer
   adherent: { inclus_par_mois: a_fixer }       # usage de base inclus dans la cotisation
   packs:    a_fixer                             # packs mensuels de tokens
+
+# Correspondance entre les formules de cotisation de la guilde Trois-Tiers sur
+# ChangeTheGame (identifiant de formule) et les profils de ce site.
+correspondances_ctg:
+  formules:
+    citoyen: citoyen
+    citoyen_mensuel: citoyen
+    accompagnant_freelance: accompagnant_freelance
+    accompagnant_organisation: accompagnant_organisation
+    partenaire_allie: partenaire_allie
+    partenaire_beneficiaire: partenaire_beneficiaire
+    lieu_moins_20: lieu
+    lieu_20_et_plus: lieu

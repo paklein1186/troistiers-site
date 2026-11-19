@@ -44,6 +44,8 @@ export interface Communaute {
   profils: Record<string, Profil>;
   espaces: Record<string, Espace>;
   assistants: Record<string, unknown>;
+  /** Traduction des formules de cotisation ChangeTheGame (plan_code) en profils du site. */
+  correspondances_ctg?: { formules?: Record<string, string> };
 }
 
 let cache: Communaute | null = null;
@@ -74,6 +76,9 @@ export function valider(c: Communaute): void {
       if (!c.profils[p]) erreurs.push(`espace ${id} : profil inconnu « ${p} »`);
       if (!NIVEAUX.includes(n)) erreurs.push(`espace ${id} : niveau inconnu « ${n} »`);
     }
+  }
+  for (const [formule, profil] of Object.entries(c.correspondances_ctg?.formules ?? {})) {
+    if (!c.profils[profil]) erreurs.push(`correspondance CTG ${formule} : profil inconnu « ${profil} »`);
   }
   if (erreurs.length) throw new Error("communaute.yaml invalide :\n- " + erreurs.join("\n- "));
 }

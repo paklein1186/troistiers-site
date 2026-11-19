@@ -43,12 +43,15 @@ Avec `MODE_DEMO=true`, la page « Se connecter » permet d'entrer sous n'importe
 
 ## Ce qui reste à brancher
 
-Côté ChangeTheGame (voir la note de l'agent ChangeTheGame) :
-1. Enregistrer troistiers.space comme application cliente OAuth ; activer le lien par email.
-2. Ajouter au jeton le profil et les badges Trois-Tiers (`trois_tiers_profil`, `trois_tiers_badges`), badges datés.
-3. Cotisations en euros via le compte Stripe de Trois-Tiers, puis activation de l'adhésion et du badge.
-4. Notifications (webhooks) vers le site : compte créé, badge changé, paiement.
-5. Missions en quêtes : la liste `/missions` lira la guilde Trois-Tiers.
+Connexion unique (fait) : le site s'enregistre lui-même auprès de ChangeTheGame, envoie la personne
+sur l'écran de consentement de CTG, puis demande son profil dans la guilde Trois-Tiers à la fonction
+`guild-member-profile` de CTG. `communaute.yaml` (correspondances_ctg) traduit la formule payée en profil.
+Pour l'essayer : `CTG_GUILD_ID` dans `.env`, `MODE_DEMO=false`, `npm run dev`, puis « Se connecter avec ChangeTheGame ».
+
+Côté ChangeTheGame, encore à faire :
+1. Activer la connexion par lien email.
+2. Notifications (webhooks) vers le site : badge changé, paiement.
+3. Missions en quêtes : la liste `/missions` lira la guilde Trois-Tiers.
 
 Côté site : carte interactive, observatoire public, assistants et packs de tokens, synchronisation de l'administration.
 
