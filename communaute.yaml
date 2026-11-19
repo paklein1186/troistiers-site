@@ -38,7 +38,7 @@ profils:
     badges: []
   observateur:
     libelle: Observateur
-    description: A rejoint la guilde Trois-Tiers sur ChangeTheGame sans cotiser.
+    description: "A rejoint la guilde Trois-Tiers sur ChangeTheGame sans cotiser."
     cotisation: null
     badges: []
   citoyen:
@@ -130,6 +130,57 @@ espaces:
     groupe: cle
     portee: projet
     acces: { badges: { actif: filtre, equipe: complet, administrateur: agrege } }
+  # Outils de l'espace membres : chaque outil est un espace comme les autres (lien + règles d'accès).
+  # Lien « /outils/… » : copie synchronisée d'un artefact, servie par le site derrière ces mêmes règles
+  # (data/artefacts/sources.yaml). Lien claude.ai : ne s'ouvre que pour qui l'artefact est partagé.
+  outil_guilde_ctg:
+    libelle: La guilde Trois-Tiers sur ChangeTheGame
+    groupe: outil
+    lien: "https://changethegame.xyz/guilds/4964c699-4684-43a9-b508-cee21c77e24e"
+    description: "Quêtes, besoins et ressources, discussions de la communauté."
+    acces: { badges: { adherent: complet, equipe: complet }, profils: { observateur: complet } }
+  outil_space2:
+    libelle: Space2
+    groupe: outil
+    lien: "https://space2.streamlit.app/"
+    description: "L'entretien qui dresse le profil d'un lieu, la bibliothèque du réseau et la cartographie."
+    acces: { badges: { adherent: complet, equipe: complet } }
+  outil_configurateur:
+    libelle: Configurateur AMO
+    groupe: outil
+    lien: /outils/configurateur-amo
+    description: "Compose un parcours d'accompagnement et son budget à partir de la situation du porteur."
+    acces: { badges: { equipe: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
+  outil_referentiel:
+    libelle: Portefeuille d'accompagnement — référentiel AMO
+    groupe: outil
+    lien: /outils/referentiel-amo
+    description: "Le référentiel des prestations d'accompagnement."
+    acces: { badges: { equipe: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
+  outil_charte_accompagnants:
+    libelle: Charte et guide du réseau d'accompagnants
+    groupe: outil
+    lien: /outils/charte-accompagnants
+    description: "Les règles de fonctionnement du réseau d'accompagnants."
+    acces: { badges: { equipe: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
+  outil_coordination_missions:
+    libelle: Cadre de coordination des missions
+    groupe: outil
+    # Lien à fournir par PA : https://claude.ai/artifact/P3NbXUrnYHznAQ3jQZAbsa ouvre une page étrangère (« Slides »).
+    description: "Comment les missions se coordonnent entre l'équipe et les accompagnants."
+    acces: { badges: { equipe: complet, actif: complet }, profils: { accompagnant_freelance: complet, accompagnant_organisation: complet } }
+  outil_pilote:
+    libelle: Pilote 3/3
+    groupe: outil
+    lien: "https://claude.ai/artifact/WchYGZ2spfyvMZPbPMx8XW"
+    description: "Le cockpit de coordination de l'équipe : missions, pistes, chantiers, comptes rendus."
+    acces: { badges: { equipe: complet } }
+  outil_pilote_pivot:
+    libelle: Pilote du pivot Trois-Tiers
+    groupe: outil
+    lien: "https://claude.ai/artifact/RcZEBMU2c59bKQfdYQXFcu"
+    description: "Le pilotage stratégique du pivot de l'association."
+    acces: { badges: { equipe: complet, administrateur: complet } }
   equipe:
     libelle: Équipe coordination
     groupe: gouvernance

@@ -1,0 +1,22 @@
+---
+import Base from "../layouts/Base.astro";
+import Liste from "../components/Liste.astro";
+import { chargerContenu } from "../lib/contenu";
+const k = chargerContenu();
+---
+<Base titre="Ressources">
+  <section class="hero">
+    <p class="surtitre">Ressources</p>
+    <h1>Études, analyses et outils</h1>
+    <p class="lead">Ce que la communauté apprend est publié sous licence CC BY-SA 4.0, pour que d'autres lieux s'en servent.</p>
+  </section>
+  <section class="bloc">
+    <Liste elements={k.ressources.map((r) => ({ cle: r.type, ...r }))} />
+    <p class="doux">Les liens de téléchargement seront ajoutés au moment de la mise en ligne.</p>
+  </section>
+  <section class="bloc">
+    <h2>Partager une ressource</h2>
+    <p>Un outil, un contact, un retour d'expérience utile à d'autres lieux ? Envoyez-le, nous le versons dans la base commune.</p>
+    <div class="rangee"><a class="bouton creux" href="/contact">Proposer une ressource</a></div>
+  </section>
+</Base>

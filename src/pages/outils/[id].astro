@@ -1,0 +1,41 @@
+---
+import Base from "../../layouts/Base.astro";
+import { chargerCommunaute } from "../../lib/config";
+import { aLeBadge } from "../../lib/acces";
+import { copieAccessible, lireCopie, markdownEnHtml } from "../../lib/artefacts";
+
+// Copie synchronisée d'un artefact claude.ai, ouverte seulement aux badges de son espace (communaute.yaml).
+const u = Astro.locals.utilisateur;
+const id = Astro.params.id ?? "";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(`/outils/${id}`)}`);
+const s = copieAccessible(chargerCommunaute(), u, id);
+if (!s) return new Response("Cet outil n'est pas ouvert à votre profil.", { status: 403, headers: { "content-type": "text/plain; charset=utf-8" } });
+
+const html = s.type === "doc" ? markdownEnHtml(lireCopie(s)) : null;
+const equipe = aLeBadge(u, "equipe");
+---
+<Base titre={s.titre}>
+  <p class="surtitre"><a href="/membre">Espace membres</a> · Outil</p>
+  <div class="rangee" style="justify-content:space-between">
+    <p class="doux" style="font-size:.9rem">Copie synchronisée{s.synchronise_le && ` le ${s.synchronise_le}`}{s.version && ` (version ${s.version})`}.</p>
+    {equipe && <a class="bouton creux" href={s.source} rel="noopener">Modifier la source sur claude.ai</a>}
+  </div>
+  {s.note && <p class="avertissement">{s.note}</p>}
+  {html ? (
+    <article class="document" set:html={html} />
+  ) : (
+    <iframe class="cadre" src={`/outils/${id}/contenu`} title={s.titre}
+      sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"></iframe>
+  )}
+</Base>
+
+<style>
+  .cadre { width: 100%; height: 85vh; min-height: 640px; border: 1px solid var(--trait); border-radius: 10px; background: var(--surface); }
+  .document { max-width: 900px; }
+  .document :global(h1) { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+  .document :global(h2) { margin: 36px 0 10px; }
+  .document :global(h3) { margin: 24px 0 8px; }
+  .document :global(p), .document :global(li) { max-width: 75ch; }
+  .document :global(table) { display: block; overflow-x: auto; margin: 12px 0; font-size: .9rem; }
+  .document :global(th) { background: var(--surface); white-space: nowrap; }
+</style>

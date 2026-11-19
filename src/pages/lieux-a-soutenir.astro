@@ -13,12 +13,15 @@ try {
   erreur = "Les lieux ne sont pas disponibles pour le moment.";
 }
 ---
-<Base titre="Lieux à soutenir">
-  <h1>Lieux à soutenir</h1>
-  <p class="chapo">Des lieux qui ont besoin d'aide pour naître ou grandir. Le soutien peut être financier, mais aussi du mécénat de compétences ou des dons de matériel.</p>
+<Base titre="Portfolio · lieux à soutenir">
+  <section class="hero">
+    <p class="surtitre">Portfolio</p>
+    <h1>Des lieux, et ce dont ils ont besoin</h1>
+    <p class="lead">Une sélection de lieux du réseau, chacun avec sa synthèse et les besoins qu'il met en avant. Le soutien peut être financier, mais aussi du mécénat de compétences ou des dons de matériel. Les fiches viennent de Space2 : quand un lieu met son profil à jour, sa fiche change ici.</p>
+  </section>
   {exemple && <p class="avertissement">Données d'exemple : l'API de Space2 n'est pas encore configurée.</p>}
   {erreur && <p class="avertissement">{erreur}</p>}
-  <div class="grille" style="margin-top:16px">
+  <div class="grille">
     {lieux.map((l) => (
       <article class="carte">
         <h2 style="font-size:18px;margin:0 0 4px">{l.tiers_lieu}</h2>
@@ -31,4 +34,11 @@ try {
       </article>
     ))}
   </div>
+  <section class="bloc">
+    <div class="rangee">
+      <a class="bouton" href="/carte">Voir tous les lieux sur la carte</a>
+      <a class="bouton creux" href="https://space2.streamlit.app/" rel="noopener">Présenter mon lieu avec Space2</a>
+      <a class="bouton creux" href="/contact">Soutenir un lieu</a>
+    </div>
+  </section>
 </Base>

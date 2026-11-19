@@ -1,16 +1,28 @@
 ---
+import "@fontsource/bricolage-grotesque/500.css";
+import "@fontsource/bricolage-grotesque/700.css";
+import "@fontsource/source-sans-3/400.css";
+import "@fontsource/source-sans-3/600.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
 import { aLeBadge } from "../lib/acces";
-interface Props { titre: string }
-const { titre } = Astro.props;
+
+interface Props { titre: string; description?: string }
+const { titre, description } = Astro.props;
 const u = Astro.locals.utilisateur;
 const chemin = Astro.url.pathname;
-const liens = [
-  ["/", "Accueil"],
-  ["/missions", "Nos missions"],
-  ["/lieux-a-soutenir", "Lieux à soutenir"],
-  ["/carte", "Carte des lieux"],
-  ["/adherer", "Adhérer"],
+// Navigation de la maquette « Trois-Tiers, le site ».
+const liens: [string, string][] = [
+  ["/communaute", "Communauté apprenante"],
+  ["/instruments", "Instruments"],
+  ["/projets", "Projets"],
+  ["/lieux-a-soutenir", "Portfolio"],
+  ["/trois-tiers", "Trois-Tiers"],
+  ["/ressources", "Ressources"],
+  ["/agenda", "Agenda"],
+  ["/contact", "Contact"],
 ];
+const actif = (href: string) => (chemin === href || chemin.startsWith(`${href}/`) ? "page" : undefined);
 ---
 <!doctype html>
 <html lang="fr">
@@ -18,44 +30,129 @@ const liens = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
+    {description && <meta name="description" content={description} />}
     <title>{titre} · Trois-Tiers</title>
     <style is:global>
-      :root { --fond:#f4f6f2; --surface:#fff; --encre:#18241d; --doux:#5b6b61; --trait:#cfd9d1; --accent:#2e6b4e; --accent-doux:#dcebe2; }
-      @media (prefers-color-scheme: dark) { :root { --fond:#111814; --surface:#18221c; --encre:#e6eee8; --doux:#9db0a4; --trait:#2e3d34; --accent:#6fc197; --accent-doux:#1e3a2c; } }
+      /* Tout se compose en tiers : trois couleurs pour les trois façons d'agir (relier les lieux,
+         relier aux ressources, porter la voix), grilles à trois colonnes qui s'empilent sur téléphone. */
+      :root {
+        --fond:#f2f4ee; --surface:#fbfcf8; --encre:#1c2a22; --doux:#55625a; --trait:#d5dbd0;
+        --lier:#b8791f; --relier:#2f6f47; --porter:#44608a; --accent:#2f6f47; --sur-accent:#fbfcf8; --accent-doux:#dcebe2;
+        --titre:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+        --corps:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+        --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fond:#121713; --surface:#1a211c; --encre:#e6ebe3; --doux:#9daa9f; --trait:#2e3830;
+          --lier:#e0b05c; --relier:#7cc391; --porter:#8fabd4; --accent:#7cc391; --sur-accent:#121713; --accent-doux:#1e3a2c;
+          color-scheme: dark;
+        }
+      }
       * { box-sizing: border-box; }
-      body { margin:0; background:var(--fond); color:var(--encre); font:16px/1.55 system-ui, sans-serif; }
+      body { margin:0; background:var(--fond); color:var(--encre); font:17px/1.5 var(--corps); }
       a { color: var(--accent); }
-      header, main, footer { max-width: 1080px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
-      header { display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between; padding-block:18px; }
-      header nav { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:15px; }
-      header nav a { text-decoration:none; color:var(--encre); }
-      header nav a[aria-current="page"] { color:var(--accent); font-weight:600; }
-      .marque { font-weight:700; font-size:18px; text-decoration:none; color:var(--encre); }
-      main { padding-block: 12px 48px; }
-      h1 { font-size: clamp(26px, 4vw, 36px); margin: 8px 0 12px; }
-      .chapo { color: var(--doux); max-width: 68ch; }
-      .grille { display:grid; gap:14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-      .carte { background:var(--surface); border:1px solid var(--trait); border-radius:12px; padding:16px; }
-      .pastille { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; background:var(--accent-doux); color:var(--accent); }
-      .avertissement { border-left:3px solid #b7791f; padding:6px 12px; background:var(--surface); font-size:14px; color:var(--doux); }
-      table { border-collapse: collapse; width: 100%; font-size: 14px; }
-      th, td { text-align:left; padding:8px; border-bottom:1px solid var(--trait); vertical-align: top; }
-      .defile { overflow-x:auto; }
-      button, .bouton { font:inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:var(--surface); cursor:pointer; text-decoration:none; display:inline-block; }
-      button[disabled] { opacity:.5; cursor:not-allowed; }
-      footer { color: var(--doux); font-size: 13px; padding-block: 24px; border-top: 1px solid var(--trait); }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .enveloppe { max-width: 1120px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+      h1, h2, h3 { font-family: var(--titre); text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+      h1 { font-size: clamp(2rem, 5.4vw, 3.4rem); line-height: 1.04; font-weight: 700; margin: 8px 0 12px; }
+      h2 { font-size: clamp(1.4rem, 3vw, 1.9rem); line-height: 1.12; font-weight: 700; }
+      h3 { font-size: 1.12rem; line-height: 1.2; font-weight: 700; }
+      p { margin: 0; max-width: 68ch; }
+
+      /* En-tête */
+      header.site { position: sticky; top: 0; z-index: 9; background: var(--fond); border-bottom: 1px solid var(--trait); }
+      .barre { display: flex; align-items: center; gap: 16px; padding-block: 10px; }
+      .marque { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--encre); font-family: var(--titre); font-weight: 700; font-size: 1.1rem; }
+      .tiers { display: grid; grid-template-columns: repeat(3, 9px); gap: 2px; height: 22px; }
+      .tiers i { border-radius: 2px; }
+      .tiers i:nth-child(1) { background: var(--lier); } .tiers i:nth-child(2) { background: var(--relier); } .tiers i:nth-child(3) { background: var(--porter); }
+      nav.principale { display: flex; gap: 2px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+      nav.principale a { text-decoration: none; color: var(--encre); padding: 8px 9px; border-radius: 6px; font-size: .94rem; font-weight: 600; }
+      nav.principale a[aria-current="page"] { background: var(--surface); box-shadow: inset 0 -2px 0 var(--accent); }
+      nav.principale a.membre { border: 1px solid var(--encre); margin-left: 6px; }
+      details.menu { display: none; margin-left: auto; }
+      details.menu summary { list-style: none; cursor: pointer; border: 1px solid var(--trait); border-radius: 6px; padding: 8px 12px; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+      details.menu summary::-webkit-details-marker { display: none; }
+      details.menu nav { position: absolute; left: 0; right: 0; top: 100%; background: var(--fond); border-bottom: 1px solid var(--trait); flex-direction: column; align-items: stretch; padding: 8px max(16px, env(safe-area-inset-left, 0px)) 16px; margin: 0; }
+      details.menu nav a { padding: 12px 10px; }
+      details.menu nav a.membre { margin: 6px 0 0; text-align: center; }
+      @media (max-width: 1020px) { header.site nav.large { display: none; } details.menu { display: block; } }
+
+      /* Mise en page */
+      main { padding-block: 28px 64px; }
+      main > * + * { margin-top: 20px; }
+      .bloc { display: grid; gap: 18px; margin-top: 44px; }
+      .hero { display: grid; gap: 16px; padding-top: 8px; }
+      .surtitre { font-family: var(--mono); font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--doux); }
+      .chapo, .lead { font-size: 1.14rem; color: var(--doux); max-width: 68ch; }
+      .lead { color: var(--encre); }
+      .doux { color: var(--doux); }
+      .chiffres { display: flex; flex-wrap: wrap; gap: 8px 28px; font-family: var(--mono); font-size: .85rem; color: var(--doux); border-block: 1px solid var(--trait); padding-block: 12px; }
+      .chiffres b { color: var(--encre); font-weight: 500; }
+      .t3, .t2 { display: grid; gap: 18px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .t2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      @media (max-width: 820px) { .t3, .t2 { grid-template-columns: minmax(0, 1fr); } }
+      .cellule { display: grid; gap: 8px; align-content: start; padding-top: 14px; border-top: 3px solid var(--trait); min-width: 0; }
+      .t3 > .cellule:nth-child(3n+1), .t2 > .cellule:nth-child(3n+1) { border-color: var(--lier); }
+      .t3 > .cellule:nth-child(3n+2), .t2 > .cellule:nth-child(3n+2) { border-color: var(--relier); }
+      .t3 > .cellule:nth-child(3n), .t2 > .cellule:nth-child(3n) { border-color: var(--porter); }
+      .panneau, .carte { background: var(--surface); border: 1px solid var(--trait); border-radius: 10px; padding: 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+      .grille { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+      .rangee { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      ul.simple { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 68ch; }
+      .etapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; list-style: none; margin: 0; padding: 0; }
+      .etapes li { border: 1px solid var(--trait); border-radius: 8px; padding: 10px 12px; background: var(--surface); display: grid; gap: 2px; }
+      .etapes .n { font-family: var(--mono); font-size: .76rem; color: var(--doux); }
+      .etapes b { font-family: var(--titre); }
+      .etapes span:last-child { font-size: .88rem; color: var(--doux); }
+      .liste .item { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 6px 20px; padding-block: 14px; border-top: 1px solid var(--trait); }
+      .liste .quand { font-family: var(--mono); font-size: .86rem; color: var(--doux); font-variant-numeric: tabular-nums; }
+      .liste h3 { margin-bottom: 4px; }
+      @media (max-width: 620px) { .liste .item { grid-template-columns: minmax(0, 1fr); } }
+      .etiquette { font-family: var(--mono); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; color: var(--doux); white-space: nowrap; margin-left: 8px; vertical-align: middle; font-weight: 400; }
+      .afaire { font-family: var(--mono); font-size: .82rem; color: var(--doux); border: 1px dashed var(--trait); border-radius: 6px; padding: 2px 6px; }
+      .pastille { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-doux); color: var(--accent); }
+      .avertissement { border: 1px solid var(--trait); border-radius: 8px; padding: 8px 12px; background: var(--surface); font-size: .94rem; color: var(--doux); }
+      table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+      th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--trait); vertical-align: top; }
+      .defile { overflow-x: auto; }
+      button, .bouton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; font: 600 1rem var(--corps); padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--sur-accent); cursor: pointer; text-decoration: none; }
+      .bouton.creux { background: transparent; color: var(--encre); border-color: var(--trait); }
+      button[disabled] { opacity: .5; cursor: not-allowed; }
+      input, select { font: inherit; color: var(--encre); background: var(--surface); border: 1px solid var(--trait); border-radius: 6px; padding: 8px 10px; }
+      footer { border-top: 1px solid var(--trait); padding-block: 24px 40px; color: var(--doux); font-size: .92rem; }
+      footer .enveloppe { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
     </style>
   </head>
   <body>
-    <header>
-      <a class="marque" href="/">Trois-Tiers</a>
-      <nav aria-label="Navigation principale">
-        {liens.map(([href, lib]) => <a href={href} aria-current={chemin === href ? "page" : undefined}>{lib}</a>)}
-        {u ? <a href="/membre">Espace membre</a> : <a href="/connexion">Se connecter</a>}
-        {aLeBadge(u, "equipe") && <a href="/admin">Administration</a>}
-      </nav>
+    <header class="site">
+      <div class="enveloppe barre">
+        <a class="marque" href="/"><span class="tiers" aria-hidden="true"><i></i><i></i><i></i></span>Trois-Tiers</a>
+        <nav class="principale large" aria-label="Navigation principale">
+          {liens.map(([href, lib]) => <a href={href} aria-current={actif(href)}>{lib}</a>)}
+          <a class="membre" href={u ? "/membre" : "/connexion"} aria-current={actif("/membre")}>Espace membres</a>
+        </nav>
+        <details class="menu">
+          <summary>Menu</summary>
+          <nav class="principale" aria-label="Navigation principale (mobile)">
+            {liens.map(([href, lib]) => <a href={href} aria-current={actif(href)}>{lib}</a>)}
+            <a href="/adherer" aria-current={actif("/adherer")}>Adhérer</a>
+            <a class="membre" href={u ? "/membre" : "/connexion"}>Espace membres</a>
+          </nav>
+        </details>
+      </div>
     </header>
-    <main><slot /></main>
-    <footer>Prototype non public · les accès sont décidés par communaute.yaml et les badges reçus de ChangeTheGame.</footer>
+    <main class="enveloppe"><slot /></main>
+    <footer>
+      <div class="enveloppe">
+        <span>Trois-Tiers asbl · contenus sous licence CC BY-SA 4.0</span>
+        <span>
+          <a href="/adherer">Adhérer</a> · <a href="/code">J'ai un code d'adhésion</a>
+          {aLeBadge(u, "equipe") && <> · <a href="/admin">Administration</a></>}
+        </span>
+      </div>
+    </footer>
   </body>
 </html>
