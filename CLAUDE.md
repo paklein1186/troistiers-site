@@ -126,8 +126,10 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
 
 ## Branchements à venir
 
-- Space2 → Portfolio et carte : le code lit déjà `GET /lieux` ; il manque `SPACE2_API_URL` et `SPACE2_API_SECRET`
-  dans `.env` (secret à poser par PA, jamais dans la conversation). Puis carte interactive.
+- Space2 → Portfolio et carte : **branché le 19/11** (space2#2 : clé de lecture seule `SITE_READ_SECRET`, n'ouvre que
+  `GET /lieux` ; site : `SPACE2_API_URL` + `SPACE2_API_SECRET` dans `.env`). Carte interactive Leaflet sur `/carte`
+  (fond OpenStreetMap, filtres par catégorie et « à soutenir », seuls les champs publics utiles partent au navigateur).
+  À surveiller : les tuiles OSM conviennent à un trafic modéré ; au-delà, prendre un fournisseur de tuiles.
 - ChangeTheGame → Projets et Agenda : nouvelle fonction CTG qui ne renvoie que les quêtes et événements publics de la
   guilde (le flux `site-feed` actuel ne filtre peut-être pas la visibilité).
 - Space2 → Observatoire : nouvelle route d'API Space2 (statistiques agrégées), dépôt `space2` à ouvrir en écriture.

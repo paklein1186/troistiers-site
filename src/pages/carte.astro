@@ -1,6 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
-import { chargerLieux } from "../lib/space2";
+import { CATEGORIES, chargerLieux, pointsCarte } from "../lib/space2";
 
 let lieux: Awaited<ReturnType<typeof chargerLieux>>["lieux"] = [];
 let exemple = false;
@@ -13,19 +13,122 @@ try {
   console.error("Carte des lieux :", e);
   erreur = "Les lieux ne sont pas disponibles pour le moment.";
 }
-const localises = lieux.filter((l) => typeof l.latitude === "number" && typeof l.longitude === "number");
+const points = pointsCarte(lieux);
+const nonLocalises = lieux.filter((l) => !points.some((p) => p.nom === l.tiers_lieu));
 ---
-<Base titre="Carte des lieux">
-  <h1>Carte des lieux</h1>
-  <p class="chapo">{lieux.length} lieux connus, dont {localises.length} localisés. La carte interactive sera branchée à l'étape suivante ; voici déjà la liste.</p>
+<Base titre="Carte des lieux" description="Les tiers-lieux du réseau Trois-Tiers sur une carte, à partir des profils Space2.">
+  <section class="hero">
+    <p class="surtitre">Cartographie</p>
+    <h1>Carte des lieux</h1>
+    <p class="lead">{lieux.length} lieux connus de Space2, dont {points.length} localisés. Cliquez sur un point pour voir le lieu et ce dont il a besoin.</p>
+  </section>
   {exemple && <p class="avertissement">Données d'exemple : l'API de Space2 n'est pas encore configurée.</p>}
   {erreur && <p class="avertissement">{erreur}</p>}
-  <div class="defile" style="margin-top:16px">
-    <table>
-      <thead><tr><th>Lieu</th><th>Commune</th><th>Région</th><th>Pays</th></tr></thead>
-      <tbody>
-        {lieux.map((l) => <tr><td>{l.tiers_lieu}</td><td>{l.commune ?? "—"}</td><td>{l.region ?? "—"}</td><td>{l.pays ?? "—"}</td></tr>)}
-      </tbody>
-    </table>
+
+  <fieldset class="filtres" aria-label="Filtrer par catégorie">
+    {CATEGORIES.map((c) => (
+      <label><input type="checkbox" name="categorie" value={c} checked /> <span class={`pastille-cat cat-${c.normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase()}`}></span>{c}</label>
+    ))}
+    <label><input type="checkbox" name="categorie" value="" checked /> <span class="pastille-cat cat-autre"></span>Sans catégorie</label>
+    <label><input type="checkbox" id="soutenir" /> Seulement les lieux à soutenir</label>
+  </fieldset>
+
+  <div id="carte" class="carte-lieux" data-points={JSON.stringify(points)} role="region" aria-label="Carte des lieux">
+    <noscript><p class="doux" style="padding:16px">La carte a besoin de JavaScript ; la liste des lieux est ci-dessous.</p></noscript>
   </div>
+  <p class="doux" style="font-size:.85rem">Fond de carte © contributeurs OpenStreetMap. Les fiches viennent de Space2 : un lieu met son profil à jour, la carte suit.</p>
+
+  <section class="bloc">
+    <h2>Tous les lieux</h2>
+    <div class="defile">
+      <table>
+        <thead><tr><th>Lieu</th><th>Commune</th><th>Région</th><th>Pays</th></tr></thead>
+        <tbody>
+          {lieux.map((l) => <tr><td>{l.tiers_lieu}</td><td>{l.commune ?? "—"}</td><td>{l.region ?? "—"}</td><td>{l.pays ?? "—"}</td></tr>)}
+        </tbody>
+      </table>
+    </div>
+    {nonLocalises.length > 0 && <p class="doux" style="font-size:.9rem">{nonLocalises.length} lieu(x) sans coordonnées n'apparaissent pas sur la carte.</p>}
+  </section>
 </Base>
+
+<style>
+  .carte-lieux { height: min(70vh, 640px); min-height: 380px; border: 1px solid var(--trait); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .filtres { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .filtres label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; }
+  .pastille-cat { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--encre); }
+  .cat-alimentaire { background: var(--lier); }
+  .cat-culturel { background: var(--porter); }
+  .cat-education { background: var(--relier); }
+  .cat-sante { background: #a3476b; }
+  .cat-autre { background: var(--doux); }
+  :global(.popup-lieu) { font: 14px/1.4 var(--corps); color: #1c2a22; }
+  :global(.popup-lieu h3) { font: 700 15px/1.2 var(--titre); margin: 0 0 4px; }
+  :global(.popup-lieu p) { margin: 4px 0; }
+  :global(.popup-lieu ul) { margin: 4px 0; padding-left: 18px; }
+</style>
+
+<script>
+  import L from "leaflet";
+  import "leaflet/dist/leaflet.css";
+
+  type Point = { nom: string; lat: number; lng: number; lieu: string; categories: string[]; resume: string; besoins: string[]; soutenir: boolean; lien: string | null };
+
+  const COULEURS: Record<string, string> = { Alimentaire: "#b8791f", Culturel: "#44608a", "Éducation": "#2f6f47", "Santé": "#a3476b" };
+  const el = document.getElementById("carte");
+  if (el) {
+    const points: Point[] = JSON.parse(el.dataset.points ?? "[]");
+    const carte = L.map(el, { scrollWheelZoom: false }).setView([50.5, 4.6], 8); // Wallonie et Bruxelles
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(carte);
+
+    // Le contenu des fiches est construit avec textContent : rien de ce qui vient de Space2 n'est interprété comme HTML.
+    const fiche = (p: Point) => {
+      const d = document.createElement("div");
+      d.className = "popup-lieu";
+      const h = document.createElement("h3"); h.textContent = p.nom; d.append(h);
+      if (p.lieu) { const s = document.createElement("p"); s.style.color = "#55625a"; s.textContent = p.lieu; d.append(s); }
+      if (p.categories.length) { const s = document.createElement("p"); s.textContent = p.categories.join(" · "); d.append(s); }
+      if (p.resume) { const s = document.createElement("p"); s.textContent = p.resume; d.append(s); }
+      if (p.besoins.length) {
+        const t = document.createElement("p"); t.textContent = "Besoins mis en avant :"; t.style.fontWeight = "600"; d.append(t);
+        const ul = document.createElement("ul");
+        p.besoins.forEach((b) => { const li = document.createElement("li"); li.textContent = b; ul.append(li); });
+        d.append(ul);
+      }
+      if (p.soutenir) { const a = document.createElement("a"); a.href = "/lieux-a-soutenir"; a.textContent = "Ce lieu cherche du soutien →"; d.append(a); }
+      if (p.lien) { const a = document.createElement("a"); a.href = p.lien; a.rel = "noopener"; a.target = "_blank"; a.textContent = " Site du lieu"; d.append(a); }
+      return d;
+    };
+
+    const marqueurs = points.map((p) => {
+      const m = L.circleMarker([p.lat, p.lng], {
+        radius: p.soutenir ? 9 : 7,
+        weight: p.soutenir ? 3 : 1.5,
+        color: "#1c2a22",
+        fillColor: COULEURS[p.categories[0]] ?? "#55625a",
+        fillOpacity: 0.9,
+      }).bindPopup(() => fiche(p));
+      m.bindTooltip(p.nom);
+      return { p, m };
+    });
+
+    const filtrer = () => {
+      const cats = new Set([...document.querySelectorAll<HTMLInputElement>('input[name="categorie"]:checked')].map((i) => i.value));
+      const seulementSoutenir = (document.getElementById("soutenir") as HTMLInputElement | null)?.checked;
+      const visibles: L.LatLng[] = [];
+      for (const { p, m } of marqueurs) {
+        const ok = (p.categories.length ? p.categories.some((c) => cats.has(c)) : cats.has("")) && (!seulementSoutenir || p.soutenir);
+        if (ok) { m.addTo(carte); visibles.push(m.getLatLng()); } else m.remove();
+      }
+      return visibles;
+    };
+    document.querySelectorAll(".filtres input").forEach((i) => i.addEventListener("change", filtrer));
+    const visibles = filtrer();
+    if (visibles.length > 1) carte.fitBounds(L.latLngBounds(visibles), { padding: [30, 30], maxZoom: 11 });
+    else if (visibles.length === 1) carte.setView(visibles[0], 11);
+    carte.on("focus", () => carte.scrollWheelZoom.enable());
+  }
+</script>
