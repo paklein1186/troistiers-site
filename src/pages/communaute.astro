@@ -1,0 +1,44 @@
+---
+import Base from "../layouts/Base.astro";
+import Liste from "../components/Liste.astro";
+import { chargerContenu } from "../lib/contenu";
+const k = chargerContenu();
+---
+<Base titre="Communauté apprenante">
+  <section class="hero">
+    <p class="surtitre">Communauté apprenante</p>
+    <h1>Apprendre de celles et ceux qui font</h1>
+    <p class="lead">Un tiers-lieu rassemble une communauté autour d'une identité et de valeurs, pour partager ressources et savoirs. La communauté apprenante fait la même chose à l'échelle du réseau : elle met en commun ce que chaque lieu a appris en avançant.</p>
+  </section>
+
+  <section class="bloc">
+    <h2>Les formats</h2>
+    <div class="t3">
+      <div class="cellule"><h3>Rendez-vous Tiers à Tiers</h3><p>Des rencontres ouvertes entre tiers-lieux, chacune sur un enjeu concret : gouvernance, modèle économique, occupation des espaces.</p></div>
+      <div class="cellule"><h3>Visites et expéditions apprenantes</h3><p>On se déplace chez les autres, en Wallonie, à Bruxelles et en Europe, pour voir comment un lieu fonctionne vraiment.</p></div>
+      <div class="cellule"><h3>Codéveloppement et revue par les pairs</h3><p>Un lieu expose une difficulté, les autres l'aident à la démêler. Chaque séance laisse une trace réutilisable.</p></div>
+      <div class="cellule"><h3>Fresque des Tiers-Lieux</h3><p>Un atelier pour structurer un projet : gouvernance, activités, modèle économique.</p></div>
+      <div class="cellule"><h3>Formation de facilitateur·ices</h3><p>Un parcours de montée en compétences pour les équipes et les communautés des lieux.</p></div>
+      <div class="cellule"><h3>Capitalisation</h3><p>Ce que les lieux apprennent est documenté, puis versé dans une base commune de besoins et de ressources.</p></div>
+    </div>
+  </section>
+
+  <section class="bloc" id="programmes">
+    <h2>Programmes en cours</h2>
+    <Liste elements={k.programmes.map((p) => ({ cle: p.ou, ...p }))} />
+  </section>
+
+  <section class="bloc">
+    <h2>Rejoindre la communauté</h2>
+    <ol class="etapes">
+      <li><span class="n">Étape 1</span><b>Présentez votre lieu</b><span>Un entretien de quelques minutes avec Space2 dresse le profil de votre lieu.</span></li>
+      <li><span class="n">Étape 2</span><b>Référencez-vous</b><span>Vos besoins et vos ressources rejoignent la base commune sur ChangeTheGame.</span></li>
+      <li><span class="n">Étape 3</span><b>Devenez membre</b><span>Lieux, personnes et organisations peuvent adhérer à l'asbl.</span></li>
+    </ol>
+    <div class="rangee">
+      <a class="bouton" href={k.liens.space2} rel="noopener">Présenter mon lieu avec Space2</a>
+      <a class="bouton creux" href="/adherer">Devenir membre</a>
+      <a class="bouton creux" href={k.liens.changethegame_guilde} rel="noopener">La guilde sur ChangeTheGame</a>
+    </div>
+  </section>
+</Base>

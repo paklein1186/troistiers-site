@@ -1,24 +1,65 @@
 ---
 import Base from "../layouts/Base.astro";
+import { chargerContenu } from "../lib/contenu";
 
-// Accueil par profil : chaque porte d'entrée mène à ce dont ce profil a besoin en premier.
-const portes = [
-  { titre: "J'ai un lieu ou un projet de lieu", texte: "Rejoindre des pairs, faire connaître vos besoins, être accompagné.", href: "/adherer#lieu" },
-  { titre: "J'accompagne des lieux", texte: "Accéder aux missions, au commun et à la communauté des accompagnants.", href: "/adherer#accompagnant_freelance" },
-  { titre: "Je représente un territoire", texte: "Commune, GAL, institution : suivre les lieux de votre bassin.", href: "/adherer#partenaire_beneficiaire" },
-  { titre: "Je veux soutenir des lieux", texte: "Découvrir les lieux qui ont besoin d'aide : financement, compétences, dons.", href: "/lieux-a-soutenir" },
-  { titre: "Je découvre", texte: "Voir ce que fait Trois-Tiers, en moins de cinq minutes.", href: "/missions" },
-];
+const k = chargerContenu();
+// « Qui êtes-vous ? » : le profil choisi est dans l'adresse (?profil=lieu), la page se recharge sur lui.
+const choisi = k.profils_accueil.find((p) => p.id === Astro.url.searchParams.get("profil")) ?? k.profils_accueil[0];
+const externe = (l: string) => l.startsWith("http");
 ---
-<Base titre="Accueil">
-  <h1>Des lieux qui font tenir les territoires</h1>
-  <p class="chapo">Trois-Tiers est le réseau et la communauté apprenante des tiers-lieux. Dites-nous qui vous êtes, nous vous montrons par où commencer.</p>
-  <div class="grille" style="margin-top:20px">
-    {portes.map((p) => (
-      <a class="carte" href={p.href} style="text-decoration:none;color:inherit">
-        <strong>{p.titre}</strong>
-        <p style="margin:6px 0 0;color:var(--doux)">{p.texte}</p>
-      </a>
-    ))}
-  </div>
+<Base titre="Accueil" description="Trois-Tiers, réseau et communauté apprenante des tiers-lieux en Belgique.">
+  <section class="hero">
+    <p class="surtitre">Réseau et communauté apprenante des tiers-lieux · Belgique</p>
+    <h1>Des lieux qui font tenir les territoires</h1>
+    <p class="lead">Trois-Tiers accompagne la création et le développement de tiers-lieux. Nous relions celles et ceux qui les font vivre, nous les aidons à trouver les ressources qui leur manquent et nous portons leur voix auprès des décideurs.</p>
+    <div class="chiffres">{k.chiffres.map((c) => <span><b>{c.fort}</b> {c.texte}</span>)}</div>
+  </section>
+
+  <section class="bloc" id="profils">
+    <h2>Qui êtes-vous ?</h2>
+    <p class="doux">Choisissez votre situation, la page s'adapte.</p>
+    <nav class="profils" aria-label="Votre profil">
+      {k.profils_accueil.map((p) => (
+        <a href={`/?profil=${p.id}#profils`} aria-current={p.id === choisi.id ? "true" : undefined}>{p.libelle}</a>
+      ))}
+    </nav>
+    <div class="panneau">
+      <h3>{choisi.titre}</h3>
+      <p>{choisi.texte}</p>
+      <div class="t3">
+        {choisi.directions.map((d) => (
+          <a class="cellule direction" href={d.lien}><b>{d.titre}</b><span>{d.texte}</span></a>
+        ))}
+      </div>
+      <div class="rangee"><a class="bouton" href={choisi.action.lien} rel={externe(choisi.action.lien) ? "noopener" : undefined}>{choisi.action.texte}</a></div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Trois façons d'agir</h2>
+    <div class="t3">
+      <div class="cellule"><p class="surtitre">Premier tiers</p><h3>Relier les lieux</h3><p>Rencontres entre pairs, visites apprenantes, codéveloppement. L'expertise d'usage de la communauté circule d'un lieu à l'autre.</p><a href="/communaute">La communauté apprenante</a></div>
+      <div class="cellule"><p class="surtitre">Deuxième tiers</p><h3>Relier aux ressources</h3><p>Compétences, foncier, financement, outils numériques. Nous rapprochons les besoins des lieux et les ressources capables d'y répondre.</p><a href="/instruments">Les instruments</a></div>
+      <div class="cellule"><p class="surtitre">Troisième tiers</p><h3>Porter la voix</h3><p>Études, plaidoyer, coopérations européennes. Nous défendons les lieux comme une infrastructure critique des territoires.</p><a href="/trois-tiers">Notre vision</a></div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Rejoindre le réseau</h2>
+    <div class="rangee">
+      <a class="bouton" href="/adherer">Adhérer à Trois-Tiers</a>
+      <a class="bouton creux" href={k.liens.space2} rel="noopener">Présenter mon lieu avec Space2</a>
+      <a class="bouton creux" href="/code">J'ai un code d'adhésion</a>
+    </div>
+  </section>
 </Base>
+
+<style>
+  .profils { display: flex; flex-wrap: wrap; gap: 8px; }
+  .profils a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--trait); background: var(--surface); color: var(--encre); font-weight: 600; text-decoration: none; }
+  .profils a[aria-current="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
+  .direction { text-decoration: none; color: var(--encre); }
+  .direction b { font-family: var(--titre); font-size: 1.08rem; }
+  .direction b::after { content: " →"; color: var(--accent); }
+  .direction span { color: var(--doux); font-size: .96rem; }
+</style>

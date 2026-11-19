@@ -1,0 +1,65 @@
+---
+import Base from "../layouts/Base.astro";
+import Liste from "../components/Liste.astro";
+import { chargerCommunaute } from "../lib/config";
+import { niveauAcces } from "../lib/acces";
+import { chargerContenu } from "../lib/contenu";
+import missions from "../../data/missions.exemple.json";
+
+const k = chargerContenu();
+const c = chargerCommunaute();
+const niveau = niveauAcces(c, Astro.locals.utilisateur, "missions_en_cours");
+const voitDetail = niveau === "filtre" || niveau === "complet";
+
+const NATURES: Record<string, string> = { tous: "Tous", encours: "Projet en cours", idee: "Idée", realisation: "Réalisation" };
+const filtre = NATURES[Astro.url.searchParams.get("nature") ?? ""] ? Astro.url.searchParams.get("nature")! : "tous";
+const projets = k.projets.filter((p) => filtre === "tous" || p.nature === filtre);
+const compte = (n: string) => k.projets.filter((p) => p.nature === n).length;
+---
+<Base titre="Projets">
+  <section class="hero">
+    <p class="surtitre">Projets</p>
+    <h1>Ce que le réseau fait en ce moment</h1>
+    <p class="lead">Chaque projet est une quête sur ChangeTheGame : on peut la suivre, y contribuer ou en proposer une nouvelle.</p>
+  </section>
+
+  <section class="bloc">
+    <nav class="filtres" aria-label="Filtrer par type">
+      {Object.entries(NATURES).map(([n, lib]) => (
+        <a href={n === "tous" ? "/projets" : `/projets?nature=${n}`} aria-current={n === filtre ? "true" : undefined}>{lib}{n !== "tous" && ` · ${compte(n)}`}</a>
+      ))}
+    </nav>
+    <Liste elements={projets.map((p) => ({ cle: p.famille, titre: p.titre, texte: p.texte, etat: NATURES[p.nature] }))} />
+    <p class="doux">Liste d'exemple, tenue à la main pour l'instant. Elle sera lue depuis les quêtes de la guilde Trois-Tiers sur ChangeTheGame.</p>
+  </section>
+
+  <section class="bloc" id="missions">
+    <h2>Missions d'accompagnement en cours</h2>
+    <p class="doux">Quelques missions actuelles. {voitDetail ? "Vous voyez leur détail en tant que membre." : "Le détail de chaque mission est réservé aux membres."}</p>
+    <div class="t3">
+      {missions.missions.map((m) => (
+        <div class="cellule">
+          <h3>{m.titre}</h3>
+          <p>{m.resume}</p>
+          <p class="doux" style="font-size:.92rem">{m.personnes.join(" · ")}</p>
+          {voitDetail && <p style="font-size:.94rem">{m.detail_membres}</p>}
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Proposer un projet</h2>
+    <p>Une idée, un besoin, une expédition à monter ? Les membres la déposent comme quête ; les autres passent par l'équipe.</p>
+    <div class="rangee">
+      <a class="bouton" href={k.liens.changethegame_guilde} rel="noopener">Déposer une quête sur ChangeTheGame</a>
+      <a class="bouton creux" href="/contact">Contacter l'équipe</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .filtres { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filtres a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--trait); background: var(--surface); color: var(--encre); font-weight: 600; text-decoration: none; }
+  .filtres a[aria-current="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
+</style>

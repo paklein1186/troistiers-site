@@ -43,7 +43,9 @@ const messagesAdhesion: Record<string, string> = {
   erreur: "Le paiement a bien été reçu par Stripe, mais l'activation n'a pas pu être confirmée tout de suite. Elle se fera automatiquement ; sinon, écrivez à l'équipe.",
 };
 const profilMaj = Astro.url.searchParams.get("profil");
-const groupes: Record<string, string> = { public: "Partie publique", membre: "Espace membre", cle: "Clés", gouvernance: "Gouvernance" };
+const groupes: Record<string, string> = { public: "Partie publique", membre: "Espace membre", cle: "Clés", gouvernance: "Gouvernance", outil: "Outils" };
+// Outils ouverts à cette personne, d'après communaute.yaml (groupe « outil »).
+const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" && e.lien);
 ---
 <Base titre="Espace membre">
   {adhesion && messagesAdhesion[adhesion] && <p class="avertissement" role="status">{messagesAdhesion[adhesion]}</p>}
@@ -85,6 +87,22 @@ const groupes: Record<string, string> = { public: "Partie publique", membre: "Es
           </tbody>
         </table>
       </div>
+    </section>
+  )}
+
+  {outils.length > 0 && (
+    <section class="bloc">
+      <h2>Vos outils</h2>
+      <div class="t3">
+        {outils.map((o) => (
+          <div class="cellule">
+            <h3>{o.libelle}</h3>
+            {o.description && <p>{o.description}</p>}
+            <a href={o.lien} rel="noopener">Ouvrir</a>
+          </div>
+        ))}
+      </div>
+      <p class="doux" style="font-size:.92rem">Les outils hébergés sur claude.ai ne s'ouvrent que s'ils sont partagés avec vous.</p>
     </section>
   )}
 

@@ -107,6 +107,25 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   renouvellement ; bénéficiaires liés à l'abonnement du payeur (impayé/résiliation suivent). 12 tests Deno.
 - Site : `/code` (saisie, lien direct `/code?c=XXXX-XXXX-XXXX`), tableau « Vos codes d'adhésion » sur `/membre`.
 
+## Phase 4 : contenu et outils (branche `phase4/contenu`, 19/11)
+
+- Contenu de la maquette « Trois-Tiers, le site » repris : accueil par profil (`/?profil=…`), `/communaute`,
+  `/instruments`, `/projets` (+ missions, `/missions` redirige), `/lieux-a-soutenir` (Portfolio), `/trois-tiers`,
+  `/ressources`, `/agenda`, `/contact`. Identité visuelle de la maquette, polices servies par le site (pas de Google Fonts).
+- Textes et listes dans `data/contenu.yaml` (modifiable sans code) ; `a_completer` = affiché « à compléter », jamais inventé.
+  À compléter : e-mail, adresse, réseaux, équipe, partenaires financiers, programme du 7/12.
+- Outils de l'espace membres déclarés comme espaces `groupe: outil` dans `communaute.yaml` (lien, description, accès) :
+  guilde CTG, Space2, configurateur AMO, référentiel, charte des accompagnants, cadre de coordination, Pilote 3/3,
+  Pilote du pivot. Accès proposés (à confirmer par PA) : Pilotes → équipe ; outils AMO → accompagnants + équipe.
+
+## Branchements à venir
+
+- Space2 → Portfolio et carte : le code lit déjà `GET /lieux` ; il manque `SPACE2_API_URL` et `SPACE2_API_SECRET`
+  dans `.env` (secret à poser par PA, jamais dans la conversation). Puis carte interactive.
+- ChangeTheGame → Projets et Agenda : nouvelle fonction CTG qui ne renvoie que les quêtes et événements publics de la
+  guilde (le flux `site-feed` actuel ne filtre peut-être pas la visibilité).
+- Space2 → Observatoire : nouvelle route d'API Space2 (statistiques agrégées), dépôt `space2` à ouvrir en écriture.
+
 ## Avant d'ouvrir les paiements réels
 
 - Fenêtre de test (décision du 19/11) : après les essais, **désactiver le paiement en euros** de la guilde jusqu'à

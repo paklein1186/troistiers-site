@@ -1,0 +1,121 @@
+# Contenus éditoriaux du site, repris de la maquette « Trois-Tiers, le site » (novembre 2026).
+# Ce fichier se modifie sans toucher au code : chaque liste alimente une page.
+# « a_completer » = information manquante, affichée comme telle sur le site (jamais inventée).
+# Les listes « agenda » et « projets » seront remplacées par ChangeTheGame (événements et quêtes de la guilde).
+
+chiffres:
+  - { fort: Depuis 2024, texte: prestataire de la Région wallonne }
+  - { fort: Une vingtaine, texte: de lieux lauréats accompagnés }
+  - { fort: Une quarantaine, texte: de membres }
+  - { fort: 10 étapes, texte: de parcours d'accompagnement }
+
+# Accueil : « Qui êtes-vous ? ». Chaque profil propose trois directions et une action.
+profils_accueil:
+  - id: porteur
+    libelle: Porteur de projet
+    titre: Vous portez un projet de lieu
+    texte: Une idée, un collectif, parfois déjà un bâtiment. La première étape consiste à savoir si le projet tient, pour qui, et avec quel argent.
+    directions:
+      - { titre: Le parcours d'accompagnement, texte: "De l'amorce au lancement, en dix étapes dont on n'active que l'utile.", lien: /instruments#activateurs }
+      - { titre: Rencontrer des pairs, texte: "D'autres porteurs sont passés par là. Les rendez-vous Tiers à Tiers servent à ça.", lien: /communaute }
+      - { titre: Financer et sécuriser, texte: "Subsides, coopérateurs, foncière : les pistes pour votre montage.", lien: /instruments#fonds }
+    action: { texte: Décrire mon projet avec Space2, lien: "https://space2.streamlit.app/" }
+  - id: lieu
+    libelle: Représentant d'un lieu
+    titre: Vous faites vivre un lieu
+    texte: Votre lieu existe et vous cherchez à le consolider, à trouver des ressources ou à échanger avec d'autres équipes.
+    directions:
+      - { titre: La communauté apprenante, texte: "Rencontres, visites, codéveloppement entre lieux.", lien: /communaute }
+      - { titre: Besoins et ressources, texte: "Dites ce qui vous manque et ce que vous pouvez apporter.", lien: /instruments#numerique }
+      - { titre: Foncier et financement, texte: "Sécuriser vos murs et trouver un capital patient.", lien: /instruments#foncier }
+    action: { texte: Présenter mon lieu avec Space2, lien: "https://space2.streamlit.app/" }
+  - id: territorial
+    libelle: Acteur territorial
+    titre: Vous agissez pour un territoire
+    texte: "Association, réseau, opérateur de formation, agence de développement : les lieux peuvent devenir vos relais sur le terrain."
+    directions:
+      - { titre: Activateurs et animateurs, texte: "Des personnes formées pour mobiliser un territoire autour d'un lieu.", lien: /instruments#activateurs }
+      - { titre: Les programmes en cours, texte: "Éducation des adultes, culture et économie sociale, coopérations européennes.", lien: /communaute#programmes }
+      - { titre: Études et outils, texte: "Ce que le réseau a déjà documenté.", lien: /ressources }
+    action: { texte: Proposer une coopération, lien: /contact }
+  - id: public
+    libelle: Acteur public
+    titre: Vous représentez une commune, une région, une institution
+    texte: "Un bâtiment communal sous-utilisé, une friche, une politique à ancrer localement. Nous accompagnons déjà une vingtaine de lieux lauréats pour la Région wallonne."
+    directions:
+      - { titre: Accompagner un lieu sur votre territoire, texte: "Du coup de sonde des acteurs à la structure qui portera le lieu.", lien: /instruments#activateurs }
+      - { titre: Les lieux comme infrastructure, texte: "Notre vision et ce que nous portons auprès des décideurs.", lien: /trois-tiers }
+      - { titre: Études disponibles, texte: "Dont « Tiers-lieux et pouvoirs publics ».", lien: /ressources }
+    action: { texte: Parler de votre territoire, lien: /contact }
+  - id: entreprise
+    libelle: Entreprise
+    titre: Votre entreprise veut s'ancrer dans son territoire
+    texte: "Investir, mettre des compétences ou des locaux à disposition, s'associer à un lieu proche de vos sites : il existe plusieurs façons d'en être."
+    directions:
+      - { titre: Investir dans les lieux, texte: "La foncière coopérative et les véhicules d'investissement.", lien: /instruments#foncier }
+      - { titre: Apporter des ressources, texte: "Compétences, espaces, équipements : la base besoins et ressources.", lien: /instruments#numerique }
+      - { titre: Comprendre notre démarche, texte: "Pourquoi les lieux comptent pour un territoire.", lien: /trois-tiers }
+    action: { texte: Rencontrer l'équipe, lien: /contact }
+
+programmes:
+  - { ou: Wallonie, titre: Tiers-lieux ruraux wallons, texte: "Accompagnement des lieux lauréats de l'appel à projets du plan de relance, pour la Région wallonne, et capitalisation de leurs apprentissages. Clôture au printemps 2027." }
+  - { ou: "Europe · Erasmus+", titre: AGORA2030, texte: "Partenariat européen sur les tiers-lieux, jusqu'en 2027, avec Pour la Solidarité et des partenaires en Grèce et en Roumanie." }
+  - { ou: Fédération Wallonie-Bruxelles, titre: Tiers-lieux et éducation des adultes, texte: "Avec la coordination nationale EPALE : reconnaître les lieux comme espaces d'éducation informelle. Visites de lieux, étude et rencontres en 2027.", etat: En préparation }
+  - { ou: "France · Wallonie · Flandre", titre: Tiers-lieux culturels et économie sociale, texte: "Micro-projet Interreg porté par Culture·Wapi et La Compagnie des Tiers-Lieux. Trois-Tiers y co-anime le parcours de professionnalisation." }
+  - { ou: Europe, titre: Spaces for Life, texte: "Un réseau européen de lieux hybrides à fort impact, avec Acted. Expéditions apprenantes prévues en 2027." }
+  - { ou: "France · Belgique", titre: Faire lien, texte: "Nouveaux lieux, nouveaux liens au service des territoires : un chantier commun avec des acteurs français des tiers-lieux et du patrimoine." }
+
+parcours:
+  - { nom: Prélude, texte: Sonder et cadrer }
+  - { nom: Comprendre, texte: Diagnostiquer }
+  - { nom: Réunir, texte: Mobiliser }
+  - { nom: Programmer, texte: Programmer les usages }
+  - { nom: Modéliser, texte: Modèle économique }
+  - { nom: Structurer, texte: Juridique et gouvernance }
+  - { nom: Financer, texte: Lever des fonds }
+  - { nom: Aménager, texte: Bâti et chantiers }
+  - { nom: Activer, texte: Occuper et faire connaître }
+  - { nom: Déployer, texte: Transmettre }
+
+ressources:
+  - { type: Étude, titre: Tiers-lieux et pouvoirs publics, texte: "Comment collectivités et lieux travaillent ensemble, et à quelles conditions." }
+  - { type: Analyse, titre: La place des enfants dans le collectif, texte: "Ce que la présence des enfants change à la vie et à l'organisation d'un lieu." }
+  - { type: Outil, titre: Outil d'animation sur les tiers-lieux, texte: "Un support pour faire découvrir et débattre ce qu'est un tiers-lieu." }
+  - { type: Outil, titre: Fresque des Tiers-Lieux, texte: "L'atelier pour structurer un projet : gouvernance, activités, modèle économique." }
+  - { type: Article, titre: Les lieux, système nerveux des territoires, texte: "Notre texte de fond, disponible en français et en anglais." }
+  - { type: Article, titre: Des lieux qui font tenir les territoires, texte: "Pourquoi les lieux hybrides ancrés comptent pour leur bassin de vie." }
+  - { type: Carte, titre: Cartographie des tiers-lieux, texte: "Les lieux du réseau, partout en Wallonie.", lien: /carte }
+
+agenda:
+  - { quand: 27 novembre 2026, titre: "Tiers-lieux culturels et économie sociale : première rencontre", texte: "À La Veilleuse (Communa). Rencontre d'acculturation à l'économie sociale pour les lieux culturels." }
+  - { quand: "30 novembre 2026 · 14 h", titre: "Spaces for Life : réunion d'information", texte: "En ligne. Pour les lieux qui veulent rejoindre le réseau européen." }
+  - { quand: 7 décembre 2026, titre: Rendez-vous Trois-Tiers, texte: a_completer }
+  - { quand: Janvier à juin 2027, titre: Visites de lieux, texte: "Sur place et en ligne, dans le cadre du chantier sur l'éducation des adultes.", etat: En préparation }
+  - { quand: Février et mars 2027, titre: Deux journées de rencontres thématiques, texte: "Tiers-lieux et formation informelle des adultes.", etat: En préparation }
+  - { quand: Printemps 2027, titre: Clôture du programme tiers-lieux ruraux wallons, texte: "Journée de restitution avec les lieux lauréats, et première expédition Spaces for Life." }
+  - { quand: Rentrée 2027, titre: Événement EPALE, texte: "Présentation des résultats 2026-2027 et de la vision 2028-2029.", etat: En préparation }
+
+# Projets : nature = encours | idee | realisation. Liste d'exemple ; viendra des quêtes de la guilde sur ChangeTheGame.
+projets:
+  - { nature: encours, titre: Tiers-lieux ruraux wallons, texte: "Accompagnement des lieux lauréats pour la Région wallonne et capitalisation de leurs apprentissages.", famille: Communauté apprenante }
+  - { nature: encours, titre: AGORA2030, texte: "Partenariat Erasmus+ sur les tiers-lieux européens, jusqu'en 2027.", famille: Communauté apprenante }
+  - { nature: encours, titre: Tiers-lieux culturels et économie sociale, texte: "Micro-projet Interreg : parcours de professionnalisation des lieux culturels.", famille: Communauté apprenante }
+  - { nature: encours, titre: Expéditions Spaces for Life, texte: "Expéditions apprenantes entre lieux hybrides de plusieurs pays, en 2027.", famille: Communauté apprenante }
+  - { nature: encours, titre: Faire lien, texte: "Nouveaux lieux, nouveaux liens au service des territoires, avec des acteurs français.", famille: Communauté apprenante }
+  - { nature: encours, titre: Foncière coopérative, texte: "Un véhicule commun à plusieurs organisations pour sécuriser le foncier des lieux.", famille: Instruments }
+  - { nature: encours, titre: Observatoire des lieux, texte: "Campagne de données et cartographie, à partir des profils Space2.", famille: Instruments }
+  - { nature: idee, titre: Tiers-lieux et éducation des adultes, texte: "Reconnaître les lieux comme espaces d'éducation informelle. Visites, étude et rencontres en préparation pour 2027.", famille: Communauté apprenante }
+  - { nature: idee, titre: Groupement d'employeurs, texte: "Mutualiser des postes entre lieux et structures membres.", famille: Groupement d'employeurs }
+  - { nature: realisation, titre: Étude « Tiers-lieux et pouvoirs publics », texte: "Comment collectivités et lieux travaillent ensemble.", famille: Communauté apprenante }
+  - { nature: realisation, titre: Analyse « La place des enfants dans le collectif », texte: "Ce que la présence des enfants change à la vie d'un lieu.", famille: Communauté apprenante }
+
+contact:
+  email: a_completer
+  adresse: a_completer
+  reseaux: a_completer      # WhatsApp, LinkedIn, Facebook, Instagram, Substack
+  equipe: a_completer       # noms, rôles et photos de l'équipe et de l'organe d'administration
+  partenaires_financiers: a_completer
+
+liens:
+  space2: "https://space2.streamlit.app/"
+  changethegame_guilde: "https://changethegame.xyz/guilds/4964c699-4684-43a9-b508-cee21c77e24e"

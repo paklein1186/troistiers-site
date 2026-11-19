@@ -1,0 +1,20 @@
+---
+import Base from "../layouts/Base.astro";
+import Liste from "../components/Liste.astro";
+import { chargerContenu } from "../lib/contenu";
+const k = chargerContenu();
+---
+<Base titre="Agenda">
+  <section class="hero">
+    <p class="surtitre">Agenda et actualités</p>
+    <h1>Les prochains rendez-vous</h1>
+  </section>
+  <section class="bloc">
+    <Liste elements={k.agenda.map((a) => ({ cle: a.quand, ...a }))} />
+  </section>
+  <section class="bloc">
+    <h2>Actualités Trois-Tiers</h2>
+    <p>La lettre d'information annonce les rencontres, les appels et les publications du réseau.</p>
+    <div class="rangee"><a class="bouton creux" href="/contact">Recevoir la lettre d'information</a></div>
+  </section>
+</Base>

@@ -1,0 +1,44 @@
+---
+import Base from "../layouts/Base.astro";
+import AFaire from "../components/AFaire.astro";
+import { chargerContenu } from "../lib/contenu";
+const k = chargerContenu();
+---
+<Base titre="Trois-Tiers asbl">
+  <section class="hero">
+    <p class="surtitre">Trois-Tiers asbl</p>
+    <h1>Les lieux comme infrastructure critique</h1>
+    <p class="lead">Notre conviction : centres de formation, lieux hybrides et centres communautaires doivent se multiplier jusqu'à devenir une infrastructure dont les territoires ne peuvent plus se passer, pour la résilience, la démocratie et l'innovation sociale.</p>
+  </section>
+
+  <section class="bloc">
+    <h2>Notre cap</h2>
+    <p>Dynamiser les territoires en faisant levier sur l'expertise d'usage de notre communauté apprenante. Nous travaillons toujours en consortiums multi-acteurs : lieux, pouvoirs publics, entreprises, financeurs, monde académique.</p>
+    <div class="t3">
+      <div class="cellule"><h3>Tiers-lieux à haute valeur ajoutée territoriale</h3><p>Lieux nourriciers, culturels et de santé, ancrés dans leur bassin de vie.</p></div>
+      <div class="cellule"><h3>Gestion collective des territoires</h3><p>Gouvernance partagée, communs, coopération entre acteurs d'un même territoire.</p></div>
+      <div class="cellule"><h3>Instruments structurels</h3><p>Foncier, financement, outillage : ce qui permet aux lieux de durer.</p></div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>D'où nous venons</h2>
+    <p>Trois-Tiers est née du terrain, de personnes qui ont initié et accompagné des lieux. Depuis 2024, l'asbl est le prestataire de la Région wallonne pour l'appel à projets « tiers-lieux ruraux » du plan de relance : elle accompagne les lieux lauréats pendant trois ans et capitalise leurs apprentissages.</p>
+    <p>En 2026, l'association se réorganise en communauté de pratique et élargit son horizon aux coopérations européennes.</p>
+  </section>
+
+  <section class="bloc">
+    <h2>Gouvernance</h2>
+    <ul class="simple">
+      <li>Un organe d'administration de quatre à neuf membres, élus pour trois ans parmi les membres effectifs.</li>
+      <li>Un équilibre de genre inscrit dans les statuts.</li>
+      <li>L'équipe opérationnelle y occupe entre un quart et la moitié des sièges.</li>
+      <li>Un siège reste symboliquement vide, pour les générations futures.</li>
+    </ul>
+  </section>
+
+  <section class="bloc">
+    <h2>L'équipe</h2>
+    <p><AFaire v={k.contact.equipe} quoi="noms, rôles et photos de l'équipe et de l'organe d'administration à compléter" /></p>
+  </section>
+</Base>

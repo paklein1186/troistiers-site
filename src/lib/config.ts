@@ -13,7 +13,9 @@ export interface RegleAcces {
 
 export interface Espace {
   libelle: string;
-  groupe: "public" | "membre" | "cle" | "gouvernance";
+  groupe: "public" | "membre" | "cle" | "gouvernance" | "outil";
+  /** Une phrase pour présenter l'espace ou l'outil. */
+  description?: string;
   acces: RegleAcces;
   portee?: "projet" | "territoire";
   source?: string;

@@ -1,0 +1,7 @@
+---
+// Affiche une valeur de data/contenu.yaml, ou « à compléter » si elle manque.
+import { manque } from "../lib/contenu";
+interface Props { v?: string | null; quoi?: string }
+const { v, quoi = "à compléter" } = Astro.props;
+---
+{manque(v) ? <span class="afaire">[{quoi}]</span> : v}

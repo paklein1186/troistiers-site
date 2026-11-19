@@ -1,0 +1,17 @@
+---
+// Liste à deux colonnes (date ou catégorie à gauche, titre et texte à droite).
+import AFaire from "./AFaire.astro";
+interface Props { elements: { cle: string; titre: string; texte: string; etat?: string; lien?: string }[] }
+const { elements } = Astro.props;
+---
+<div class="liste">
+  {elements.map((e) => (
+    <div class="item">
+      <div class="quand">{e.cle}</div>
+      <div>
+        <h3>{e.lien ? <a href={e.lien}>{e.titre}</a> : e.titre}{e.etat && <span class="etiquette">{e.etat}</span>}</h3>
+        <p><AFaire v={e.texte} /></p>
+      </div>
+    </div>
+  ))}
+</div>

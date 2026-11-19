@@ -1,0 +1,36 @@
+---
+import Base from "../layouts/Base.astro";
+import AFaire from "../components/AFaire.astro";
+import { chargerContenu, manque } from "../lib/contenu";
+const k = chargerContenu();
+const email = k.contact.email;
+---
+<Base titre="Contact">
+  <section class="hero">
+    <p class="surtitre">Contact</p>
+    <h1>Parlons de votre lieu ou de votre territoire</h1>
+  </section>
+  <div class="t2">
+    <div class="panneau">
+      <h3>Nous écrire</h3>
+      <p>Adresse : {manque(email) ? <AFaire quoi="adresse e-mail à compléter" /> : <a href={`mailto:${email}`}>{email}</a>}</p>
+      <p>Siège : <AFaire v={k.contact.adresse} quoi="adresse postale à compléter" /></p>
+      <p class="doux">Précisez votre situation (projet, lieu, territoire, organisation) pour être orienté vers la bonne personne.</p>
+    </div>
+    <div class="panneau">
+      <h3>Devenir membre</h3>
+      <p>Lieux, personnes et organisations peuvent adhérer. Les membres accompagnateur·ices interviennent dans les missions d'accompagnement.</p>
+      <div class="rangee"><a class="bouton" href="/adherer">Voir les formules et adhérer</a></div>
+    </div>
+    <div class="panneau">
+      <h3>Nous suivre</h3>
+      <p>Communauté WhatsApp, LinkedIn, Facebook, Instagram et Substack.</p>
+      <p><AFaire v={k.contact.reseaux} quoi="liens à ajouter" /></p>
+    </div>
+    <div class="panneau">
+      <h3>Présenter votre lieu</h3>
+      <p>Le plus rapide pour entrer dans le réseau : un entretien de quelques minutes avec Space2.</p>
+      <div class="rangee"><a class="bouton" href={k.liens.space2} rel="noopener">Ouvrir Space2</a></div>
+    </div>
+  </div>
+</Base>

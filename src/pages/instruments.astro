@@ -1,0 +1,66 @@
+---
+import Base from "../layouts/Base.astro";
+import AFaire from "../components/AFaire.astro";
+import { chargerContenu } from "../lib/contenu";
+const k = chargerContenu();
+---
+<Base titre="Instruments">
+  <section class="hero">
+    <p class="surtitre">Instruments</p>
+    <h1>Ce qu'il faut pour qu'un lieu tienne dans la durée</h1>
+    <p class="lead">Un lieu a besoin de murs sécurisés, d'un capital patient, de personnes qui l'activent et d'outils pour coopérer. Trois-Tiers construit ces quatre familles d'instruments avec ses membres et ses partenaires.</p>
+  </section>
+
+  <section class="bloc" id="foncier">
+    <p class="surtitre">Instrument 1</p>
+    <h2>Foncier</h2>
+    <p>Nous créons une foncière coopérative en Belgique, portée à plusieurs organisations. Elle sert à sécuriser les terres et le bâti, à renforcer les lieux et à investir dans la durée.</p>
+    <div class="t3">
+      <div class="cellule"><h3>La donnée</h3><p>Un portfolio des lieux tenu à jour : besoins, obstacles, plans de déploiement.</p></div>
+      <div class="cellule"><h3>Le renforcement</h3><p>Accompagnement et gestion immobilière pour sécuriser le foncier avant d'investir.</p></div>
+      <div class="cellule"><h3>L'investissement</h3><p>Un véhicule commun, co-construit entre organisations.</p></div>
+    </div>
+    <p class="doux">Chaque projet est validé sur trois plans : viabilité économique, ancrage territorial, impact. Montages mobilisés selon les cas : coopérative, Community Land Trust, emphytéose, convention d'occupation, occupation transitoire.</p>
+  </section>
+
+  <section class="bloc" id="fonds">
+    <p class="surtitre">Instrument 2</p>
+    <h2>Fonds d'investissement</h2>
+    <p>Le capital patient manque plus souvent que les idées. Nous aidons les lieux à construire un plan de financement croisé et nous préparons des véhicules d'investissement adaptés aux tiers-lieux.</p>
+    <ul class="simple">
+      <li>Subsides régionaux et européens : Erasmus+, Interreg, LEADER, New European Bauhaus.</li>
+      <li>Campagnes coopératives : parts de coopérateur·ices et financement participatif.</li>
+      <li>Investisseurs, banques et mécénat : prêts subordonnés, obligations, certificats immobiliers.</li>
+    </ul>
+    <p>Partenaires financiers : <AFaire v={k.contact.partenaires_financiers} /></p>
+  </section>
+
+  <section class="bloc" id="activateurs">
+    <p class="surtitre">Instrument 3</p>
+    <h2>Activateurs et animateurs de territoire</h2>
+    <p>Des membres accompagnateur·ices interviennent aux côtés des porteurs, des communes et des propriétaires. L'accompagnement (assistance à maîtrise d'ouvrage) suit un parcours en dix étapes, dont on n'active que les modules utiles.</p>
+    <ol class="etapes">
+      {k.parcours.map((e, i) => <li><span class="n">Étape {i + 1}</span><b>{e.nom}</b><span>{e.texte}</span></li>)}
+    </ol>
+    <div class="t3">
+      <div class="cellule"><h3>Amorce</h3><p>Coup de sonde, cadrage, premières pistes de financement. Activable tout de suite, sur une petite enveloppe.</p></div>
+      <div class="cellule"><h3>Second temps</h3><p>Programmation, modèle économique, gouvernance, montage juridique. Activé module par module une fois le cap posé.</p></div>
+      <div class="cellule"><h3>Post-financement</h3><p>Aménagement, recrutement, coordination déléguée, suivi d'impact. Financé par la levée de fonds ou les bailleurs.</p></div>
+    </div>
+    <p class="doux">Situations que nous accompagnons : une commune qui déclenche un tiers-lieu dans un bâtiment communal, une friche à réhabiliter, un grand domaine à réorienter, des bâtiments qui se libèrent, un collectif citoyen sans lieu, un lieu existant à consolider.</p>
+    <div class="rangee"><a class="bouton" href="/contact">Demander un premier échange</a></div>
+  </section>
+
+  <section class="bloc" id="numerique">
+    <p class="surtitre">Instrument 4</p>
+    <h2>Outillage numérique</h2>
+    <div class="t3">
+      <div class="cellule"><h3>Space2</h3><p>Un entretien de quelques minutes qui dresse le profil d'un lieu et alimente la base commune.</p><a href={k.liens.space2} rel="noopener">Ouvrir Space2</a></div>
+      <div class="cellule"><h3>ChangeTheGame</h3><p>La plateforme de coopération territoriale : talents, ressources, documentation, détection de synergies entre acteurs.</p><a href={k.liens.changethegame_guilde} rel="noopener">La guilde Trois-Tiers</a></div>
+      <div class="cellule"><h3>Besoins ↔ ressources</h3><p>Une base qui rapproche ce dont les lieux ont besoin et ce que d'autres peuvent apporter.</p></div>
+      <div class="cellule"><h3>Cartographie et observatoire</h3><p>Une carte des tiers-lieux et une campagne de données pour documenter ce qu'ils produisent sur leur territoire.</p><a href="/carte">Voir la carte</a></div>
+      <div class="cellule"><h3>Configurateur d'accompagnement</h3><p>Il compose un parcours et son budget à partir de la situation du porteur. Réservé aux membres accompagnants.</p><a href="/membre">Espace membres</a></div>
+      <div class="cellule"><h3>Pilote 3/3</h3><p>Le tableau de bord partagé des missions et des pistes en cours. Réservé à l'équipe.</p><a href="/membre">Espace membres</a></div>
+    </div>
+  </section>
+</Base>
