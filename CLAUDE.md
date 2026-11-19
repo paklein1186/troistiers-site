@@ -79,8 +79,24 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
    formule + badge adhérent ; membre sans cotisation → observateur).
 5. Tester ensuite le paiement : Stripe CLI (`stripe listen --forward-to …`) pour relayer les webhooks en local.
 
-Puis, dans l'ordre de la feuille de route : bouton « Adhérer » du site branché sur `guild-euro-checkout` ;
-paiement pour d'autres (un GAL ou une organisation paie, l'adhésion va à chaque lieu ou personne) ;
+## Phase 2 : bouton « Adhérer » (branche `phase2/adherer`, codé et testé hors ligne le 19/11)
+
+- `/adherer` : une carte par profil ; formules et quantités lues dans `communaute.yaml`
+  (`correspondances_ctg.choix`) ; le site n'envoie jamais de montant, CTG le recalcule.
+- `POST /adherer/payer` → `guild-euro-checkout` avec le jeton CTG de la personne → page Stripe.
+  Pas connecté : passage par la connexion CTG puis retour sur `/adherer`.
+- `/adherer/retour` → `guild-euro-confirm`, relecture du profil, puis `/membre?adhesion=active|attente|erreur`.
+- Jetons CTG gardés chiffrés (AES-256-GCM, clé tirée de `SESSION_SECRET`) dans le cookie `tt_ctg`,
+  renouvelés automatiquement ; `/membre/actualiser` relit le profil sans se déconnecter.
+- Reste à faire avant le test réel (côté CTG / Stripe, à faire par PA ou Lovable) :
+  1. `STRIPE_SECRET_KEY_GUILD` doit être une clé **sk_test_…** ;
+  2. `GUILD_CHECKOUT_RETURN_ORIGINS` doit contenir `http://localhost:4321` (sinon Stripe renvoie sur CTG) ;
+  3. formules chargées pour la guilde (`docs/trois-tiers/cotisations.sql` de changethegame, guilde `4964c699-…`)
+     et `euro_membership_enabled = true` ;
+  4. si la guilde exige une candidature, le compte de test doit être accepté avant de payer.
+- Test : compte de test (pas un vrai membre), carte `4242 4242 4242 4242`, puis vérifier le badge « Adhérent ».
+
+Puis, dans l'ordre de la feuille de route : paiement pour d'autres (un GAL ou une organisation paie, l'adhésion va à chaque lieu ou personne) ;
 notifications sortantes de CTG vers le site ; missions lues depuis les quêtes de la guilde ; carte et
 observatoire depuis Space2 ; assistants et packs de tokens.
 

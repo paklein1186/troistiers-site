@@ -37,6 +37,16 @@ export interface Badge {
   portees?: string[];
 }
 
+/** Quantités qu'une formule CTG peut demander (noms des champs de guild-euro-checkout). */
+export const QUANTITES = ["extra_persons", "small_places", "large_places"] as const;
+export type Quantite = (typeof QUANTITES)[number];
+export type DemandeQuantites = Partial<Record<Quantite, number>>;
+
+export interface ChoixFormule {
+  libelle: string;
+  quantites?: Partial<Record<Quantite, string>>;
+}
+
 export interface Communaute {
   version: number;
   communaute: { id: string; nom: string; source_comptes: string; guilde_ctg: string | null; devise: string };
@@ -45,12 +55,24 @@ export interface Communaute {
   espaces: Record<string, Espace>;
   assistants: Record<string, unknown>;
   /** Traduction des formules de cotisation ChangeTheGame (plan_code) en profils du site. */
-  correspondances_ctg?: { formules?: Record<string, string> };
+  correspondances_ctg?: {
+    formules?: Record<string, string>;
+    /** Présentation de chaque formule sur la page « Adhérer ». */
+    choix?: Record<string, ChoixFormule>;
+  };
 }
 
 let cache: Communaute | null = null;
 
 /** Lit communaute.yaml une fois, puis le garde en mémoire. */
+/** Formules CTG qu'on peut payer pour un profil donné, dans l'ordre du fichier. */
+export function formulesDuProfil(c: Communaute, profil: string): { code: string; choix: ChoixFormule }[] {
+  const f = c.correspondances_ctg?.formules ?? {};
+  return Object.keys(f)
+    .filter((code) => f[code] === profil)
+    .map((code) => ({ code, choix: c.correspondances_ctg?.choix?.[code] ?? { libelle: code } }));
+}
+
 export function chargerCommunaute(chemin = resolve(process.cwd(), "communaute.yaml")): Communaute {
   if (cache) return cache;
   const brut = parse(readFileSync(chemin, "utf8")) as Communaute;
@@ -79,6 +101,11 @@ export function valider(c: Communaute): void {
   }
   for (const [formule, profil] of Object.entries(c.correspondances_ctg?.formules ?? {})) {
     if (!c.profils[profil]) erreurs.push(`correspondance CTG ${formule} : profil inconnu « ${profil} »`);
+  }
+  for (const [formule, ch] of Object.entries(c.correspondances_ctg?.choix ?? {})) {
+    if (!c.correspondances_ctg?.formules?.[formule]) erreurs.push(`choix ${formule} : formule absente des correspondances`);
+    for (const q of Object.keys(ch.quantites ?? {}))
+      if (!(QUANTITES as readonly string[]).includes(q)) erreurs.push(`choix ${formule} : quantité inconnue « ${q} »`);
   }
   if (erreurs.length) throw new Error("communaute.yaml invalide :\n- " + erreurs.join("\n- "));
 }

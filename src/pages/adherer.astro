@@ -1,9 +1,12 @@
 ---
 import Base from "../layouts/Base.astro";
-import { chargerCommunaute } from "../lib/config";
+import { chargerCommunaute, formulesDuProfil } from "../lib/config";
+import { aLeBadge } from "../lib/acces";
+import { ctgConfiguree } from "../lib/ctg";
 
 const c = chargerCommunaute();
-const stripePret = Boolean(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const u = Astro.locals.utilisateur;
+const paiementOuvert = ctgConfiguree();
 
 // Traduit une formule de cotisation du fichier en phrase lisible.
 function decrire(cot: unknown): string {
@@ -18,18 +21,64 @@ function decrire(cot: unknown): string {
   if (f.moins_de_20_usagers) return `${f.moins_de_20_usagers} € (moins de 20 usagers réguliers) ou ${f.a_partir_de_20_usagers} €`;
   return "À préciser";
 }
-const offerts = Object.entries(c.profils).filter(([id]) => !["public", "observateur", "equipe", "oa"].includes(id));
+const offerts = Object.entries(c.profils)
+  .filter(([id]) => !["public", "observateur", "equipe", "oa"].includes(id))
+  .map(([id, p]) => ({ id, p, formules: formulesDuProfil(c, id) }));
+
+// Messages après un aller-retour vers ChangeTheGame ou Stripe.
+const messages: Record<string, string> = {
+  annulee: "Paiement abandonné : rien n'a été prélevé. Vous pouvez reprendre quand vous voulez.",
+  candidature: "La guilde Trois-Tiers demande d'abord une candidature sur ChangeTheGame. Une fois acceptée, revenez ici pour payer.",
+  candidature_en_attente: "Votre candidature à la guilde Trois-Tiers n'a pas encore été acceptée. Vous pourrez payer dès qu'elle le sera.",
+  paiement_ferme: "Le paiement en ligne n'est pas encore ouvert. Écrivez à l'équipe pour adhérer.",
+  formule: "Cette formule n'est pas disponible pour l'instant. Écrivez à l'équipe.",
+  quantites: "Les nombres indiqués doivent être des nombres entiers entre 0 et 500.",
+  paiement: "Le paiement n'a pas pu démarrer. Réessayez ; si le problème persiste, écrivez à l'équipe.",
+};
+const cle = Astro.url.searchParams.get("erreur") ?? Astro.url.searchParams.get("etat");
+const message = cle ? messages[cle] ?? messages.paiement : null;
+const dejaAdherent = aLeBadge(u, "adherent");
 ---
 <Base titre="Adhérer">
   <h1>Adhérer à Trois-Tiers</h1>
   <p class="chapo">Un seul statut, membre adhérent ; la cotisation dépend de votre profil. Vous pouvez aussi rejoindre la guilde Trois-Tiers sur ChangeTheGame : le compte est le même.</p>
-  <p class="avertissement">Le paiement passera par ChangeTheGame, sur le compte Stripe de Trois-Tiers ({stripePret ? "clé de test présente" : "clé de test absente"}). Il n'est pas encore branché.</p>
+  {message && <p class="avertissement" role="status">{message}</p>}
+  {dejaAdherent && <p class="avertissement">Vous êtes déjà adhérent : votre cotisation se renouvelle automatiquement. Pour la modifier ou l'arrêter, passez par la guilde Trois-Tiers sur ChangeTheGame.</p>}
+  {!u && paiementOuvert && <p style="font-size:14px;color:var(--doux)">Le paiement passe par votre compte ChangeTheGame : on vous demandera de vous connecter (ou de créer un compte) avant la page de paiement.</p>}
+
   <div class="grille" style="margin-top:16px">
-    {offerts.map(([id, p]) => (
+    {offerts.map(({ id, p, formules }) => (
       <article class="carte" id={id}>
         <h2 style="font-size:18px;margin:0 0 6px">{p.libelle}</h2>
         <p style="margin:0 0 12px">{decrire(p.cotisation)}</p>
-        <button type="button" disabled>Adhérer (bientôt)</button>
+        {formules.length && paiementOuvert && !dejaAdherent ? (
+          <form method="post" action="/adherer/payer" style="display:flex;flex-direction:column;gap:10px">
+            <input type="hidden" name="profil" value={id} />
+            {formules.length === 1
+              ? <input type="hidden" name="plan_code" value={formules[0].code} />
+              : (
+                <fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+                  <legend style="font-size:14px;color:var(--doux);margin-bottom:4px">Formule</legend>
+                  {formules.map((f, i) => (
+                    <label style="display:flex;gap:8px;align-items:center">
+                      <input type="radio" name="plan_code" value={f.code} checked={i === 0} required />
+                      {f.choix.libelle}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+            {formules.flatMap((f) => Object.entries(f.choix.quantites ?? {})).map(([q, libelle]) => (
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:14px">
+                {libelle}
+                <input type="number" name={q} min="0" max="500" step="1" value="0" inputmode="numeric" style="font:inherit;padding:6px 8px;max-width:120px" />
+              </label>
+            ))}
+            <button type="submit">Adhérer et payer</button>
+            <span style="font-size:13px;color:var(--doux)">Paiement sécurisé par Stripe, sur le compte de Trois-Tiers. Le montant exact s'affiche avant de payer.</span>
+          </form>
+        ) : (
+          <button type="button" disabled>{dejaAdherent ? "Déjà adhérent" : formules.length ? "Paiement bientôt ouvert" : "Nous contacter"}</button>
+        )}
       </article>
     ))}
   </div>
