@@ -20,7 +20,8 @@ export interface Lieu {
   campagne?: { texte: string; objectif?: string | null; contact?: string | null } | null;
 }
 
-const env = (k: string) => (import.meta.env[k] as string | undefined) ?? process.env[k];
+// Une variable vide dans .env (ex. « CTG_FUNCTIONS_URL= ») compte comme absente.
+const env = (k: string) => ((import.meta.env?.[k] as string | undefined) || process.env[k]) || undefined;
 
 let cache: { quand: number; lieux: Lieu[]; exemple: boolean } | null = null;
 const DUREE_CACHE_MS = 10 * 60 * 1000;

@@ -42,8 +42,8 @@ Réponds en français, simplement : PA n'est pas développeur, il décide de la 
 
 | Dépôt | Rôle | État |
 | --- | --- | --- |
-| `paklein1186/troistiers-site` (ce dépôt) | Site Astro | Branche `phase1/squelette-astro` : squelette, membranes, accès testés, connexion CTG écrite (non testée), mode démo |
-| `paklein1186/changethegame` (ex-questhub101) | Plateforme CTG (Lovable, React/Vite, Supabase) | PR #10 et #11 fusionnées ; **PR #12 ouverte** (`guild-member-profile`) |
+| `paklein1186/troistiers-site` (ce dépôt) | Site Astro | Branche `phase1/squelette-astro` : squelette, membranes, accès testés, mode démo ; **connexion CTG validée de bout en bout le 19/11** (compte de PA, en local) |
+| `paklein1186/changethegame` (ex-questhub101) | Plateforme CTG (Lovable, React/Vite, Supabase) | PR #10, #11 et #12 fusionnées ; fonctions et migrations en production (vérifié le 19/11) |
 | `paklein1186/space2` | Lieux, carte, RAG, observatoire (Python, FastAPI sur Render) | Lecture seule pour l'instant ; `GET /lieux` avec en-tête `X-Webhook-Secret` |
 
 Dans ChangeTheGame, déjà en place (PR #10 et #11) :
@@ -60,11 +60,16 @@ Dans ChangeTheGame, déjà en place (PR #10 et #11) :
 Brouillons Lovable : base de test isolée, mais backend protégé par la connexion Lovable (Stripe et ce site ne
 peuvent pas l'appeler depuis un serveur) ; un brouillon ne reçoit `main` qu'avec « Mettre à jour ».
 
-## Prochaine étape : valider la phase 1
+## Phase 1 : connexion unique (validée le 19/11/2026)
+
+Guilde Trois-Tiers sur CTG : `CTG_GUILD_ID=4964c699-4684-43a9-b508-cee21c77e24e`.
+`guild-member-profile` vérifiée avec un compte de test (membre sans cotisation → observateur) puis avec le
+compte de PA via le site. Piège rencontré : une ligne vide dans `.env` (`CTG_FUNCTIONS_URL=`) était prise
+comme valeur ; corrigé, une variable vide compte maintenant comme absente.
 
 Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrouve les mêmes accès**.
 
-1. Faire fusionner la PR #12 de changethegame (avec l'accord de PA), attendre le déploiement de `guild-member-profile`.
+1. PR #12 de changethegame fusionnée, `guild-member-profile` déployée.
 2. Ici : `cp .env.example .env`, remplir `SESSION_SECRET`, `CTG_GUILD_ID` (guilde Trois-Tiers en production),
    `MODE_DEMO=false` ; `npm install` ; `npm run dev`.
 3. Ouvrir `http://localhost:4321/connexion` → « Se connecter avec ChangeTheGame ». Le site s'enregistre seul

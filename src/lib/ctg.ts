@@ -18,7 +18,8 @@ import { resolve } from "node:path";
 import type { BadgePorte, Utilisateur } from "./acces";
 import { chargerCommunaute, type Communaute } from "./config";
 
-const env = (k: string) => (import.meta.env?.[k] as string | undefined) ?? process.env[k];
+// Une variable vide dans .env (ex. « CTG_FUNCTIONS_URL= ») compte comme absente.
+const env = (k: string) => ((import.meta.env?.[k] as string | undefined) || process.env[k]) || undefined;
 
 export const ctgConfiguree = () => Boolean(env("CTG_ISSUER") && env("CTG_GUILD_ID"));
 
