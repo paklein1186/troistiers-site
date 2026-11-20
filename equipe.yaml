@@ -1,0 +1,45 @@
+# Page « L'association » (/association) : l'équipe et l'organe d'administration.
+# Ce fichier se modifie sans toucher au code.
+#
+# Chaque bloc :
+#   titre, texte (facultatif), publie (true = affiché ; false = caché tant que la composition n'est pas validée)
+# Chaque personne :
+#   prenom, nom      « a_completer » = affiché « à compléter », jamais inventé
+#   role             facultatif
+#   description      facultatif
+#   photo            facultatif : nom d'un fichier de public/equipe/ (ex. pierre-alexandre-klein.jpg).
+#                    Sans ce champ, le site cherche public/equipe/prenom-nom.jpg (sans accents, en minuscules) ;
+#                    s'il n'y a pas de photo, il affiche un rond avec les initiales.
+
+equipe:
+  titre: L'équipe
+  texte: "L'équipe opérationnelle fait vivre la communauté, les programmes et les instruments au quotidien."
+  publie: true
+  personnes:
+    - prenom: Pierre-Alexandre
+      nom: Klein
+      role: Coordination générale
+      description: "Fait tenir l'ensemble : projets, instruments, communauté et accompagnement des lieux. Porte aussi les coopérations européennes et les outils numériques."
+    - prenom: Eveline
+      nom: a_completer
+      role: Programme wallon, impact et expéditions
+      description: "Suit l'accompagnement des lieux lauréats pour la Région wallonne. Conçoit la mesure d'impact et l'observatoire, les partenariats financiers et les expéditions apprenantes."
+    - prenom: Yann
+      nom: a_completer
+      role: Animation de la communauté
+      description: "Anime la communauté apprenante et va à la rencontre de nouveaux lieux. Tient la communication des programmes et les publications du réseau."
+    - prenom: Isabelle
+      nom: a_completer
+      role: Administration et finances
+      description: "Gère l'administration, la comptabilité, les finances et les ressources humaines de l'asbl."
+
+organe_administration:
+  titre: L'organe d'administration
+  texte: "Il veille à la stratégie et supervise l'asbl. Ses membres sont élus par l'assemblée générale."
+  publie: false   # composition à confirmer par PA : rien ne s'affiche tant que ce n'est pas « true »
+  personnes:
+    - { prenom: Marie, nom: Godart }
+    - { prenom: Romane, nom: Cloquet }
+    - { prenom: Xavier, nom: Marichal }
+    - { prenom: Thibaut, nom: Kotten }
+    - { prenom: Pierre-Alexandre, nom: Klein, role: Membre de l'équipe }

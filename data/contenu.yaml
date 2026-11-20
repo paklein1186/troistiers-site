@@ -113,7 +113,7 @@ contact:
   email: a_completer
   adresse: a_completer
   reseaux: a_completer      # WhatsApp, LinkedIn, Facebook, Instagram, Substack
-  equipe: a_completer       # noms, rôles et photos de l'équipe et de l'organe d'administration
+  # équipe et organe d'administration : voir equipe.yaml (page /association)
   partenaires_financiers: a_completer
 
 # Carte des lieux : pays affichés à ce stade (écritures acceptées, sans tenir compte des accents ni des majuscules).

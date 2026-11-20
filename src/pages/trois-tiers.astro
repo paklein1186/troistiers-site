@@ -1,8 +1,5 @@
 ---
 import Base from "../layouts/Base.astro";
-import AFaire from "../components/AFaire.astro";
-import { chargerContenu } from "../lib/contenu";
-const k = chargerContenu();
 ---
 <Base titre="Trois-Tiers asbl">
   <section class="hero">
@@ -39,6 +36,6 @@ const k = chargerContenu();
 
   <section class="bloc">
     <h2>L'équipe</h2>
-    <p><AFaire v={k.contact.equipe} quoi="noms, rôles et photos de l'équipe et de l'organe d'administration à compléter" /></p>
+    <p>Les personnes qui font vivre l'association : <a href="/association">l'équipe et l'organe d'administration</a>.</p>
   </section>
 </Base>

@@ -1,0 +1,61 @@
+---
+import Base from "../layouts/Base.astro";
+import { manque } from "../lib/contenu";
+import { blocsPublies, chargerEquipe, initiales, photoDe } from "../lib/equipe";
+
+// L'association : équipe et organe d'administration (equipe.yaml). Un bloc non publié n'apparaît pas.
+const blocs = blocsPublies(chargerEquipe());
+---
+<Base titre="L'association" description="L'équipe et l'organe d'administration de Trois-Tiers asbl.">
+  <section class="hero">
+    <p class="surtitre">Trois-Tiers asbl</p>
+    <h1>L'association</h1>
+    <p class="lead">Les personnes qui font vivre Trois-Tiers au quotidien et celles qui en portent la gouvernance.</p>
+  </section>
+
+  {blocs.map((b) => (
+    <section class="bloc">
+      <h2>{b.titre}</h2>
+      {b.texte && <p class="doux">{b.texte}</p>}
+      <ul class="personnes">
+        {b.personnes.map((p) => {
+          const photo = photoDe(p);
+          return (
+            <li class="personne">
+              <span class="portrait" aria-hidden="true">
+                <span class="initiales">{initiales(p)}</span>
+                {photo && <img src={photo} alt="" loading="lazy" width="96" height="96" onerror="this.remove()" />}
+              </span>
+              <div class="fiche">
+                <h3>{p.prenom} {manque(p.nom) ? <span class="afaire">[nom à compléter]</span> : p.nom}</h3>
+                {p.role && <p class="role">{p.role}</p>}
+                {p.description && <p>{p.description}</p>}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  ))}
+
+  <section class="bloc">
+    <p>Pour en savoir plus sur notre gouvernance et notre cap : <a href="/trois-tiers">Trois-Tiers</a>. Pour nous écrire : <a href="/contact">Contact</a>.</p>
+  </section>
+</Base>
+
+<style>
+  .personnes { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px 28px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+  .personne { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; align-items: start; padding-top: 14px; border-top: 3px solid var(--trait); }
+  .personne:nth-child(3n+1) { border-color: var(--lier); }
+  .personne:nth-child(3n+2) { border-color: var(--relier); }
+  .personne:nth-child(3n) { border-color: var(--porter); }
+  .portrait { position: relative; width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: var(--accent-doux); display: grid; place-items: center; }
+  .personne:nth-child(3n+1) .portrait { color: var(--lier); }
+  .personne:nth-child(3n+2) .portrait { color: var(--relier); }
+  .personne:nth-child(3n) .portrait { color: var(--porter); }
+  .initiales { font: 700 1.5rem var(--titre); letter-spacing: .02em; }
+  .portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .fiche { display: grid; gap: 4px; min-width: 0; }
+  .fiche h3 { overflow-wrap: anywhere; }
+  .role { font-family: var(--mono); font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--doux); }
+</style>
