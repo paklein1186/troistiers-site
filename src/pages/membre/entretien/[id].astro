@@ -1,0 +1,115 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { chargerCommunaute } from "../../../lib/config";
+import { niveauAcces } from "../../../lib/acces";
+import { jetonsValides } from "../../../lib/ctg";
+import { garderJetons, lireJetons } from "../../../lib/jetons";
+import { markdownEnHtml } from "../../../lib/artefacts";
+import { ErreurEntretien, lireEntretien, repondreEntretien, ROLES_ENTRETIEN, type Entretien } from "../../../lib/space2";
+
+// Conversation d'entretien : l'historique (relu chez Space2), et la réponse de la personne.
+const u = Astro.locals.utilisateur;
+const id = Astro.params.id ?? "";
+const ici = `/membre/entretien/${encodeURIComponent(id)}`;
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (niveauAcces(chargerCommunaute(), u, "nourrir_lieu") === "aucun") return Astro.redirect("/membre");
+const jetons = await jetonsValides(lireJetons(Astro.cookies));
+if (!jetons) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+garderJetons(Astro.cookies, jetons);
+
+let message = "";
+let brouillon = "";
+let e: Entretien | null = null;
+
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  brouillon = String((await Astro.request.formData()).get("texte") ?? "").trim().slice(0, 4000);
+  if (brouillon) {
+    try {
+      await repondreEntretien(jetons.acces, id, brouillon);
+      return Astro.redirect(`${ici}#fin`, 303);
+    } catch (err) {
+      console.error("Entretien (réponse) :", err);
+      const s = err instanceof ErreurEntretien ? err.statut : 0;
+      message = s === 429 ? "Beaucoup de demandes en même temps : renvoyez votre réponse dans une minute."
+        : "Votre réponse n'a pas pu être transmise. Renvoyez-la (elle est restée dans la zone de saisie).";
+    }
+  }
+}
+try {
+  e = await lireEntretien(jetons.acces, id);
+} catch (err) {
+  const s = err instanceof ErreurEntretien ? err.statut : 0;
+  if (s === 404) return new Response("Entretien introuvable", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
+  console.error("Entretien (lecture) :", err);
+  message ||= "Space2 ne répond pas pour le moment.";
+}
+---
+<Base titre={e?.nom_lieu ? `Entretien · ${e.nom_lieu}` : "Entretien"}>
+  <p class="surtitre"><a href="/membre/entretien">Vos entretiens</a> · {e?.campagne_id ? "Enquête" : "Entretien"}</p>
+  {e && (
+    <section class="hero">
+      <h1>{e.nom_lieu ?? "Votre lieu"}</h1>
+      <p class="doux">En tant que : {ROLES_ENTRETIEN[e.role] ?? e.role}. Vous pouvez vous arrêter à tout moment : la conversation est enregistrée.</p>
+      {e.completion && (
+        <div class="progression" role="progressbar" aria-valuenow={e.completion.pourcentage} aria-valuemin="0" aria-valuemax="100"
+          aria-label={`Enquête remplie à ${e.completion.pourcentage} %`}>
+          <span style={`width:${e.completion.pourcentage}%`}></span>
+          <p class="doux">{e.completion.repondus} questions sur {e.completion.total} ({e.completion.pourcentage} %)</p>
+        </div>
+      )}
+    </section>
+  )}
+  {message && <p class="avertissement" role="status">{message}</p>}
+
+  {e && (
+    <>
+      <section class="conversation" aria-live="polite">
+        {e.historique.map((t) => t.role === "assistant"
+          ? <article class="bulle agent document" set:html={markdownEnHtml(t.texte)} />
+          : <p class="bulle personne">{t.texte}</p>)}
+        <span id="fin"></span>
+      </section>
+
+      <form method="post" class="saisie panneau" id="saisie">
+        <label for="texte" class="doux">Votre réponse</label>
+        <textarea id="texte" name="texte" rows="4" maxlength="4000" required placeholder="Répondez avec vos mots…">{brouillon}</textarea>
+        <div class="rangee">
+          <button type="submit" id="envoyer">Envoyer</button>
+          <span class="doux" id="attente" hidden>L'assistant note votre réponse et prépare la suite…</span>
+          <a class="doux" href="/membre#nourrir" style="margin-left:auto">Arrêter pour l'instant</a>
+        </div>
+      </form>
+    </>
+  )}
+</Base>
+
+<style>
+  .conversation { display: grid; gap: 12px; margin-top: 20px; }
+  .bulle { max-width: 75ch; padding: 12px 16px; border-radius: 14px; margin: 0; }
+  .agent { background: var(--surface); border: 1px solid var(--trait); justify-self: start; }
+  .agent :global(p) { margin: 0 0 8px; } .agent :global(p:last-child) { margin-bottom: 0; }
+  .personne { background: var(--accent-doux); justify-self: end; white-space: pre-wrap; }
+  .saisie { margin-top: 20px; position: sticky; bottom: 8px; }
+  .saisie textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); color: var(--encre); }
+  .progression { max-width: 520px; }
+  .progression > span { display: block; height: 8px; border-radius: 4px; background: var(--relier); }
+  .progression { background: linear-gradient(var(--trait), var(--trait)) 0 0 / 100% 8px no-repeat; border-radius: 4px; }
+  .progression p { margin: 6px 0 0; font-size: .9rem; }
+</style>
+
+<script>
+  const f = document.getElementById("saisie") as HTMLFormElement | null;
+  const t = document.getElementById("texte") as HTMLTextAreaElement | null;
+  f?.addEventListener("submit", () => {
+    (document.getElementById("envoyer") as HTMLButtonElement).disabled = true;
+    document.getElementById("attente")?.removeAttribute("hidden");
+  });
+  // Entrée envoie, Maj+Entrée va à la ligne.
+  t?.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing && t.value.trim()) { ev.preventDefault(); f?.requestSubmit(); }
+  });
+  document.getElementById("fin")?.scrollIntoView({ block: "end" });
+  t?.focus({ preventScroll: true });
+</script>
