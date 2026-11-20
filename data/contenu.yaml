@@ -19,7 +19,7 @@ profils_accueil:
       - { titre: Le parcours d'accompagnement, texte: "De l'amorce au lancement, en dix étapes dont on n'active que l'utile.", lien: /instruments#activateurs }
       - { titre: Rencontrer des pairs, texte: "D'autres porteurs sont passés par là. Les rendez-vous Tiers à Tiers servent à ça.", lien: /communaute }
       - { titre: Financer et sécuriser, texte: "Subsides, coopérateurs, foncière : les pistes pour votre montage.", lien: /instruments#fonds }
-    action: { texte: Décrire mon projet avec Space2, lien: "https://space2.streamlit.app/" }
+    action: { texte: Décrire mon projet avec Space2, lien: "https://space2.streamlit.app/entretien?entretien=general" }
   - id: lieu
     libelle: Représentant d'un lieu
     titre: Vous faites vivre un lieu
@@ -28,7 +28,7 @@ profils_accueil:
       - { titre: La communauté apprenante, texte: "Rencontres, visites, codéveloppement entre lieux.", lien: /communaute }
       - { titre: Besoins et ressources, texte: "Dites ce qui vous manque et ce que vous pouvez apporter.", lien: /instruments#numerique }
       - { titre: Foncier et financement, texte: "Sécuriser vos murs et trouver un capital patient.", lien: /instruments#foncier }
-    action: { texte: Présenter mon lieu avec Space2, lien: "https://space2.streamlit.app/" }
+    action: { texte: Présenter mon lieu avec Space2, lien: "https://space2.streamlit.app/entretien?entretien=general" }
   - id: territorial
     libelle: Acteur territorial
     titre: Vous agissez pour un territoire
