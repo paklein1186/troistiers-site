@@ -143,7 +143,7 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   personne ; Space2 vérifie ce jeton auprès de CTG, renvoie un ticket à usage unique (2 min), puis ouvre sa propre
   session pour le même e-mail. Lien direct `/entretien?…` : aucun menu. Sans jeton (démo) : lien sans ticket.
   La fenêtre intégrée (iframe Streamlit) a été abandonnée : cookies tiers bloqués, Space2 redemandait l'e-mail.
-- **Entretien natif sur troistiers.space** (décision du 20/11, option A) : `/membre/entretien[?enquete=code]` (choisir
+- **Entretien natif sur troistiers.space** (décision du 20/11, option A ; **fonctionne en local le 20/11**, compte de PA) : `/membre/entretien[?enquete=code]` (choisir
   son lieu, son rôle, « raconter le lieu » ou « exprimer ses besoins », reprendre un entretien) et
   `/membre/entretien/<id>` (conversation). API Space2 `/entretien/*` (space2#6) : même agent de collecte que
   l'app, réponses dans les mêmes tables ; chaque appel porte la clé du site + le jeton CTG (`X-CTG-Token`), vérifié
