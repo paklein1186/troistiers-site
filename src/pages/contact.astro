@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import AFaire from "../components/AFaire.astro";
+import { lienSpace2 } from "../lib/space2";
 import { chargerContenu, manque } from "../lib/contenu";
 const k = chargerContenu();
 const email = k.contact.email;
@@ -30,7 +31,7 @@ const email = k.contact.email;
     <div class="panneau">
       <h3>Présenter votre lieu</h3>
       <p>Le plus rapide pour entrer dans le réseau : un entretien de quelques minutes avec Space2.</p>
-      <div class="rangee"><a class="bouton" href={k.liens.space2} rel="noopener">Ouvrir Space2</a></div>
+      <div class="rangee"><a class="bouton" href={lienSpace2(k.liens.space2)} rel="noopener">Ouvrir l'entretien Space2</a></div>
     </div>
   </div>
 </Base>

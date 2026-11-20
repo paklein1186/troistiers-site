@@ -76,12 +76,32 @@ export async function chargerEnquetes(): Promise<Enquete[]> {
   return (await lireSpace2<{ campagnes: Enquete[] }>("/campagnes")).campagnes ?? [];
 }
 
-/** Lien vers l'application Space2 : entretien général, ou une enquête précise. */
-export function lienSpace2(base: string, quoi: { enquete?: string } = {}): string {
-  const u = new URL(base);
+/**
+ * Lien direct vers l'entretien de Space2 (page /entretien, sans menu), général ou d'une enquête précise.
+ * `ticket` : ticket de connexion unique (voir demanderTicket), pour arriver déjà connecté.
+ */
+export function lienSpace2(base: string, quoi: { enquete?: string; ticket?: string } = {}): string {
+  const u = new URL("entretien", base.endsWith("/") ? base : `${base}/`);
   if (quoi.enquete) u.searchParams.set("campagne", quoi.enquete);
   else u.searchParams.set("entretien", "general");
+  if (quoi.ticket) u.searchParams.set("ticket", quoi.ticket);
   return u.toString();
+}
+
+/**
+ * Ticket de connexion unique à Space2 : le site transmet le jeton ChangeTheGame de la personne,
+ * Space2 le vérifie lui-même auprès de ChangeTheGame et renvoie un ticket à usage unique (2 min).
+ */
+export async function demanderTicket(jetonCtg: string): Promise<string> {
+  if (!space2Configure()) throw new Error("Space2 n'est pas configuré");
+  const r = await fetch(`${env("SPACE2_API_URL")!.replace(/\/$/, "")}/sso/ticket`, {
+    method: "POST",
+    headers: { "X-Webhook-Secret": env("SPACE2_API_SECRET")!, "content-type": "application/json" },
+    body: JSON.stringify({ ctg_token: jetonCtg }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!r.ok) throw new Error(`Space2 a répondu ${r.status} sur /sso/ticket`);
+  return ((await r.json()) as { ticket: string }).ticket;
 }
 
 export interface Effectif { valeur: string; n: number }
