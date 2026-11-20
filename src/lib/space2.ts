@@ -255,3 +255,60 @@ export async function poserQuestion(messages: MessageAssistant[]): Promise<strin
   const { content } = (await r.json()) as { content: string };
   return content;
 }
+
+// -- Entretien de collecte mené sur le site (API /entretien de Space2) -------------------------
+// Chaque appel porte la clé du site ET le jeton ChangeTheGame de la personne : Space2 vérifie
+// lui-même ce jeton auprès de ChangeTheGame avant d'agir en son nom.
+
+export class ErreurEntretien extends Error {
+  constructor(public statut: number, message: string) {
+    super(message);
+  }
+}
+
+async function appelEntretien<T>(jetonCtg: string, chemin: string, corps?: unknown): Promise<T> {
+  if (!space2Configure()) throw new ErreurEntretien(503, "Space2 n'est pas configuré");
+  const r = await fetch(`${env("SPACE2_API_URL")!.replace(/\/$/, "")}/entretien${chemin}`, {
+    method: corps === undefined ? "GET" : "POST",
+    headers: {
+      "X-Webhook-Secret": env("SPACE2_API_SECRET")!,
+      "X-CTG-Token": jetonCtg,
+      ...(corps === undefined ? {} : { "content-type": "application/json" }),
+    },
+    body: corps === undefined ? undefined : JSON.stringify(corps),
+    // Un tour d'entretien peut enchaîner plusieurs outils : jusqu'à deux minutes.
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!r.ok) throw new ErreurEntretien(r.status, `Space2 a répondu ${r.status} sur /entretien${chemin.split("?")[0]}`);
+  return (await r.json()) as T;
+}
+
+export interface LieuTrouve { id: string; nom: string; commune?: string | null; region?: string | null; pays?: string | null }
+export interface TourEntretien { role: "user" | "assistant"; texte: string }
+export interface Entretien {
+  id: string; tiers_lieu_id: string; nom_lieu: string | null; role: string; mode: string;
+  campagne_id: string | null; historique: TourEntretien[];
+  completion: { pourcentage: number; repondus: number; total: number } | null;
+}
+export interface EntretienResume { id: string; nom_lieu: string | null; role: string; mode: string; campagne_id: string | null; maj_le: string | null }
+
+export const chercherLieuxEntretien = (jeton: string, q: string) =>
+  appelEntretien<{ lieux: LieuTrouve[] }>(jeton, `/lieux?q=${encodeURIComponent(q)}`).then((r) => r.lieux);
+export const mesEntretiens = (jeton: string) =>
+  appelEntretien<{ conversations: EntretienResume[] }>(jeton, "/conversations").then((r) => r.conversations);
+export const ouvrirEntretien = (jeton: string, d: { lieu_id?: string; nouveau_lieu?: string; role: string; mode: string; campagne?: string }) =>
+  appelEntretien<Entretien>(jeton, "/conversations", d);
+export const lireEntretien = (jeton: string, id: string) =>
+  appelEntretien<Entretien>(jeton, `/conversations/${encodeURIComponent(id)}`);
+export const repondreEntretien = (jeton: string, id: string, texte: string) =>
+  appelEntretien<Entretien>(jeton, `/conversations/${encodeURIComponent(id)}/messages`, { texte });
+
+/** Rôles proposés pour l'entretien (mêmes codes que Space2). */
+export const ROLES_ENTRETIEN: Record<string, string> = {
+  fondateur: "Fondateur·rice / porteur de projet",
+  equipe: "Équipe opérationnelle",
+  steward: "Je continue à nourrir ce lieu (steward)",
+  partenaire: "Partie prenante externe",
+  usager: "Usager régulier",
+  autre: "Autre",
+};

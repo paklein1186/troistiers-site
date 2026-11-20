@@ -142,9 +142,13 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   `/space2/entretien[?enquete=code]` demande un ticket à Space2 (`POST /sso/ticket`, space2#5) avec le jeton CTG de la
   personne ; Space2 vérifie ce jeton auprès de CTG, renvoie un ticket à usage unique (2 min), puis ouvre sa propre
   session pour le même e-mail. Lien direct `/entretien?…` : aucun menu. Sans jeton (démo) : lien sans ticket.
-  Entrée habituelle (20/11) : `/membre/entretien[?enquete=code]` affiche Space2 **dans le site**, sous son menu
-  (fenêtre intégrée, `?embed=true`, micro autorisé) ; `/space2/entretien` reste le plein écran. Limite : selon le
-  navigateur (cookies tiers), un rechargement de la fenêtre peut redemander l'e-mail → revenir par le bouton.
+  La fenêtre intégrée (iframe Streamlit) a été abandonnée : cookies tiers bloqués, Space2 redemandait l'e-mail.
+- **Entretien natif sur troistiers.space** (décision du 20/11, option A) : `/membre/entretien[?enquete=code]` (choisir
+  son lieu, son rôle, « raconter le lieu » ou « exprimer ses besoins », reprendre un entretien) et
+  `/membre/entretien/<id>` (conversation). API Space2 `/entretien/*` (space2#6) : même agent de collecte que
+  l'app, réponses dans les mêmes tables ; chaque appel porte la clé du site + le jeton CTG (`X-CTG-Token`), vérifié
+  par Space2 ; conversation enregistrée (table `entretiens_site`, migration_021), visible de sa seule propriétaire.
+  `/space2/entretien` (application Space2 en plein écran) reste en lien secondaire (dépôt de documents).
 - Space2 → Bibliothèque (décision du 19/11) : adhérents, actifs et équipe ; **50 questions par personne et par mois**
   (`assistants.adherent.inclus_par_mois`), comptées par le site dans `.donnees/quotas.json` (hors dépôt ; repart
   de zéro si le site change de machine sans ce fichier). Page `/membre/bibliotheque`, une question de suivi possible.

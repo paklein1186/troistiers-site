@@ -1,0 +1,154 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { chargerCommunaute } from "../../../lib/config";
+import { niveauAcces } from "../../../lib/acces";
+import { jetonsValides } from "../../../lib/ctg";
+import { garderJetons, lireJetons } from "../../../lib/jetons";
+import {
+  chargerEnquetes, chercherLieuxEntretien, ErreurEntretien, mesEntretiens, ouvrirEntretien, ROLES_ENTRETIEN,
+  space2Configure, type EntretienResume, type LieuTrouve,
+} from "../../../lib/space2";
+
+// Entretien de collecte Space2 mené sur le site : choisir son lieu et son rôle, ou reprendre un entretien.
+// Space2 vérifie lui-même l'identité ChangeTheGame de la personne à chaque appel.
+const u = Astro.locals.utilisateur;
+const enquete = (Astro.url.searchParams.get("enquete") ?? "").slice(0, 100) || undefined;
+const ici = `/membre/entretien${enquete ? `?enquete=${encodeURIComponent(enquete)}` : ""}`;
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (niveauAcces(chargerCommunaute(), u, "nourrir_lieu") === "aucun") return Astro.redirect("/membre");
+
+const jetons = await jetonsValides(lireJetons(Astro.cookies));
+if (jetons) garderJetons(Astro.cookies, jetons);
+const jeton = jetons?.acces;
+
+let message = "";
+let entretiens: EntretienResume[] = [];
+let lieux: LieuTrouve[] = [];
+let titreEnquete: string | null = null;
+const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 100);
+
+if (Astro.request.method === "POST" && jeton) {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  const choix = String(f.get("lieu") ?? "");
+  const nouveau = String(f.get("nouveau_lieu") ?? "").trim().slice(0, 200);
+  const role = String(f.get("role") ?? "");
+  const mode = enquete ? "campagne" : String(f.get("mode") ?? "histoire");
+  try {
+    const e = await ouvrirEntretien(jeton, {
+      ...(choix && choix !== "nouveau" ? { lieu_id: choix } : { nouveau_lieu: nouveau }),
+      role, mode, ...(enquete ? { campagne: enquete } : {}),
+    });
+    return Astro.redirect(`/membre/entretien/${encodeURIComponent(e.id)}`, 303);
+  } catch (e) {
+    console.error("Entretien (ouverture) :", e);
+    const s = e instanceof ErreurEntretien ? e.statut : 0;
+    message = s === 400 ? "Choisissez votre lieu (ou indiquez son nom) et votre rôle."
+      : s === 404 ? (enquete ? "Cette enquête n'est plus ouverte." : "Ce lieu est introuvable.")
+      : s === 403 ? "Votre participation à ce lieu a été suspendue : écrivez à l'équipe."
+      : s === 429 ? "Beaucoup de demandes en même temps : réessayez dans une minute."
+      : "L'entretien n'a pas pu démarrer. Réessayez dans un instant.";
+  }
+}
+
+if (jeton && space2Configure()) {
+  try {
+    entretiens = await mesEntretiens(jeton);
+    if (q.length >= 2) lieux = await chercherLieuxEntretien(jeton, q);
+    if (enquete) titreEnquete = (await chargerEnquetes()).find((x) => x.code === enquete)?.titre ?? null;
+  } catch (e) {
+    console.error("Entretien :", e);
+    message ||= e instanceof ErreurEntretien && e.statut === 401
+      ? "Votre connexion n'a pas pu être vérifiée : déconnectez-vous puis reconnectez-vous."
+      : "Space2 ne répond pas pour le moment.";
+  }
+}
+const MODES: [string, string, string][] = [
+  ["histoire", "Raconter le lieu", "Son histoire, ses activités, ses publics, son bâtiment, sa gouvernance."],
+  ["besoins", "Exprimer ses besoins", "Ce qui manque aujourd'hui : ils apparaîtront sur la carte et pourront être mis en avant."],
+];
+---
+<Base titre={titreEnquete ?? "Entretien de votre lieu"}>
+  <p class="surtitre"><a href="/membre#nourrir">Espace membres</a> · {enquete ? "Enquête" : "Entretien"}</p>
+  <section class="hero">
+    <h1>{titreEnquete ?? "Nourrir la fiche de votre lieu"}</h1>
+    <p class="lead">Une conversation avec l'assistant de Space2 : il vous pose des questions, vous répondez avec vos mots. Ce que vous dites complète la fiche du lieu ; vous pouvez vous arrêter et reprendre quand vous voulez.</p>
+  </section>
+
+  {message && <p class="avertissement" role="status">{message}</p>}
+  {!jeton ? (
+    <p class="avertissement">Pour mener l'entretien, connectez-vous avec votre compte ChangeTheGame (la connexion de démonstration ne suffit pas). <a href={`/connexion?suite=${encodeURIComponent(ici)}`}>Se connecter</a></p>
+  ) : !space2Configure() ? (
+    <p class="avertissement">Space2 n'est pas encore branché.</p>
+  ) : (
+    <>
+      {entretiens.length > 0 && (
+        <section class="bloc">
+          <h2>Reprendre un entretien</h2>
+          <ul class="simple">
+            {entretiens.map((e) => (
+              <li><a href={`/membre/entretien/${encodeURIComponent(e.id)}`}><strong>{e.nom_lieu ?? "Lieu"}</strong></a>
+                <span class="doux"> · {ROLES_ENTRETIEN[e.role] ?? e.role}{e.campagne_id ? " · enquête" : e.mode === "besoins" ? " · besoins" : ""}{e.maj_le ? ` · ${String(e.maj_le).slice(0, 10)}` : ""}</span></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section class="bloc panneau">
+        <h2>{entretiens.length ? "Commencer un nouvel entretien" : "Commencer"}</h2>
+        <form method="get" class="rangee" role="search">
+          {enquete && <input type="hidden" name="enquete" value={enquete} />}
+          <label for="q"><strong>1. Votre lieu</strong></label>
+          <input id="q" name="q" value={q} minlength="2" placeholder="Nom du lieu" required style="flex:1;min-width:200px" />
+          <button type="submit" class="bouton creux">Chercher</button>
+        </form>
+
+        {q.length >= 2 && (
+          <form method="post" class="ouverture">
+            <fieldset>
+              <legend class="doux">{lieux.length ? "Choisissez votre lieu :" : "Aucun lieu de ce nom pour l'instant."}</legend>
+              {lieux.map((l, i) => (
+                <label class="choix"><input type="radio" name="lieu" value={l.id} required checked={i === 0} />
+                  <span><strong>{l.nom}</strong> <span class="doux">{[l.commune, l.region, l.pays].filter(Boolean).join(", ")}</span></span></label>
+              ))}
+              <label class="choix"><input type="radio" name="lieu" value="nouveau" required checked={lieux.length === 0} />
+                <span>Mon lieu n'est pas dans la liste : <input name="nouveau_lieu" value={q} maxlength="200" aria-label="Nom de votre lieu" /></span></label>
+            </fieldset>
+
+            <label for="role"><strong>2. Votre rôle dans ce lieu</strong></label>
+            <select id="role" name="role" required>
+              {Object.entries(ROLES_ENTRETIEN).map(([k, v]) => <option value={k}>{v}</option>)}
+            </select>
+
+            {!enquete && (
+              <fieldset>
+                <legend><strong>3. Par où commencer ?</strong></legend>
+                {MODES.map(([k, titre, texte], i) => (
+                  <label class="choix"><input type="radio" name="mode" value={k} checked={i === 0} /><span><strong>{titre}</strong><br /><span class="doux">{texte}</span></span></label>
+                ))}
+              </fieldset>
+            )}
+            <div class="rangee"><button type="submit" id="demarrer">Commencer l'entretien</button><span class="doux" id="attente" hidden>Préparation de l'entretien…</span></div>
+          </form>
+        )}
+      </section>
+      <p class="doux" style="font-size:.85rem"><a href={`/space2/entretien${enquete ? `?enquete=${encodeURIComponent(enquete)}` : ""}`}>Ouvrir plutôt l'application Space2</a> (dépôt de documents, outils avancés).</p>
+    </>
+  )}
+</Base>
+
+<style>
+  .ouverture { display: grid; gap: 14px; margin-top: 8px; }
+  fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .choix { display: flex; gap: 10px; align-items: flex-start; min-height: 44px; padding: 8px 10px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); cursor: pointer; }
+  .choix input[type="radio"] { margin-top: 4px; }
+  select { min-height: 44px; max-width: 420px; }
+</style>
+
+<script>
+  document.querySelector("form.ouverture")?.addEventListener("submit", () => {
+    (document.getElementById("demarrer") as HTMLButtonElement).disabled = true;
+    document.getElementById("attente")?.removeAttribute("hidden");
+  });
+</script>
