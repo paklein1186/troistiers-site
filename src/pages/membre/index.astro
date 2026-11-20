@@ -39,8 +39,24 @@ const nbLibres = codes.filter((x) => !x.used).length;
 
 // « Nourrir votre lieu » : entretien Space2 et enquêtes en cours (espace nourrir_lieu de communaute.yaml).
 const nourrir = niveauAcces(c, u, "nourrir_lieu") !== "aucun";
+const bibliotheque = niveauAcces(c, u, "bibliotheque") !== "aucun";
+const groupes: Record<string, string> = { public: "Partie publique", membre: "Espace membre", cle: "Clés", gouvernance: "Gouvernance", outil: "Outils" };
+// Outils ouverts à cette personne, d'après communaute.yaml (groupe « outil »).
+const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" && e.lien);
+
+// Menu de l'espace membres : un onglet par rubrique ouverte à la personne (?onglet=…, sans JavaScript).
+const onglets = [
+  nourrir && { id: "lieu", libelle: "Mon lieu" },
+  bibliotheque && { id: "bibliotheque", libelle: "Bibliothèque" },
+  outils.length > 0 && { id: "outils", libelle: "Outils", nombre: outils.length },
+  codes.length > 0 && { id: "codes", libelle: "Codes d'adhésion", nombre: nbLibres || undefined },
+  { id: "compte", libelle: "Mon compte" },
+].filter((o): o is { id: string; libelle: string; nombre?: number } => Boolean(o));
+const demande = Astro.url.searchParams.get("onglet") ?? (Astro.url.searchParams.get("profil") ? "compte" : "");
+const onglet = onglets.find((o) => o.id === demande)?.id ?? onglets[0].id;
+
 let enquetes: Enquete[] = [];
-if (nourrir) {
+if (nourrir && onglet === "lieu") {
   try {
     enquetes = await chargerEnquetes();
   } catch (e) {
@@ -56,9 +72,6 @@ const messagesAdhesion: Record<string, string> = {
   erreur: "Le paiement a bien été reçu par Stripe, mais l'activation n'a pas pu être confirmée tout de suite. Elle se fera automatiquement ; sinon, écrivez à l'équipe.",
 };
 const profilMaj = Astro.url.searchParams.get("profil");
-const groupes: Record<string, string> = { public: "Partie publique", membre: "Espace membre", cle: "Clés", gouvernance: "Gouvernance", outil: "Outils" };
-// Outils ouverts à cette personne, d'après communaute.yaml (groupe « outil »).
-const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" && e.lien);
 ---
 <Base titre="Espace membre">
   {adhesion && messagesAdhesion[adhesion] && <p class="avertissement" role="status">{messagesAdhesion[adhesion]}</p>}
@@ -76,36 +89,17 @@ const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" 
     <p><a class="bouton" href="/adherer">Adhérer à Trois-Tiers</a></p>
   )}
 
-  {codes.length > 0 && (
-    <section style="margin-top:28px">
-      <h2 style="font-size:20px;margin:0 0 6px">Vos codes d'adhésion</h2>
-      <p style="margin:0 0 12px;color:var(--doux);font-size:14px">
-        Vous avez payé {codes.length} {codes.length > 1 ? "places" : "place"} ({nbLibres} {nbLibres > 1 ? "encore libres" : "encore libre"}).
-        Transmettez à chaque lieu ou personne son code, ou directement son lien : il active l'adhésion avec son propre compte.
-        Chaque code ne sert qu'une fois.
-      </p>
-      <div class="defile">
-        <table>
-          <thead><tr><th>Code</th><th>Pour</th><th>Valable jusqu'au</th><th>État</th><th>Lien à transmettre</th></tr></thead>
-          <tbody>
-            {codes.map((x) => (
-              <tr style={x.used ? "color:var(--doux)" : ""}>
-                <td style="font-family:ui-monospace,monospace;white-space:nowrap">{x.code}</td>
-                <td>{pourQui(x.plan_code)}</td>
-                <td style="white-space:nowrap">{x.valid_until?.slice(0, 10) ?? "—"}</td>
-                <td>{x.used ? `Utilisé le ${x.used_at?.slice(0, 10)}` : "Libre"}</td>
-                <td>{x.used ? "—" : <button type="button" class="copier" data-lien={lien(x.code)} style="padding:4px 10px;font-size:13px">Copier le lien</button>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  )}
+  <nav class="onglets-membre" aria-label="Rubriques de l'espace membres">
+    {onglets.map((o) => (
+      <a href={`/membre?onglet=${o.id}`} aria-current={o.id === onglet ? "page" : undefined}>
+        {o.libelle}{o.nombre ? <span class="compte">{o.nombre}</span> : null}
+      </a>
+    ))}
+  </nav>
 
-  {nourrir && (
-    <section class="bloc" id="nourrir">
-      <h2>Nourrir votre lieu</h2>
+  {onglet === "lieu" && (
+    <section class="panneau-onglet" id="panneau-lieu" aria-labelledby="titre-lieu">
+      <h2 id="titre-lieu">Nourrir votre lieu</h2>
       <p>Plus la fiche de votre lieu est complète, mieux le réseau peut vous relier à des pairs, des ressources et des soutiens. Elle alimente la carte, le Portfolio et l'observatoire.</p>
       <div class="t2">
         <div class="cellule">
@@ -130,13 +124,12 @@ const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" 
           )}
         </div>
       </div>
-      <p class="doux" style="font-size:.9rem">Vous arrivez dans Space2 déjà connecté avec votre compte, directement sur l'entretien.</p>
     </section>
   )}
 
-  {niveauAcces(c, u, "bibliotheque") !== "aucun" && (
-    <section class="bloc">
-      <h2>Bibliothèque</h2>
+  {onglet === "bibliotheque" && (
+    <section class="panneau-onglet" id="panneau-bibliotheque" aria-labelledby="titre-bibliotheque">
+      <h2 id="titre-bibliotheque">Bibliothèque</h2>
       <p>Posez vos questions à l'assistant de Space2 (en léger, moyen ou profond) : il cherche dans ce que les lieux et les membres du réseau ont partagé et cite ses sources. Vos conversations sont gardées.</p>
       <div class="rangee">
         <a class="bouton" href="/membre/bibliotheque">Interroger la bibliothèque</a>
@@ -145,9 +138,9 @@ const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" 
     </section>
   )}
 
-  {outils.length > 0 && (
-    <section class="bloc">
-      <h2>Vos outils</h2>
+  {onglet === "outils" && (
+    <section class="panneau-onglet" id="panneau-outils" aria-labelledby="titre-outils">
+      <h2 id="titre-outils">Vos outils</h2>
       <div class="t3">
         {outils.map((o) => (
           <div class="cellule">
@@ -161,27 +154,69 @@ const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" 
     </section>
   )}
 
-  <h2 style="font-size:20px;margin-top:28px">Ce que vous voyez</h2>
-  <div class="defile">
-    <table>
-      <thead><tr><th>Espace</th><th>Où</th><th>Votre accès</th></tr></thead>
-      <tbody>
-        {acces.map((e) => (
-          <tr style={e.niveau === "aucun" ? "color:var(--doux)" : ""}>
-            <td>{e.libelle}</td><td>{groupes[e.groupe]}</td><td>{libelles[e.niveau]}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+  {onglet === "codes" && (
+    <section class="panneau-onglet" id="panneau-codes" aria-labelledby="titre-codes">
+      <h2 id="titre-codes">Vos codes d'adhésion</h2>
+      <p class="doux">
+        Vous avez payé {codes.length} {codes.length > 1 ? "places" : "place"} ({nbLibres} {nbLibres > 1 ? "encore libres" : "encore libre"}).
+        Transmettez à chaque lieu ou personne son code, ou directement son lien : il active l'adhésion avec son propre compte.
+        Chaque code ne sert qu'une fois.
+      </p>
+      <div class="defile">
+        <table>
+          <thead><tr><th>Code</th><th>Pour</th><th>Valable jusqu'au</th><th>État</th><th>Lien à transmettre</th></tr></thead>
+          <tbody>
+            {codes.map((x) => (
+              <tr style={x.used ? "color:var(--doux)" : ""}>
+                <td style="font-family:ui-monospace,monospace;white-space:nowrap">{x.code}</td>
+                <td>{pourQui(x.plan_code)}</td>
+                <td style="white-space:nowrap">{x.valid_until?.slice(0, 10) ?? "—"}</td>
+                <td>{x.used ? `Utilisé le ${x.used_at?.slice(0, 10)}` : "Libre"}</td>
+                <td>{x.used ? "—" : <button type="button" class="copier" data-lien={lien(x.code)} style="padding:4px 10px;font-size:13px">Copier le lien</button>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
 
-  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">
-    {!u.email.startsWith("demo+") && <form method="post" action="/membre/actualiser"><button type="submit">Actualiser mon profil</button></form>}
-    <form method="post" action="/deconnexion"><button type="submit">Se déconnecter</button></form>
-  </div>
+  {onglet === "compte" && (
+    <section class="panneau-onglet" id="panneau-compte" aria-labelledby="titre-compte">
+      <h2 id="titre-compte">Mon compte</h2>
+      <p class="doux">Votre profil et vos badges viennent de ChangeTheGame. Ce tableau montre ce que chaque espace vous ouvre.</p>
+      <div class="defile">
+        <table>
+          <thead><tr><th>Espace</th><th>Où</th><th>Votre accès</th></tr></thead>
+          <tbody>
+            {acces.map((e) => (
+              <tr style={e.niveau === "aucun" ? "color:var(--doux)" : ""}>
+                <td>{e.libelle}</td><td>{groupes[e.groupe]}</td><td>{libelles[e.niveau]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div class="rangee">
+        {!u.email.startsWith("demo+") && <form method="post" action="/membre/actualiser"><button type="submit">Actualiser mon profil</button></form>}
+        <form method="post" action="/deconnexion"><button type="submit" class="bouton creux">Se déconnecter</button></form>
+      </div>
+    </section>
+  )}
 </Base>
 
+<style>
+  .onglets-membre { display: flex; gap: 4px; margin: 32px 0 0; border-bottom: 1px solid var(--trait); overflow-x: auto; scrollbar-width: thin; }
+  .onglets-membre a { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; text-decoration: none; color: var(--doux); font-weight: 600; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+  .onglets-membre a:hover { color: var(--encre); }
+  .onglets-membre a[aria-current="page"] { color: var(--encre); border-bottom-color: var(--accent); }
+  .onglets-membre .compte { font: 500 .74rem var(--mono); background: var(--accent-doux); color: var(--accent); border-radius: 999px; padding: 1px 7px; }
+  .panneau-onglet { display: grid; gap: 16px; margin-top: 24px; }
+</style>
+
 <script>
+  // Sur téléphone, le menu défile de côté : l'onglet ouvert reste visible.
+  document.querySelector<HTMLElement>('.onglets-membre a[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
   // « Copier le lien » d'un code d'adhésion.
   document.querySelectorAll<HTMLButtonElement>("button.copier").forEach((b) => {
     b.addEventListener("click", async () => {
