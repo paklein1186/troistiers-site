@@ -92,5 +92,7 @@ describe("liens vers Space2", () => {
     expect(lienSpace2("https://space2.streamlit.app", { enquete: "ka122" })).toBe("https://space2.streamlit.app/entretien?campagne=ka122");
     expect(lienSpace2("https://space2.streamlit.app/", { enquete: "a&b=c" })).toBe("https://space2.streamlit.app/entretien?campagne=a%26b%3Dc");
     expect(lienSpace2("https://space2.streamlit.app/", { ticket: "T1" })).toBe("https://space2.streamlit.app/entretien?entretien=general&ticket=T1");
+    expect(lienSpace2("https://space2.streamlit.app/", { enquete: "ka122", ticket: "T1", integre: true }))
+      .toBe("https://space2.streamlit.app/entretien?campagne=ka122&ticket=T1&embed=true");
   });
 });
