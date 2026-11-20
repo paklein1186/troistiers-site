@@ -211,7 +211,8 @@ assistants:
   adherent:
     inclus_par_mois: 50                         # questions à la bibliothèque Space2 par personne et par mois (décision du 19/11)
     poids: { rapide: 1, equilibre: 1, approfondi: 3 }   # une question « profonde » (Opus) en vaut 3 (décision du 20/11)
-  packs:    a_fixer                             # décision du 20/11 : packs payants en euros (Stripe de Trois-Tiers via CTG), à construire
+  # Packs payants en euros (décision du 20/11) : 50 questions 5 €, 200 questions 15 €, sans limite de durée.
+  # Contenu et prix gérés dans ChangeTheGame (guild_credit_packs) ; page /membre/bibliotheque/packs.
 
 # Correspondance entre les formules de cotisation de la guilde Trois-Tiers sur
 # ChangeTheGame (identifiant de formule) et les profils de ce site.
