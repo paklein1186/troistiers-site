@@ -31,3 +31,14 @@ describe("bibliothèque : profondeur et quota", () => {
     expect(dateCourte(null)).toBe("");
   });
 });
+
+import { choisirSource } from "../src/lib/bibliotheque";
+describe("bibliothèque : quota du mois puis questions achetées", () => {
+  it("le mois d'abord, puis les packs, sans mélange", () => {
+    expect(choisirSource(10, 100, 3)).toBe("mois");
+    expect(choisirSource(2, 100, 3)).toBe("pack");   // une profonde ne se coupe pas en deux
+    expect(choisirSource(0, 3, 3)).toBe("pack");
+    expect(choisirSource(0, 2, 3)).toBeNull();
+    expect(choisirSource(0, 0, 1)).toBeNull();
+  });
+});

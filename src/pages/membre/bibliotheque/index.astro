@@ -2,9 +2,9 @@
 import Base from "../../../layouts/Base.astro";
 import { chargerCommunaute } from "../../../lib/config";
 import { niveauAcces } from "../../../lib/acces";
-import { jetonsValides } from "../../../lib/ctg";
+import { decompterQuestions, jetonsValides, lireSoldeQuestions, type SoldeQuestions } from "../../../lib/ctg";
 import { garderJetons, lireJetons } from "../../../lib/jetons";
-import { dateCourte, reglagesBibliotheque } from "../../../lib/bibliotheque";
+import { choisirSource, type Source, dateCourte, reglagesBibliotheque } from "../../../lib/bibliotheque";
 import {
   demanderBibliotheque, ErreurEntretien, estProfondeur, mesConversations, poidsQuestion, PROFONDEURS,
   space2Configure, supprimerConversation, type ConversationResume, type Profondeur,
@@ -30,6 +30,8 @@ let question = "";
 let profondeur: Profondeur = "equilibre";
 let message = "";
 let conversations: ConversationResume[] = [];
+let solde: SoldeQuestions = { solde: 0, packs: [], achats: [], achetable: false };
+let epuise = false;
 
 if (Astro.request.method === "POST" && ouvert && jeton) {
   const origine = Astro.request.headers.get("origin");
@@ -49,17 +51,28 @@ if (Astro.request.method === "POST" && ouvert && jeton) {
     const p = form.get("profondeur");
     if (estProfondeur(p)) profondeur = p;
     const n = poidsQuestion(profondeur, poids);
+    let source: Source | null = null;
     if (question.length < 3) message = "Écrivez votre question (quelques mots au moins).";
-    else if ((await reserverQuestion(u.email, quota, n)) === null) {
-      message = n > 1 && questionsUtilisees(u.email) < quota
-        ? `Une question « profonde » compte pour ${n} : il ne vous en reste pas assez ce mois-ci. Choisissez « Léger » ou « Moyen ».`
-        : `Vous avez utilisé vos ${quota} questions de ce mois. Le compteur repart à zéro le 1er du mois prochain.`;
-    } else {
+    else {
+      // Quota du mois d'abord (réservé tout de suite), sinon les questions achetées (décomptées après la réponse).
+      solde = await lireSoldeQuestions(jeton);
+      source = (await reserverQuestion(u.email, quota, n)) !== null ? "mois" : choisirSource(0, solde.solde, n);
+      if (!source) {
+        epuise = true;
+        message = n > 1 && questionsUtilisees(u.email) < quota
+          ? `Une question « profonde » compte pour ${n} : il ne vous en reste pas assez. Choisissez « Léger » ou « Moyen », ou achetez des questions.`
+          : `Vous avez utilisé vos ${quota} questions de ce mois${solde.solde ? " et vos questions achetées ne suffisent pas" : ""}. Le compteur repart à zéro le 1er du mois prochain.`;
+      }
+    }
+    if (source) {
       try {
         const r = await demanderBibliotheque(jeton, question, profondeur);
+        if (source === "pack" && (await decompterQuestions(jeton, n, `Bibliothèque (${profondeur})`).catch(() => null)) === null) {
+          console.warn("Bibliothèque : questions achetées non décomptées (solde insuffisant ou CTG injoignable)");
+        }
         return Astro.redirect(`${ici}/${encodeURIComponent(r.conversation.id)}#fin`, 303);
       } catch (e) {
-        await rendreQuestion(u.email, n);
+        if (source === "mois") await rendreQuestion(u.email, n);
         console.error("Bibliothèque :", e);
         const s = e instanceof ErreurEntretien ? e.statut : 0;
         message = s === 429
@@ -71,6 +84,7 @@ if (Astro.request.method === "POST" && ouvert && jeton) {
 }
 
 if (ouvert && jeton && space2Configure()) {
+  if (Astro.request.method !== "POST") solde = await lireSoldeQuestions(jeton);
   try {
     conversations = await mesConversations(jeton);
   } catch (e) {
@@ -101,8 +115,8 @@ const restantes = Math.max(0, quota - questionsUtilisees(u.email));
     </section>
   ) : (
     <>
-      <p class="doux">Questions restantes ce mois-ci : <strong>{restantes}</strong> sur {quota}. · <a href={`${ici}/contribuer`}>Nourrir la bibliothèque</a></p>
-      {message && <p class="avertissement" role="status">{message}</p>}
+      <p class="doux">Questions restantes ce mois-ci : <strong>{restantes}</strong> sur {quota}{solde.solde > 0 && <> · questions achetées : <strong>{solde.solde}</strong></>}. · <a href={`${ici}/packs`}>Acheter des questions</a> · <a href={`${ici}/contribuer`}>Nourrir la bibliothèque</a></p>
+      {message && <p class="avertissement" role="status">{message}{epuise && <> <a href={`${ici}/packs`}>Acheter des questions</a></>}</p>}
 
       <form method="post" class="panneau bloc formulaire" id="formulaire">
         <label for="question"><strong>Nouvelle question</strong></label>
@@ -114,17 +128,17 @@ const restantes = Math.max(0, quota - questionsUtilisees(u.email));
             const n = poidsQuestion(p.id, poids);
             return (
               <label class="option">
-                <input type="radio" name="profondeur" value={p.id} checked={p.id === profondeur} disabled={n > restantes} />
+                <input type="radio" name="profondeur" value={p.id} checked={p.id === profondeur} disabled={n > Math.max(restantes, solde.solde)} />
                 <span><b>{p.libelle}</b> <span class="doux">· {p.aide}{n > 1 ? ` · compte pour ${n} questions` : ""}</span></span>
               </label>
             );
           })}
         </fieldset>
         <div class="rangee">
-          <button type="submit" id="envoyer" disabled={restantes === 0}>Poser la question</button>
+          <button type="submit" id="envoyer" disabled={restantes === 0 && solde.solde === 0}>Poser la question</button>
           <span class="doux" id="attente" hidden>Recherche en cours… cela peut prendre une à deux minutes.</span>
         </div>
-        <p class="doux" style="font-size:.85rem;margin:0">Une question compte dans votre quota seulement si l'assistant répond. Les réponses peuvent contenir des erreurs : vérifiez auprès des sources citées.</p>
+        <p class="doux" style="font-size:.85rem;margin:0">Vos questions du mois passent en premier, puis vos questions achetées. Une question n'est comptée que si l'assistant répond. Les réponses peuvent contenir des erreurs : vérifiez auprès des sources citées.</p>
       </form>
 
       <section class="bloc">

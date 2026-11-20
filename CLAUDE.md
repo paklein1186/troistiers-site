@@ -164,8 +164,13 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   **Contributions ouvertes et immédiates** (choix de PA) : doc_type `contribution_site`, cherchable tout de suite par
   l'agent du site (outil `search_member_contributions`, contenu signalé « non vérifié ») et par l'app Space2.
   Liens : sites publics seulement (adresses internes refusées), 8 Mo au plus.
-- **Au-delà de 50 questions : packs payants en euros** (décision du 20/11), via le Stripe de Trois-Tiers piloté par
-  CTG. À construire : fonction CTG d'achat unique + solde de questions lu par le site.
+- **Au-delà de 50 questions : packs payants en euros** (décisions du 20/11) : **50 questions 5 €, 200 questions 15 €,
+  sans limite de durée**, sur le Stripe de Trois-Tiers piloté par CTG. CTG (branche `trois-tiers/packs-questions`) :
+  migration `20261120150000_guild_credit_packs.sql` (packs, achats, journal ; décompte atomique `consume_guild_credits`,
+  testé sur Postgres), `guild-credits-checkout`, `guild-credits` (solde, décompte), crédit par `guild-euro-webhook` et
+  `guild-euro-confirm` ; packs chargés par `docs/trois-tiers/packs-questions.sql`. Site : `/membre/bibliotheque/packs`
+  (+ `/retour`) ; quota du mois d'abord, puis questions achetées, décomptées chez CTG après la réponse ; une question
+  profonde (3) n'est jamais coupée entre les deux. Ouvert seulement si le paiement en euros de la guilde l'est.
 
 ## Avant d'ouvrir les paiements réels
 

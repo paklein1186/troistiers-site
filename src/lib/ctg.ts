@@ -311,3 +311,60 @@ export function versUtilisateur(p: ProfilCtg, c: Communaute): Utilisateur {
   }
   return { email: p.email, nom: p.name ?? undefined, profil, badges };
 }
+
+// ---------------------------------------------------------------------------
+// Packs de questions de la bibliothèque (décision du 20/11) : achetés en euros chez CTG,
+// sans limite de durée, utilisés une fois le quota mensuel compris dans l'adhésion épuisé.
+// ---------------------------------------------------------------------------
+
+export interface PackQuestions { code: string; label: string; description: string | null; credits: number; amount_cents: number; currency: string; valid_months: number | null }
+export interface AchatQuestions { pack_code: string; credits: number; credits_remaining: number; amount_cents: number | null; currency: string | null; purchased_at: string; expires_at: string | null }
+export interface SoldeQuestions { solde: number; packs: PackQuestions[]; achats: AchatQuestions[]; achetable: boolean }
+
+/** Solde de questions achetées, packs proposés et achats. CTG injoignable : solde nul, rien à acheter. */
+export async function lireSoldeQuestions(jeton: string): Promise<SoldeQuestions> {
+  const vide: SoldeQuestions = { solde: 0, packs: [], achats: [], achetable: false };
+  try {
+    const { statut, donnees } = await appeler("guild-credits", jeton, { action: "balance", guild_id: env("CTG_GUILD_ID") });
+    if (statut !== 200 || !donnees) return vide;
+    return {
+      solde: Number(donnees.balance) || 0,
+      packs: Array.isArray(donnees.packs) ? donnees.packs : [],
+      achats: Array.isArray(donnees.purchases) ? donnees.purchases : [],
+      achetable: Boolean(donnees.purchasable),
+    };
+  } catch (e) {
+    console.error("Solde de questions :", e);
+    return vide;
+  }
+}
+
+/** Décompte des questions achetées, après une réponse obtenue. Renvoie le nouveau solde, ou null si refusé. */
+export async function decompterQuestions(jeton: string, nombre: number, raison: string): Promise<number | null> {
+  const { statut, donnees } = await appeler("guild-credits", jeton, {
+    action: "consume", guild_id: env("CTG_GUILD_ID"), amount: nombre, reason: raison.slice(0, 200),
+  });
+  return statut === 200 && donnees?.ok ? Number(donnees.balance) : null;
+}
+
+/** Page Stripe d'achat d'un pack (prix et nombre de questions fixés par CTG). */
+export async function acheterPack(jeton: string, packCode: string, retour: string): Promise<string> {
+  const { statut, donnees } = await appeler("guild-credits-checkout", jeton, {
+    guild_id: env("CTG_GUILD_ID"), pack_code: packCode, return_url: retour,
+  });
+  if (statut === 200 && typeof donnees?.url === "string") return donnees.url;
+  const message = String(donnees?.error ?? `HTTP ${statut}`);
+  throw new ErreurPaiement(
+    statut === 401 ? "reconnexion" : /not accept payments|not configured/i.test(message) ? "paiement_ferme"
+      : /Only guild members/i.test(message) ? "membre" : /Pack not found/i.test(message) ? "pack" : "paiement",
+    message,
+  );
+}
+
+/** Au retour de Stripe : crédit immédiat du pack (même fonction que les cotisations, idempotente). */
+export async function confirmerPack(jeton: string, sessionStripe: string): Promise<"ok" | "attente" | "erreur"> {
+  const { statut, donnees } = await appeler("guild-euro-confirm", jeton, { guild_id: env("CTG_GUILD_ID"), session_id: sessionStripe });
+  if (statut === 200 && donnees?.ok) return "ok";
+  if (statut === 200 && donnees?.pending) return "attente";
+  return "erreur";
+}
