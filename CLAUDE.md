@@ -136,12 +136,12 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   3 lieux par périmètre) et `GET /campagnes` (enquêtes actives), lisibles avec la clé du site. Site : `/observatoire`
   (Belgique, filtre par région) et « Nourrir votre lieu » sur `/membre` (entretien `?entretien=general`, enquêtes
   `?campagne=<code>` ; espace `nourrir_lieu`).
+  Gradient prévu par `communaute.yaml` (actif → son territoire, équipe → tout) : pour l'instant tout le monde voit
+  les agrégats ; le détail par lieu n'existe pas encore dans l'API.
 - Connexion unique avec Space2 (décision du 20/11 : l'entretien reste dans Space2, sans double connexion ni menu) :
   `/space2/entretien[?enquete=code]` demande un ticket à Space2 (`POST /sso/ticket`, space2#5) avec le jeton CTG de la
   personne ; Space2 vérifie ce jeton auprès de CTG, renvoie un ticket à usage unique (2 min), puis ouvre sa propre
   session pour le même e-mail. Lien direct `/entretien?…` : aucun menu. Sans jeton (démo) : lien sans ticket.
-  Gradient prévu par `communaute.yaml` (actif → son territoire, équipe → tout) : pour l'instant tout le monde voit
-  les agrégats ; le détail par lieu n'existe pas encore dans l'API.
 - Space2 → Bibliothèque (décision du 19/11) : adhérents, actifs et équipe ; **50 questions par personne et par mois**
   (`assistants.adherent.inclus_par_mois`), comptées par le site dans `.donnees/quotas.json` (hors dépôt ; repart
   de zéro si le site change de machine sans ce fichier). Page `/membre/bibliotheque`, une question de suivi possible.
