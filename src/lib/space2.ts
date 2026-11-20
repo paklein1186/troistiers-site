@@ -269,25 +269,31 @@ export class ErreurEntretien extends Error {
   }
 }
 
-async function appelEntretien<T>(jetonCtg: string, chemin: string, corps?: unknown): Promise<T> {
+/** Appel à Space2 au nom d'une personne (clé du site + son jeton CTG). `chemin` commence par /entretien ou /bibliotheque. */
+async function appelPersonnel<T>(jetonCtg: string, chemin: string, options: { corps?: unknown; methode?: "GET" | "POST" | "DELETE"; delai?: number } = {}): Promise<T> {
   if (!space2Configure()) throw new ErreurEntretien(503, "Space2 n'est pas configuré");
-  const r = await fetch(`${env("SPACE2_API_URL")!.replace(/\/$/, "")}/entretien${chemin}`, {
-    method: corps === undefined ? "GET" : "POST",
+  const { corps, delai = 120_000 } = options;
+  const methode = options.methode ?? (corps === undefined ? "GET" : "POST");
+  const r = await fetch(`${env("SPACE2_API_URL")!.replace(/\/$/, "")}${chemin}`, {
+    method: methode,
     headers: {
       "X-Webhook-Secret": env("SPACE2_API_SECRET")!,
       "X-CTG-Token": jetonCtg,
       ...(corps === undefined ? {} : { "content-type": "application/json" }),
     },
     body: corps === undefined ? undefined : JSON.stringify(corps),
-    // Un tour d'entretien peut enchaîner plusieurs outils : jusqu'à deux minutes.
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.timeout(delai),
   });
   if (!r.ok) {
     const detail = ((await r.json().catch(() => null)) as { detail?: unknown } | null)?.detail;
-    throw new ErreurEntretien(r.status, `Space2 a répondu ${r.status} sur /entretien${chemin.split("?")[0]}${detail ? ` (${String(detail).slice(0, 200)})` : ""}`);
+    throw new ErreurEntretien(r.status, `Space2 a répondu ${r.status} sur ${chemin.split("?")[0]}${detail ? ` (${String(detail).slice(0, 200)})` : ""}`);
   }
   return (await r.json()) as T;
 }
+
+// Un tour d'entretien peut enchaîner plusieurs outils : jusqu'à deux minutes.
+const appelEntretien = <T>(jetonCtg: string, chemin: string, corps?: unknown) =>
+  appelPersonnel<T>(jetonCtg, `/entretien${chemin}`, { corps });
 
 export interface LieuTrouve { id: string; nom: string; commune?: string | null; region?: string | null; pays?: string | null }
 export interface TourEntretien { role: "user" | "assistant"; texte: string }
@@ -337,3 +343,51 @@ export function valeurChoix(type: ChoixRapide["type"], valeurs: string[]): boole
   if (type === "scale_1_5") { const n = Number(v[0]); return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null; }
   return v[0];
 }
+
+// -- Bibliothèque menée sur le site (API /bibliotheque de Space2) ------------------------------
+// Mêmes conversations que l'onglet Bibliothèque de l'application Space2 (même compte).
+
+export type Profondeur = "rapide" | "equilibre" | "approfondi";
+export const PROFONDEURS: { id: Profondeur; libelle: string; aide: string }[] = [
+  { id: "rapide", libelle: "Léger", aide: "réponse rapide, pour une question simple" },
+  { id: "equilibre", libelle: "Moyen", aide: "le bon réglage pour la plupart des questions" },
+  { id: "approfondi", libelle: "Profond", aide: "analyse plus fouillée, jusqu'à deux minutes" },
+];
+export const estProfondeur = (x: unknown): x is Profondeur => PROFONDEURS.some((p) => p.id === x);
+
+/** Poids d'une question dans le quota mensuel selon la profondeur (communaute.yaml, assistants.adherent.poids). */
+export function poidsQuestion(p: Profondeur, poids?: Record<string, unknown>): number {
+  const n = Number(poids?.[p]);
+  return Number.isInteger(n) && n >= 1 ? n : p === "approfondi" ? 3 : 1;
+}
+
+export interface MessageBibliotheque { role: "user" | "assistant"; content: string }
+export interface ConversationBibliotheque { id: string; titre: string | null; maj_le: string | null; messages: MessageBibliotheque[] }
+export interface ConversationResume { id: string; titre: string | null; maj_le: string | null }
+export interface Contribution { id: string; titre: string | null; nature: string; ajoute_le: string | null; passages: number; apercu?: string }
+
+const bib = <T>(jeton: string, chemin: string, options?: Parameters<typeof appelPersonnel>[2]) =>
+  appelPersonnel<T>(jeton, `/bibliotheque${chemin}`, options);
+
+export const mesConversations = async (jeton: string) =>
+  (await bib<{ conversations: ConversationResume[] }>(jeton, "/conversations", { delai: 20_000 })).conversations;
+export const lireConversation = (jeton: string, id: string) =>
+  bib<ConversationBibliotheque>(jeton, `/conversations/${encodeURIComponent(id)}`, { delai: 20_000 });
+export const supprimerConversation = (jeton: string, id: string) =>
+  bib<unknown>(jeton, `/conversations/${encodeURIComponent(id)}`, { methode: "DELETE", delai: 20_000 });
+/** Question (nouvelle conversation, ou suite de `conversation_id`). Approfondi : jusqu'à deux minutes. */
+export const demanderBibliotheque = (jeton: string, question: string, profondeur: Profondeur, conversation_id?: string) =>
+  bib<{ conversation: ConversationBibliotheque; reponse: string }>(jeton, "/questions",
+    { corps: { question, profondeur, ...(conversation_id ? { conversation_id } : {}) }, delai: 130_000 });
+
+export const mesContributions = async (jeton: string) =>
+  (await bib<{ contributions: Contribution[] }>(jeton, "/contributions", { delai: 20_000 })).contributions;
+export type NouvelleContribution =
+  | { nature: "texte"; titre?: string; texte: string }
+  | { nature: "lien"; titre?: string; url: string }
+  | { nature: "document"; titre?: string; fichier_nom: string; fichier_base64: string }
+  | { nature: "echange"; conversation_id: string; message_index: number };
+export const contribuer = (jeton: string, c: NouvelleContribution) =>
+  bib<Contribution>(jeton, "/contributions", { corps: c, delai: 90_000 });
+export const retirerContribution = (jeton: string, id: string) =>
+  bib<unknown>(jeton, `/contributions/${encodeURIComponent(id)}`, { methode: "DELETE", delai: 20_000 });

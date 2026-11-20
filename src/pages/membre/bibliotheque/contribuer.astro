@@ -1,0 +1,187 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { chargerCommunaute } from "../../../lib/config";
+import { niveauAcces } from "../../../lib/acces";
+import { jetonsValides } from "../../../lib/ctg";
+import { garderJetons, lireJetons } from "../../../lib/jetons";
+import { dateCourte } from "../../../lib/bibliotheque";
+import {
+  contribuer, ErreurEntretien, mesContributions, retirerContribution, space2Configure,
+  type Contribution, type NouvelleContribution,
+} from "../../../lib/space2";
+
+// Nourrir la bibliothèque (décision du 20/11 : ouvert à tous les adhérents, cherchable tout de suite) :
+// une note, un lien ou un document versé dans la base de connaissances de Space2, et la liste de
+// ses propres contributions, que l'on peut retirer.
+const u = Astro.locals.utilisateur;
+const ici = "/membre/bibliotheque/contribuer";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (niveauAcces(chargerCommunaute(), u, "bibliotheque") === "aucun") return Astro.redirect("/membre/bibliotheque");
+const jetons = await jetonsValides(lireJetons(Astro.cookies));
+if (!jetons) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+garderJetons(Astro.cookies, jetons);
+
+const MAX_OCTETS = 8 * 1024 * 1024;
+const NATURES = { texte: "Note", lien: "Lien", document: "Document", echange: "Échange" } as Record<string, string>;
+let message = "";
+let nature = Astro.url.searchParams.get("nature") ?? "texte";
+if (!["texte", "lien", "document"].includes(nature)) nature = "texte";
+const ok = Astro.url.searchParams.get("ok");
+let saisie = { titre: "", texte: "", url: "" };
+let contributions: Contribution[] = [];
+
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const form = await Astro.request.formData();
+  const retirer = String(form.get("retirer") ?? "");
+  if (retirer) {
+    try {
+      await retirerContribution(jetons.acces, retirer);
+      return Astro.redirect(`${ici}?ok=retiree#mes`, 303);
+    } catch (e) {
+      console.error("Bibliothèque (retrait) :", e);
+      message = "La contribution n'a pas pu être retirée. Réessayez.";
+    }
+  } else {
+    nature = String(form.get("nature") ?? "texte");
+    saisie = {
+      titre: String(form.get("titre") ?? "").trim().slice(0, 200),
+      texte: String(form.get("texte") ?? "").trim().slice(0, 200_000),
+      url: String(form.get("url") ?? "").trim().slice(0, 1000),
+    };
+    let demande: NouvelleContribution | null = null;
+    const titre = saisie.titre || undefined;
+    if (nature === "texte") {
+      if (saisie.texte.length < 20) message = "Écrivez au moins quelques phrases.";
+      else demande = { nature, titre, texte: saisie.texte };
+    } else if (nature === "lien") {
+      if (!/^https?:\/\/\S+$/i.test(saisie.url)) message = "Collez une adresse complète, qui commence par https://";
+      else demande = { nature, titre, url: saisie.url };
+    } else if (nature === "document") {
+      const f = form.get("fichier");
+      if (!(f instanceof File) || f.size === 0) message = "Choisissez un fichier.";
+      else if (f.size > MAX_OCTETS) message = "Ce fichier dépasse 8 Mo.";
+      else if (!/\.(pdf|docx|txt|md)$/i.test(f.name)) message = "Formats acceptés : PDF, Word (.docx), texte (.txt, .md).";
+      else demande = { nature, titre, fichier_nom: f.name.slice(-200), fichier_base64: Buffer.from(await f.arrayBuffer()).toString("base64") };
+    }
+    if (demande) {
+      try {
+        await contribuer(jetons.acces, demande);
+        return Astro.redirect(`${ici}?ok=ajoutee#mes`, 303);
+      } catch (e) {
+        console.error("Bibliothèque (contribution) :", e);
+        const s = e instanceof ErreurEntretien ? e.statut : 0;
+        const detail = e instanceof Error ? e.message : "";
+        message = s === 400
+          ? (/public/.test(detail) ? "Cette adresse n'est pas accessible publiquement."
+            : /type de contenu|format/.test(detail) ? "Ce format n'est pas pris en charge : page web, PDF ou Word."
+            : /lourd/.test(detail) ? "Ce document dépasse 8 Mo."
+            : "Le contenu est vide ou trop court, ou n'a pas pu être lu.")
+          : s === 429 ? "Beaucoup de demandes en même temps : réessayez dans une minute."
+          : nature === "lien" ? "Cette page n'a pas pu être lue (site indisponible ou qui refuse la lecture automatique)."
+          : "L'ajout n'a pas abouti. Réessayez dans un instant.";
+      }
+    }
+  }
+}
+
+if (space2Configure()) {
+  try {
+    contributions = await mesContributions(jetons.acces);
+  } catch (e) {
+    console.error("Bibliothèque (contributions) :", e);
+  }
+}
+---
+<Base titre="Nourrir la bibliothèque">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/bibliotheque">Bibliothèque</a> · Nourrir</p>
+  <section class="hero">
+    <h1>Nourrir la bibliothèque</h1>
+    <p class="lead">Partagez une expérience, un lien ou un document : l'assistant s'en servira tout de suite pour répondre à tous les membres, ici et dans Space2.</p>
+    <p class="avertissement">Ce que vous ajoutez devient lisible par l'assistant pour l'ensemble du réseau. N'y mettez rien de confidentiel ni de données personnelles (noms, coordonnées, situations privées). Vous pouvez retirer vos contributions à tout moment.</p>
+  </section>
+
+  {message && <p class="avertissement" role="alert">{message}</p>}
+  {ok === "ajoutee" && <p class="pastille" role="status">Ajouté à la bibliothèque.</p>}
+  {ok === "retiree" && <p class="pastille" role="status">Contribution retirée.</p>}
+
+  <nav class="onglets" aria-label="Type de contribution">
+    {(["texte", "lien", "document"] as const).map((n) => (
+      <a href={`${ici}?nature=${n}`} aria-current={nature === n ? "page" : undefined}>{NATURES[n]}</a>
+    ))}
+  </nav>
+
+  <form method="post" class="panneau formulaire" id="formulaire" enctype={nature === "document" ? "multipart/form-data" : undefined}>
+    <input type="hidden" name="nature" value={nature} />
+    <label for="titre"><strong>Titre</strong> <span class="doux">(facultatif)</span></label>
+    <input id="titre" name="titre" maxlength="200" value={saisie.titre} placeholder="Ex. : Notre compost collectif, deux ans après" />
+    {nature === "texte" && (
+      <>
+        <label for="texte"><strong>Votre note</strong></label>
+        <textarea id="texte" name="texte" rows="8" required minlength="20" placeholder="Ce que vous avez appris, ce qui a marché, ce que vous recommanderiez à un autre lieu…">{saisie.texte}</textarea>
+      </>
+    )}
+    {nature === "lien" && (
+      <>
+        <label for="url"><strong>Adresse de la page</strong> <span class="doux">(page web, PDF ou Word en ligne)</span></label>
+        <input id="url" name="url" type="url" required inputmode="url" value={saisie.url} placeholder="https://…" />
+      </>
+    )}
+    {nature === "document" && (
+      <>
+        <label for="fichier"><strong>Document</strong> <span class="doux">(PDF, Word, texte ; 8 Mo au plus)</span></label>
+        <input id="fichier" name="fichier" type="file" required accept=".pdf,.docx,.txt,.md" />
+      </>
+    )}
+    <div class="rangee">
+      <button type="submit" id="envoyer">Ajouter à la bibliothèque</button>
+      <span class="doux" id="attente" hidden>Lecture et classement en cours…</span>
+    </div>
+  </form>
+
+  <section class="bloc" id="mes">
+    <h2>Vos contributions</h2>
+    {contributions.length === 0 ? (
+      <p class="doux">Vous n'avez encore rien ajouté. Depuis une conversation, « + Ajouter à la bibliothèque » verse aussi un échange utile.</p>
+    ) : (
+      <ul class="contributions">
+        {contributions.map((ct) => (
+          <li>
+            <div>
+              <b>{ct.titre || "Sans titre"}</b> <span class="etiquette">{NATURES[ct.nature] ?? ct.nature}</span>
+              <p class="doux">{dateCourte(ct.ajoute_le)}{ct.apercu ? ` · ${ct.apercu.replace(/\s+/g, " ").slice(0, 160)}…` : ""}</p>
+            </div>
+            <form method="post" data-confirmer="Retirer cette contribution de la bibliothèque ?">
+              <input type="hidden" name="retirer" value={ct.id} />
+              <button type="submit" class="bouton creux">Retirer</button>
+            </form>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+</Base>
+
+<style>
+  .onglets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 28px; }
+  .onglets a { text-decoration: none; color: var(--encre); padding: 8px 14px; border: 1px solid var(--trait); border-radius: 999px; font-weight: 600; min-height: 40px; display: inline-flex; align-items: center; }
+  .onglets a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); }
+  .formulaire { margin-top: 12px; }
+  .formulaire input:not([type="file"]):not([type="hidden"]), .formulaire textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); color: var(--encre); }
+  .contributions { list-style: none; margin: 0; padding: 0; }
+  .contributions li { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; padding-block: 12px; border-top: 1px solid var(--trait); }
+  .contributions li > div { flex: 1 1 280px; min-width: 0; overflow-wrap: anywhere; }
+  .contributions .etiquette { margin-left: 4px; }
+  .contributions p { font-size: .9rem; margin-top: 2px; }
+  .contributions button { min-height: 36px; padding: 4px 12px; font-size: .9rem; }
+</style>
+
+<script>
+  document.getElementById("formulaire")?.addEventListener("submit", () => {
+    setTimeout(() => ((document.getElementById("envoyer") as HTMLButtonElement).disabled = true));
+    document.getElementById("attente")?.removeAttribute("hidden");
+  });
+  document.querySelectorAll<HTMLFormElement>("form[data-confirmer]").forEach((form) =>
+    form.addEventListener("submit", (e) => { if (!confirm(form.dataset.confirmer!)) e.preventDefault(); }));
+</script>
