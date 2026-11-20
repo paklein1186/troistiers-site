@@ -1,0 +1,159 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { chargerCommunaute } from "../../../lib/config";
+import { niveauAcces } from "../../../lib/acces";
+import { jetonsValides } from "../../../lib/ctg";
+import { garderJetons, lireJetons } from "../../../lib/jetons";
+import { markdownEnHtml } from "../../../lib/artefacts";
+import { reglagesBibliotheque } from "../../../lib/bibliotheque";
+import {
+  contribuer, demanderBibliotheque, ErreurEntretien, estProfondeur, lireConversation, poidsQuestion, PROFONDEURS,
+  type ConversationBibliotheque, type Profondeur,
+} from "../../../lib/space2";
+import { questionsUtilisees, rendreQuestion, reserverQuestion } from "../../../lib/quotas";
+
+// Une conversation de la bibliothèque : l'historique (relu chez Space2), une question de suite,
+// et « Ajouter à la bibliothèque » sous chaque message pour le verser à la base de connaissances.
+const u = Astro.locals.utilisateur;
+const id = Astro.params.id ?? "";
+const ici = `/membre/bibliotheque/${encodeURIComponent(id)}`;
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+const c = chargerCommunaute();
+if (niveauAcces(c, u, "bibliotheque") === "aucun") return Astro.redirect("/membre/bibliotheque");
+const jetons = await jetonsValides(lireJetons(Astro.cookies));
+if (!jetons) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+garderJetons(Astro.cookies, jetons);
+const { quota, poids } = reglagesBibliotheque(c);
+const MAX = 4000;
+
+let message = "";
+let ajoute = Astro.url.searchParams.get("ajoute") ?? "";
+let brouillon = "";
+let profondeur: Profondeur = "equilibre";
+let conv: ConversationBibliotheque | null = null;
+
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const form = await Astro.request.formData();
+  const index = form.get("ajouter");
+  if (index !== null) {
+    // Verser ce message (et la question qui l'a précédé) dans la base de connaissances commune.
+    try {
+      await contribuer(jetons.acces, { nature: "echange", conversation_id: id, message_index: Number(index) });
+      return Astro.redirect(`${ici}?ajoute=${encodeURIComponent(String(index))}#m${encodeURIComponent(String(index))}`, 303);
+    } catch (e) {
+      console.error("Bibliothèque (contribution) :", e);
+      const s = e instanceof ErreurEntretien ? e.statut : 0;
+      message = s === 400 ? "Ce message est trop court pour être ajouté à la bibliothèque."
+        : s === 429 ? "Beaucoup de demandes en même temps : réessayez dans une minute."
+        : "L'ajout à la bibliothèque n'a pas abouti. Réessayez.";
+    }
+  } else {
+    brouillon = String(form.get("question") ?? "").trim().slice(0, MAX);
+    const p = form.get("profondeur");
+    if (estProfondeur(p)) profondeur = p;
+    const n = poidsQuestion(profondeur, poids);
+    if (brouillon.length < 3) message = "Écrivez votre question (quelques mots au moins).";
+    else if ((await reserverQuestion(u.email, quota, n)) === null) {
+      message = n > 1 && questionsUtilisees(u.email) < quota
+        ? `Une question « profonde » compte pour ${n} : il ne vous en reste pas assez ce mois-ci. Choisissez « Léger » ou « Moyen ».`
+        : `Vous avez utilisé vos ${quota} questions de ce mois. Le compteur repart à zéro le 1er du mois prochain.`;
+    } else {
+      try {
+        await demanderBibliotheque(jetons.acces, brouillon, profondeur, id);
+        return Astro.redirect(`${ici}#fin`, 303);
+      } catch (e) {
+        await rendreQuestion(u.email, n);
+        console.error("Bibliothèque (suite) :", e);
+        const s = e instanceof ErreurEntretien ? e.statut : 0;
+        message = s === 404 ? "Cette conversation n'existe plus."
+          : s === 429 ? "Beaucoup de questions en même temps : réessayez dans une minute (cette question n'est pas décomptée)."
+          : "L'assistant n'a pas pu répondre. Réessayez ; cette question n'est pas décomptée (elle est restée dans la zone de saisie).";
+      }
+    }
+  }
+}
+
+try {
+  conv = await lireConversation(jetons.acces, id);
+} catch (e) {
+  console.error("Bibliothèque (lecture) :", e);
+  const s = e instanceof ErreurEntretien ? e.statut : 0;
+  if (s === 404) return Astro.redirect("/membre/bibliotheque");
+  message ||= "La conversation n'a pas pu être chargée. Réessayez dans un instant.";
+}
+const restantes = Math.max(0, quota - questionsUtilisees(u.email));
+---
+<Base titre={conv?.titre || "Bibliothèque"}>
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/bibliotheque">Bibliothèque</a></p>
+  <h1 class="titre">{conv?.titre || "Conversation"}</h1>
+  {message && <p class="avertissement" role="status">{message}</p>}
+
+  {conv && (
+    <div class="conversation">
+      {conv.messages.map((m, i) => (
+        <div class={`message ${m.role === "user" ? "personne" : "agent"}`} id={`m${i}`}>
+          {m.role === "user"
+            ? <p class="bulle">{m.content}</p>
+            : <article class="bulle document" set:html={markdownEnHtml(m.content)} />}
+          {ajoute === String(i) ? (
+            <p class="ajoute" role="status">Ajouté à la bibliothèque. <a href="/membre/bibliotheque/contribuer#mes">Vos contributions</a></p>
+          ) : m.role === "assistant" && (
+            <form method="post" class="ajouter">
+              <input type="hidden" name="ajouter" value={i} />
+              <button type="submit" class="lien" title="Verse cet échange (la question et cette réponse) dans la base de connaissances commune : l'assistant pourra s'en servir pour tous les membres, et dans Space2.">+ Ajouter à la bibliothèque</button>
+            </form>
+          )}
+        </div>
+      ))}
+      <span id="fin"></span>
+    </div>
+  )}
+
+  {conv && (
+    <form method="post" class="panneau saisie" id="saisie">
+      <label for="question"><strong>Une autre question, ou une précision ?</strong></label>
+      <textarea id="question" name="question" rows="3" maxlength={MAX} required>{brouillon}</textarea>
+      <div class="rangee">
+        <label for="profondeur" class="doux">Profondeur</label>
+        <select id="profondeur" name="profondeur">
+          {PROFONDEURS.map((p) => {
+            const n = poidsQuestion(p.id, poids);
+            return <option value={p.id} selected={p.id === profondeur} disabled={n > restantes}>{p.libelle}{n > 1 ? ` (compte pour ${n})` : ""}</option>;
+          })}
+        </select>
+        <button type="submit" id="envoyer" disabled={restantes === 0}>Envoyer</button>
+        <span class="doux" id="attente" hidden>Recherche en cours… une à deux minutes.</span>
+      </div>
+      <p class="doux" style="font-size:.85rem;margin:0">Questions restantes ce mois-ci : {restantes} sur {quota}. L'assistant tient compte de la conversation.</p>
+    </form>
+  )}
+</Base>
+
+<style>
+  .titre { font-size: clamp(1.5rem, 3.6vw, 2.2rem); overflow-wrap: anywhere; }
+  .conversation { display: grid; gap: 12px; margin-top: 20px; }
+  .message { display: grid; gap: 4px; min-width: 0; }
+  .bulle { max-width: 75ch; padding: 12px 16px; border-radius: 14px; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .agent .bulle { background: var(--surface); border: 1px solid var(--trait); justify-self: start; }
+  .agent :global(p) { margin: 0 0 8px; } .agent :global(p:last-child) { margin-bottom: 0; }
+  .agent :global(table) { display: block; overflow-x: auto; font-size: .9rem; }
+  .personne { justify-items: end; }
+  .personne .bulle { background: var(--accent-doux); white-space: pre-wrap; }
+  .ajouter, .ajoute { justify-self: start; margin: 0; font-size: .88rem; }
+  .ajoute { color: var(--accent); }
+  button.lien { background: none; border: 0; color: var(--accent); padding: 4px 2px; min-height: 32px; font: 600 .88rem var(--corps); text-decoration: underline; cursor: pointer; }
+  .saisie { margin-top: 20px; position: sticky; bottom: 8px; }
+  .saisie textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); color: var(--encre); }
+</style>
+
+<script>
+  const f = document.getElementById("saisie") as HTMLFormElement | null;
+  f?.addEventListener("submit", () => {
+    setTimeout(() => ((document.getElementById("envoyer") as HTMLButtonElement).disabled = true));
+    document.getElementById("attente")?.removeAttribute("hidden");
+  });
+  document.querySelectorAll<HTMLFormElement>("form.ajouter").forEach((form) =>
+    form.addEventListener("submit", () => setTimeout(() => form.querySelector("button")!.setAttribute("disabled", ""))));
+</script>

@@ -156,6 +156,16 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   (Render) l'ouvrirait au mode complet hors confidentiel. **Décision du 19/11 : rester en public** tant que les lieux
   n'ont pas été prévenus que leurs réponses non confidentielles seraient lisibles par les adhérents. Plafond site : 10/min.
   Plus tard : comptage dans CTG avec les packs de tokens.
+- **Bibliothèque native, version complète** (décisions du 20/11) : `/membre/bibliotheque` (profondeur Léger / Moyen /
+  Profond = Haiku / Sonnet / Opus ; une question profonde compte pour 3, `assistants.adherent.poids`), conversations
+  gardées chez Space2 (`conversations_bibliotheque`, les mêmes que dans l'app Space2), `/membre/bibliotheque/<id>`
+  (suite, « + Ajouter à la bibliothèque » sous chaque réponse), `/membre/bibliotheque/contribuer` (note, lien, document
+  PDF/docx/txt/md ; ses contributions, qu'on peut retirer). API space2 `/bibliotheque/*` (clé du site + jeton CTG).
+  **Contributions ouvertes et immédiates** (choix de PA) : doc_type `contribution_site`, cherchable tout de suite par
+  l'agent du site (outil `search_member_contributions`, contenu signalé « non vérifié ») et par l'app Space2.
+  Liens : sites publics seulement (adresses internes refusées), 8 Mo au plus.
+- **Au-delà de 50 questions : packs payants en euros** (décision du 20/11), via le Stripe de Trois-Tiers piloté par
+  CTG. À construire : fonction CTG d'achat unique + solde de questions lu par le site.
 
 ## Avant d'ouvrir les paiements réels
 

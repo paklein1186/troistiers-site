@@ -25,8 +25,8 @@ describe("quota de questions à la bibliothèque", () => {
   });
 
   it("chaque personne et chaque mois ont leur compteur", async () => {
-    await reserverQuestion("a@ex.org", 50, "2026-10");
-    await reserverQuestion("b@ex.org", 50, "2026-11");
+    await reserverQuestion("a@ex.org", 50, 1, "2026-10");
+    await reserverQuestion("b@ex.org", 50, 1, "2026-11");
     expect(questionsUtilisees("a@ex.org", "2026-11")).toBe(0);
     expect(questionsUtilisees("a@ex.org", "2026-10")).toBe(1);
   });
@@ -38,12 +38,20 @@ describe("quota de questions à la bibliothèque", () => {
   });
 
   it("ne garde que les trois derniers mois", async () => {
-    for (const m of ["2026-07", "2026-08", "2026-09", "2026-10"]) await reserverQuestion("a@ex.org", 50, m);
+    for (const m of ["2026-07", "2026-08", "2026-09", "2026-10"]) await reserverQuestion("a@ex.org", 50, 1, m);
     const f = JSON.parse(readFileSync(join(process.env.DONNEES_DIR!, "quotas.json"), "utf8"));
     expect(Object.keys(f)).toEqual(["2026-08", "2026-09", "2026-10"]);
   });
 
   it("mois courant au format AAAA-MM", () => {
     expect(moisCourant(new Date("2026-11-19T12:00:00Z"))).toBe("2026-11");
+  });
+
+  it("une question profonde compte triple, et se rend en entier", async () => {
+    expect(await reserverQuestion("d@ex.org", 5, 3)).toBe(2);
+    expect(await reserverQuestion("d@ex.org", 5, 3)).toBeNull(); // il ne reste que 2
+    expect(await reserverQuestion("d@ex.org", 5, 1)).toBe(1);
+    await rendreQuestion("d@ex.org", 3);
+    expect(questionsUtilisees("d@ex.org")).toBe(1);
   });
 });

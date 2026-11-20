@@ -1,0 +1,175 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { chargerCommunaute } from "../../../lib/config";
+import { niveauAcces } from "../../../lib/acces";
+import { jetonsValides } from "../../../lib/ctg";
+import { garderJetons, lireJetons } from "../../../lib/jetons";
+import { dateCourte, reglagesBibliotheque } from "../../../lib/bibliotheque";
+import {
+  demanderBibliotheque, ErreurEntretien, estProfondeur, mesConversations, poidsQuestion, PROFONDEURS,
+  space2Configure, supprimerConversation, type ConversationResume, type Profondeur,
+} from "../../../lib/space2";
+import { questionsUtilisees, rendreQuestion, reserverQuestion } from "../../../lib/quotas";
+
+// Bibliothèque : questions à l'assistant de Space2 (espace « bibliotheque » de communaute.yaml).
+// Profondeur au choix (léger, moyen, profond), conversations enregistrées chez Space2 (les mêmes que
+// dans l'application Space2), quota mensuel par personne où une question profonde compte triple.
+const u = Astro.locals.utilisateur;
+const ici = "/membre/bibliotheque";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+const c = chargerCommunaute();
+const ouvert = niveauAcces(c, u, "bibliotheque") !== "aucun";
+const { quota, poids } = reglagesBibliotheque(c);
+const MAX = 4000;
+
+const jetons = ouvert ? await jetonsValides(lireJetons(Astro.cookies)) : null;
+if (jetons) garderJetons(Astro.cookies, jetons);
+const jeton = jetons?.acces;
+
+let question = "";
+let profondeur: Profondeur = "equilibre";
+let message = "";
+let conversations: ConversationResume[] = [];
+
+if (Astro.request.method === "POST" && ouvert && jeton) {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const form = await Astro.request.formData();
+  const supprimer = String(form.get("supprimer") ?? "");
+  if (supprimer) {
+    try {
+      await supprimerConversation(jeton, supprimer);
+      return Astro.redirect(ici, 303);
+    } catch (e) {
+      console.error("Bibliothèque (suppression) :", e);
+      message = "La conversation n'a pas pu être supprimée. Réessayez.";
+    }
+  } else {
+    question = String(form.get("question") ?? "").trim().slice(0, MAX);
+    const p = form.get("profondeur");
+    if (estProfondeur(p)) profondeur = p;
+    const n = poidsQuestion(profondeur, poids);
+    if (question.length < 3) message = "Écrivez votre question (quelques mots au moins).";
+    else if ((await reserverQuestion(u.email, quota, n)) === null) {
+      message = n > 1 && questionsUtilisees(u.email) < quota
+        ? `Une question « profonde » compte pour ${n} : il ne vous en reste pas assez ce mois-ci. Choisissez « Léger » ou « Moyen ».`
+        : `Vous avez utilisé vos ${quota} questions de ce mois. Le compteur repart à zéro le 1er du mois prochain.`;
+    } else {
+      try {
+        const r = await demanderBibliotheque(jeton, question, profondeur);
+        return Astro.redirect(`${ici}/${encodeURIComponent(r.conversation.id)}#fin`, 303);
+      } catch (e) {
+        await rendreQuestion(u.email, n);
+        console.error("Bibliothèque :", e);
+        const s = e instanceof ErreurEntretien ? e.statut : 0;
+        message = s === 429
+          ? "Beaucoup de questions en même temps : réessayez dans une minute (cette question n'est pas décomptée)."
+          : "L'assistant n'a pas pu répondre. Réessayez ; cette question n'est pas décomptée.";
+      }
+    }
+  }
+}
+
+if (ouvert && jeton && space2Configure()) {
+  try {
+    conversations = await mesConversations(jeton);
+  } catch (e) {
+    console.error("Bibliothèque (historique) :", e);
+  }
+}
+const restantes = Math.max(0, quota - questionsUtilisees(u.email));
+---
+<Base titre="Bibliothèque">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · Bibliothèque</p>
+  <section class="hero">
+    <h1>Interroger la bibliothèque du réseau</h1>
+    <p class="lead">Posez une question en langage courant : l'assistant de Space2 cherche dans ce que les lieux et les membres ont partagé (profils, besoins, bonnes pratiques, études, contributions) et cite ses sources.</p>
+  </section>
+
+  {!ouvert ? (
+    <section class="panneau bloc">
+      <h2>Réservé aux adhérents</h2>
+      <p>La bibliothèque est comprise dans l'adhésion à Trois-Tiers ({quota} questions par mois).</p>
+      <div class="rangee"><a class="bouton" href="/adherer">Adhérer</a></div>
+    </section>
+  ) : !space2Configure() ? (
+    <p class="avertissement">La bibliothèque n'est pas encore branchée à Space2.</p>
+  ) : !jeton ? (
+    <section class="panneau bloc">
+      <p>Pour retrouver vos conversations, reconnectez-vous avec ChangeTheGame.</p>
+      <div class="rangee"><a class="bouton" href={`/connexion?suite=${encodeURIComponent(ici)}`}>Se reconnecter</a></div>
+    </section>
+  ) : (
+    <>
+      <p class="doux">Questions restantes ce mois-ci : <strong>{restantes}</strong> sur {quota}. · <a href={`${ici}/contribuer`}>Nourrir la bibliothèque</a></p>
+      {message && <p class="avertissement" role="status">{message}</p>}
+
+      <form method="post" class="panneau bloc formulaire" id="formulaire">
+        <label for="question"><strong>Nouvelle question</strong></label>
+        <textarea id="question" name="question" rows="4" maxlength={MAX} required
+          placeholder="Ex. : quels lieux nourriciers en Wallonie cherchent des bénévoles ? Comment d'autres lieux ont-ils financé leur rénovation ?">{question}</textarea>
+        <fieldset class="profondeur">
+          <legend>Profondeur d'analyse</legend>
+          {PROFONDEURS.map((p) => {
+            const n = poidsQuestion(p.id, poids);
+            return (
+              <label class="option">
+                <input type="radio" name="profondeur" value={p.id} checked={p.id === profondeur} disabled={n > restantes} />
+                <span><b>{p.libelle}</b> <span class="doux">· {p.aide}{n > 1 ? ` · compte pour ${n} questions` : ""}</span></span>
+              </label>
+            );
+          })}
+        </fieldset>
+        <div class="rangee">
+          <button type="submit" id="envoyer" disabled={restantes === 0}>Poser la question</button>
+          <span class="doux" id="attente" hidden>Recherche en cours… cela peut prendre une à deux minutes.</span>
+        </div>
+        <p class="doux" style="font-size:.85rem;margin:0">Une question compte dans votre quota seulement si l'assistant répond. Les réponses peuvent contenir des erreurs : vérifiez auprès des sources citées.</p>
+      </form>
+
+      <section class="bloc">
+        <h2>Vos conversations</h2>
+        {conversations.length === 0 ? (
+          <p class="doux">Aucune conversation pour l'instant. Elles sont aussi visibles dans l'onglet Bibliothèque de Space2.</p>
+        ) : (
+          <ul class="historique">
+            {conversations.map((cv) => (
+              <li>
+                <a href={`${ici}/${encodeURIComponent(cv.id)}`}>{cv.titre || "Conversation"}</a>
+                <span class="doux">{dateCourte(cv.maj_le)}</span>
+                <form method="post" class="supprimer" data-confirmer="Supprimer cette conversation ?">
+                  <input type="hidden" name="supprimer" value={cv.id} />
+                  <button type="submit" class="bouton creux" aria-label={`Supprimer « ${cv.titre || "Conversation"} »`}>Supprimer</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  )}
+</Base>
+
+<style>
+  .formulaire textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--trait); border-radius: 8px; background: var(--surface); color: var(--encre); }
+  .profondeur { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .profondeur legend { font-weight: 600; margin-bottom: 4px; }
+  .option { display: flex; gap: 10px; align-items: flex-start; min-height: 44px; padding: 10px 12px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); cursor: pointer; }
+  .option:has(input:checked) { border-color: var(--accent); background: var(--accent-doux); }
+  .option:has(input:disabled) { opacity: .55; cursor: not-allowed; }
+  .option input { margin-top: 4px; }
+  .historique { list-style: none; margin: 0; padding: 0; }
+  .historique li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding-block: 10px; border-top: 1px solid var(--trait); }
+  .historique li a { font-weight: 600; flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+  .supprimer button { min-height: 36px; padding: 4px 12px; font-size: .9rem; }
+</style>
+
+<script>
+  const f = document.getElementById("formulaire") as HTMLFormElement | null;
+  f?.addEventListener("submit", () => {
+    setTimeout(() => ((document.getElementById("envoyer") as HTMLButtonElement).disabled = true));
+    document.getElementById("attente")?.removeAttribute("hidden");
+  });
+  document.querySelectorAll<HTMLFormElement>("form[data-confirmer]").forEach((form) =>
+    form.addEventListener("submit", (e) => { if (!confirm(form.dataset.confirmer!)) e.preventDefault(); }));
+</script>
