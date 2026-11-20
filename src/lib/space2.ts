@@ -116,7 +116,10 @@ export async function demanderTicket(jetonCtg: string): Promise<string> {
     body: JSON.stringify({ ctg_token: jetonCtg }),
     signal: AbortSignal.timeout(15_000),
   });
-  if (!r.ok) throw new Error(`Space2 a répondu ${r.status} sur /sso/ticket`);
+  if (!r.ok) {
+    const detail = ((await r.json().catch(() => null)) as { detail?: unknown } | null)?.detail;
+    throw new Error(`Space2 a répondu ${r.status} sur /sso/ticket${detail ? ` (${String(detail).slice(0, 200)})` : ""}`);
+  }
   return ((await r.json()) as { ticket: string }).ticket;
 }
 
@@ -279,7 +282,10 @@ async function appelEntretien<T>(jetonCtg: string, chemin: string, corps?: unkno
     // Un tour d'entretien peut enchaîner plusieurs outils : jusqu'à deux minutes.
     signal: AbortSignal.timeout(120_000),
   });
-  if (!r.ok) throw new ErreurEntretien(r.status, `Space2 a répondu ${r.status} sur /entretien${chemin.split("?")[0]}`);
+  if (!r.ok) {
+    const detail = ((await r.json().catch(() => null)) as { detail?: unknown } | null)?.detail;
+    throw new ErreurEntretien(r.status, `Space2 a répondu ${r.status} sur /entretien${chemin.split("?")[0]}${detail ? ` (${String(detail).slice(0, 200)})` : ""}`);
+  }
   return (await r.json()) as T;
 }
 
