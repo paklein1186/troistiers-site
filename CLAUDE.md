@@ -142,6 +142,9 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   `/space2/entretien[?enquete=code]` demande un ticket à Space2 (`POST /sso/ticket`, space2#5) avec le jeton CTG de la
   personne ; Space2 vérifie ce jeton auprès de CTG, renvoie un ticket à usage unique (2 min), puis ouvre sa propre
   session pour le même e-mail. Lien direct `/entretien?…` : aucun menu. Sans jeton (démo) : lien sans ticket.
+  Entrée habituelle (20/11) : `/membre/entretien[?enquete=code]` affiche Space2 **dans le site**, sous son menu
+  (fenêtre intégrée, `?embed=true`, micro autorisé) ; `/space2/entretien` reste le plein écran. Limite : selon le
+  navigateur (cookies tiers), un rechargement de la fenêtre peut redemander l'e-mail → revenir par le bouton.
 - Space2 → Bibliothèque (décision du 19/11) : adhérents, actifs et équipe ; **50 questions par personne et par mois**
   (`assistants.adherent.inclus_par_mois`), comptées par le site dans `.donnees/quotas.json` (hors dépôt ; repart
   de zéro si le site change de machine sans ce fichier). Page `/membre/bibliotheque`, une question de suivi possible.

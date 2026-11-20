@@ -80,12 +80,28 @@ export async function chargerEnquetes(): Promise<Enquete[]> {
  * Lien direct vers l'entretien de Space2 (page /entretien, sans menu), général ou d'une enquête précise.
  * `ticket` : ticket de connexion unique (voir demanderTicket), pour arriver déjà connecté.
  */
-export function lienSpace2(base: string, quoi: { enquete?: string; ticket?: string } = {}): string {
+export function lienSpace2(base: string, quoi: { enquete?: string; ticket?: string; integre?: boolean } = {}): string {
   const u = new URL("entretien", base.endsWith("/") ? base : `${base}/`);
   if (quoi.enquete) u.searchParams.set("campagne", quoi.enquete);
   else u.searchParams.set("entretien", "general");
   if (quoi.ticket) u.searchParams.set("ticket", quoi.ticket);
+  // Affichage intégré dans une page du site : Streamlit retire alors ses propres barres.
+  if (quoi.integre) u.searchParams.set("embed", "true");
   return u.toString();
+}
+
+/**
+ * Ticket de connexion unique si possible (jeton ChangeTheGame valable), sinon undefined :
+ * Space2 demandera alors l'e-mail. Ne bloque jamais l'accès à l'entretien.
+ */
+export async function ticketSiPossible(jetonCtg: string | null | undefined): Promise<string | undefined> {
+  if (!jetonCtg) return undefined;
+  try {
+    return await demanderTicket(jetonCtg);
+  } catch (e) {
+    console.error("Connexion unique Space2 :", e);
+    return undefined;
+  }
 }
 
 /**
