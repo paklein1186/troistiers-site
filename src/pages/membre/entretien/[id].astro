@@ -5,7 +5,7 @@ import { niveauAcces } from "../../../lib/acces";
 import { jetonsValides } from "../../../lib/ctg";
 import { garderJetons, lireJetons } from "../../../lib/jetons";
 import { markdownEnHtml } from "../../../lib/artefacts";
-import { ErreurEntretien, lireEntretien, repondreEntretien, ROLES_ENTRETIEN, type Entretien } from "../../../lib/space2";
+import { ErreurEntretien, lireEntretien, repondreChoix, repondreEntretien, ROLES_ENTRETIEN, valeurChoix, type Entretien } from "../../../lib/space2";
 
 // Conversation d'entretien : l'historique (relu chez Space2), et la réponse de la personne.
 const u = Astro.locals.utilisateur;
@@ -24,8 +24,28 @@ let e: Entretien | null = null;
 if (Astro.request.method === "POST") {
   const origine = Astro.request.headers.get("origin");
   if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
-  brouillon = String((await Astro.request.formData()).get("texte") ?? "").trim().slice(0, 4000);
-  if (brouillon) {
+  const form = await Astro.request.formData();
+  const champ = String(form.get("champ_id") ?? "");
+  if (champ) {
+    // Réponse rapide (cases, boutons, échelle) : Space2 vérifie la question et ses options.
+    const type = String(form.get("type") ?? "") as Parameters<typeof valeurChoix>[0];
+    const valeur = valeurChoix(type, form.getAll("valeur").map(String));
+    if (valeur === null) message = "Choisissez au moins une réponse.";
+    else {
+      try {
+        await repondreChoix(jetons.acces, id, champ, valeur);
+        return Astro.redirect(`${ici}#fin`, 303);
+      } catch (err) {
+        console.error("Entretien (choix) :", err);
+        const s = err instanceof ErreurEntretien ? err.statut : 0;
+        message = s === 400 ? "Cette réponse n'a pas pu être prise en compte (la question a peut-être changé) : répondez ci-dessous."
+          : s === 429 ? "Beaucoup de demandes en même temps : réessayez dans une minute."
+          : "Votre réponse n'a pas pu être transmise. Réessayez.";
+      }
+    }
+  }
+  brouillon = String(form.get("texte") ?? "").trim().slice(0, 4000);
+  if (!champ && brouillon) {
     try {
       await repondreEntretien(jetons.acces, id, brouillon);
       return Astro.redirect(`${ici}#fin`, 303);
@@ -72,6 +92,42 @@ try {
         <span id="fin"></span>
       </section>
 
+      {e.choix_rapide && (() => {
+        const q = e.choix_rapide;
+        return (
+          <form method="post" class="panneau choix-rapide" id="choix">
+            <input type="hidden" name="champ_id" value={q.champ_id} />
+            <input type="hidden" name="type" value={q.type} />
+            <fieldset>
+              <legend><strong>{q.label}</strong>
+                {q.type === "multi_choice" && <span class="doux"> · plusieurs réponses possibles{q.max_choices ? ` (${q.max_choices} au plus)` : ""}</span>}
+              </legend>
+              {q.type === "boolean" ? (
+                <div class="rangee">
+                  <button type="submit" name="valeur" value="oui">Oui</button>
+                  <button type="submit" name="valeur" value="non" class="bouton creux">Non</button>
+                </div>
+              ) : q.type === "scale_1_5" ? (
+                <div class="rangee echelle">
+                  {[1, 2, 3, 4, 5].map((n) => <button type="submit" name="valeur" value={String(n)} class="bouton creux">{n}</button>)}
+                  <span class="doux">1 = pas du tout · 5 = tout à fait</span>
+                </div>
+              ) : (
+                <>
+                  <div class="options" data-max={q.max_choices ?? ""}>
+                    {q.options.map((o) => (
+                      <label class="option"><input type={q.type === "multi_choice" ? "checkbox" : "radio"} name="valeur" value={o} required={q.type === "single_choice"} /> <span>{o}</span></label>
+                    ))}
+                  </div>
+                  <div class="rangee"><button type="submit">Valider ma réponse</button></div>
+                </>
+              )}
+            </fieldset>
+            <p class="doux" style="margin:0;font-size:.88rem">Ou répondez avec vos mots ci-dessous.</p>
+          </form>
+        );
+      })()}
+
       <form method="post" class="saisie panneau" id="saisie">
         <label for="texte" class="doux">Votre réponse</label>
         <textarea id="texte" name="texte" rows="4" maxlength="4000" required placeholder="Répondez avec vos mots…">{brouillon}</textarea>
@@ -93,6 +149,14 @@ try {
   .personne { background: var(--accent-doux); justify-self: end; white-space: pre-wrap; }
   .saisie { margin-top: 20px; position: sticky; bottom: 8px; }
   .saisie textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); color: var(--encre); }
+  .choix-rapide { margin-top: 20px; }
+  .choix-rapide fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .choix-rapide legend { margin-bottom: 4px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+  .option { display: flex; gap: 10px; align-items: flex-start; min-height: 44px; padding: 10px 12px; border: 1px solid var(--trait); border-radius: 8px; background: var(--fond); cursor: pointer; }
+  .option:has(input:checked) { border-color: var(--accent); background: var(--accent-doux); }
+  .option input { margin-top: 3px; }
+  .echelle button { min-width: 48px; }
   .progression { max-width: 520px; }
   .progression > span { display: block; height: 8px; border-radius: 4px; background: var(--relier); }
   .progression { background: linear-gradient(var(--trait), var(--trait)) 0 0 / 100% 8px no-repeat; border-radius: 4px; }
@@ -100,6 +164,20 @@ try {
 </style>
 
 <script>
+  // Réponse rapide : pas plus de cases que le nombre de choix permis ; bouton désactivé pendant l'envoi.
+  document.querySelectorAll<HTMLElement>(".options[data-max]").forEach((bloc) => {
+    const max = Number(bloc.dataset.max);
+    if (!max) return;
+    const cases = [...bloc.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
+    const maj = () => { const n = cases.filter((c) => c.checked).length; cases.forEach((c) => { c.disabled = !c.checked && n >= max; }); };
+    cases.forEach((c) => c.addEventListener("change", maj));
+  });
+  document.getElementById("choix")?.addEventListener("submit", (ev) => {
+    const form = ev.currentTarget as HTMLFormElement;
+    if (form.querySelector('input[type="checkbox"]') && !form.querySelector('input[type="checkbox"]:checked')) { ev.preventDefault(); return; }
+    setTimeout(() => form.querySelectorAll("button").forEach((b) => (b.disabled = true)));
+    document.getElementById("attente")?.removeAttribute("hidden");
+  });
   const f = document.getElementById("saisie") as HTMLFormElement | null;
   const t = document.getElementById("texte") as HTMLTextAreaElement | null;
   f?.addEventListener("submit", () => {

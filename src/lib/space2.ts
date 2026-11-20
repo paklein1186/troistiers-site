@@ -295,6 +295,13 @@ export interface Entretien {
   id: string; tiers_lieu_id: string; nom_lieu: string | null; role: string; mode: string;
   campagne_id: string | null; historique: TourEntretien[];
   completion: { pourcentage: number; repondus: number; total: number } | null;
+  /** Question à choix en attente (réponse rapide), ou null. */
+  choix_rapide: ChoixRapide | null;
+}
+export interface ChoixRapide {
+  champ_id: string; label: string;
+  type: "boolean" | "single_choice" | "multi_choice" | "scale_1_5";
+  options: string[]; max_choices: number | null;
 }
 export interface EntretienResume { id: string; nom_lieu: string | null; role: string; mode: string; campagne_id: string | null; maj_le: string | null }
 
@@ -318,3 +325,15 @@ export const ROLES_ENTRETIEN: Record<string, string> = {
   usager: "Usager régulier",
   autre: "Autre",
 };
+export const repondreChoix = (jeton: string, id: string, champ_id: string, valeur: boolean | string | string[] | number) =>
+  appelEntretien<Entretien>(jeton, `/conversations/${encodeURIComponent(id)}/choix`, { champ_id, valeur });
+
+/** Valeur d'une réponse rapide lue dans un formulaire, selon le type de la question (null si vide ou invalide). */
+export function valeurChoix(type: ChoixRapide["type"], valeurs: string[]): boolean | string | string[] | number | null {
+  const v = valeurs.filter((x) => x !== "");
+  if (type === "multi_choice") return v.length ? v : null;
+  if (!v.length) return null;
+  if (type === "boolean") return v[0] === "oui" ? true : v[0] === "non" ? false : null;
+  if (type === "scale_1_5") { const n = Number(v[0]); return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null; }
+  return v[0];
+}
