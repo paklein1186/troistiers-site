@@ -96,3 +96,18 @@ describe("liens vers Space2", () => {
       .toBe("https://space2.streamlit.app/entretien?campagne=ka122&ticket=T1&embed=true");
   });
 });
+
+import { valeurChoix } from "../src/lib/space2";
+describe("réponse rapide de l'entretien", () => {
+  it("convertit la valeur selon le type de question", () => {
+    expect(valeurChoix("boolean", ["oui"])).toBe(true);
+    expect(valeurChoix("boolean", ["non"])).toBe(false);
+    expect(valeurChoix("boolean", ["peut-être"])).toBeNull();
+    expect(valeurChoix("scale_1_5", ["4"])).toBe(4);
+    expect(valeurChoix("scale_1_5", ["7"])).toBeNull();
+    expect(valeurChoix("single_choice", ["Rural"])).toBe("Rural");
+    expect(valeurChoix("multi_choice", ["A", "B"])).toEqual(["A", "B"]);
+    expect(valeurChoix("multi_choice", [])).toBeNull();
+    expect(valeurChoix("single_choice", [""])).toBeNull();
+  });
+});
