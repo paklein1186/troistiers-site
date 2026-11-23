@@ -172,6 +172,23 @@ Test de la phase 1 : **un membre inscrit sur le site ou sur ChangeTheGame retrou
   (+ `/retour`) ; quota du mois d'abord, puis questions achetées, décomptées chez CTG après la réponse ; une question
   profonde (3) n'est jamais coupée entre les deux. Ouvert seulement si le paiement en euros de la guilde l'est.
 
+## Brief technique « permissions, badges et opportunités » (23/11)
+
+Brief : https://claude.ai/artifact/Gb8EGhnLSAdmS7f7Xvz7Db (niveaux N0 à N5, badges de statut / contextuels /
+fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
+- **Base Trois-Tiers = projet Supabase dédié au nom de l'ASBL, région UE (Francfort), sauvegarde chaque nuit sur
+  le Mac mini** (option 1A). Elle est maître des projets, missions, contenus, badges de fonction et contextuels.
+- **Membranes, partage** : ChangeTheGame dit qui a quel badge de statut (adhésions) ; la base Trois-Tiers dit ce
+  que chaque niveau voit (matrice, étapes, sensibilité), remplie au départ d'après `communaute.yaml`.
+- **Alliés et partenaires territoriaux voient les budgets** (N3 complet) ; badge Financeur accordé par la
+  coordination ; anciens membres d'équipe : lecture 3 mois après clôture.
+- Étape 0, failles CTG corrigées (à mettre en production par Lovable) : changethegame#15 (salons, messages,
+  réponses, pièces jointes, sous-tâches, `unit-agent`) et #16 (décisions et votes, poids recalculé par la base).
+- **Lot 1, socle** (branche `lot1/socle`) : `supabase/migrations/` de ce dépôt, tests `supabase/tests/socle.sql`
+  (34 vérifications, `scripts/tester-base.sh`), recopie du badge de statut à chaque lecture du profil CTG
+  (`src/lib/base.ts`, `TT_BASE_URL` + `TT_BASE_SERVICE_KEY`), sauvegarde `scripts/sauvegarde-base.sh`.
+  Mode d'emploi : `docs/base-trois-tiers.md`.
+
 ## Avant d'ouvrir les paiements réels
 
 - Fenêtre de test (décision du 19/11) : après les essais, **désactiver le paiement en euros** de la guilde jusqu'à
