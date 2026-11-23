@@ -1,0 +1,216 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { acteurConnecte, messageBase } from "../../../lib/acteur";
+import {
+  apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
+  reglerDiffusion, ROLES_CONTEXTUELS, rpc, SENSIBILITES, typesContenu, validerDiffusion,
+  type Droits, type Etape, type ProjetVu,
+} from "../../../lib/base";
+
+// Fiche d'un projet : ce que la personne en voit (filtré par la base), et les actions permises
+// (candidater, régler la diffusion, changer l'étape, valider la diffusion, aperçu en tant que).
+const u = Astro.locals.utilisateur;
+const id = Astro.params.id ?? "";
+const ici = `/membre/projets/${encodeURIComponent(id)}`;
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree() || !/^[0-9a-f-]{36}$/i.test(id)) return Astro.redirect("/membre/projets");
+const acteur = await acteurConnecte(Astro.cookies);
+
+let message = "";
+const fait = Astro.url.searchParams.get("fait");
+if (Astro.request.method === "POST" && acteur) {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  const action = String(f.get("action") ?? "");
+  try {
+    if (action === "candidater") {
+      await candidater(acteur, id, String(f.get("role") ?? "membre_equipe"), String(f.get("message") ?? "").slice(0, 2000));
+    } else if (action === "etape") {
+      await changerEtape(acteur, id, String(f.get("vers") ?? ""), String(f.get("justification") ?? "").slice(0, 500));
+    } else if (action === "deverrouiller") {
+      await deverrouillerEtape(acteur, id);
+    } else if (action === "diffusion") {
+      await reglerDiffusion(acteur, id, {
+        sensibilite: String(f.get("sensibilite") ?? "sensible"),
+        titre_public: f.get("titre_public") === "on",
+        phrase: String(f.get("phrase") ?? "").slice(0, 300),
+        validateur: String(f.get("validateur") ?? "").slice(0, 200),
+        besoins_publics: f.get("besoins_publics") === "on",
+      });
+    } else if (action === "valider" || action === "refuser") {
+      await validerDiffusion(acteur, id, action === "valider");
+    }
+    return Astro.redirect(`${ici}?fait=${encodeURIComponent(action)}`, 303);
+  } catch (e) {
+    console.error(`Base Trois-Tiers (${action}) :`, e);
+    message = messageBase(e);
+  }
+}
+
+let p: ProjetVu | null = null;
+let droits: Droits | null = null;
+let listeEtapes: Etape[] = [];
+let libellesTypes: Record<string, string> = {};
+let apercu: ProjetVu | null = null;
+const niveauApercu = Astro.url.searchParams.get("en_tant_que");
+try {
+  [p, droits, listeEtapes, libellesTypes] = await Promise.all([
+    apercuProjet(id, acteur),
+    acteur ? mesDroits(id, acteur) : Promise.resolve(null),
+    etapes().then((l) => l.sort((a, b) => a.ordre - b.ordre)),
+    typesContenu().then((l) => Object.fromEntries(l.map((t) => [t.code, t.libelle]))),
+  ]);
+  // Aperçu en tant que : réservé à l'équipe du projet et à la coordination, jamais au-dessus de son niveau.
+  const n = Number(niveauApercu);
+  if (droits && droits.niveau >= 4 && niveauApercu !== null && Number.isInteger(n) && n >= 0 && n <= droits.niveau) {
+    apercu = await rpc<ProjetVu | null>("vue_projet", { p_projet: id, p_niveau: n });
+  }
+} catch (e) {
+  console.error("Base Trois-Tiers (fiche) :", e);
+  message ||= "Le projet n'a pas pu être chargé.";
+}
+if (!p && !message) return Astro.redirect("/membre/projets");
+const libEtape = (c: string | null) => (c ? listeEtapes.find((e) => e.code === c)?.libelle ?? c : null);
+const FAITS: Record<string, string> = {
+  candidater: "Candidature envoyée : l'équipe du projet va l'examiner.",
+  etape: "Étape changée. Elle est verrouillée : les agents ne feront plus que proposer.",
+  deverrouiller: "Étape déverrouillée.",
+  diffusion: "Diffusion réglée.",
+  valider: "Diffusion hors équipe validée.",
+  refuser: "Diffusion hors équipe refusée.",
+};
+const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre actif", "N4 équipe", "N5 coordination"];
+---
+<Base titre={p?.titre ?? "Projet"}>
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/projets">Projets</a></p>
+  {Astro.url.searchParams.get("cree") && <p class="pastille" role="status">Projet créé. Réglez maintenant sa diffusion (il est invisible hors de son équipe).</p>}
+  {fait && FAITS[fait] && <p class="pastille" role="status">{FAITS[fait]}</p>}
+  {message && <p class="avertissement" role="alert">{message}</p>}
+
+  {p && (
+    <>
+      <section class="hero">
+        <h1 class="titre">{p.titre}</h1>
+        <p class="lead">
+          {[NATURES[p.nature] ?? p.nature, p.theme, p.territoire].filter(Boolean).join(" · ")}
+          {p.etape && <> · <strong>{libEtape(p.etape)}</strong>{p.etape_verrouillee && <span class="etiquette">verrouillée</span>}</>}
+        </p>
+        {p.phrase && <p>{p.phrase}</p>}
+        <p class="doux" style="font-size:.9rem">Vous voyez ce projet au niveau {NIVEAUX[p.niveau] ?? p.niveau}.</p>
+      </section>
+
+      {p.elements.length > 0 && (
+        <section class="bloc">
+          <h2>Contenu</h2>
+          <dl class="elements">
+            {p.elements.map((e) => (<><dt>{libellesTypes[e.type] ?? e.type}</dt><dd>{e.texte}</dd></>))}
+          </dl>
+        </section>
+      )}
+      {p.documents.length > 0 && (
+        <section class="bloc">
+          <h2>Documents</h2>
+          <ul class="simple">{p.documents.map((d) => <li><a href={d.reference} rel="noopener noreferrer" target="_blank">{d.titre}</a></li>)}</ul>
+        </section>
+      )}
+
+      {droits?.candidater && (
+        <form method="post" class="panneau bloc formulaire">
+          <h2>Rejoindre ce projet</h2>
+          <input type="hidden" name="action" value="candidater" />
+          <label for="role">Rôle souhaité</label>
+          <select id="role" name="role">{Object.entries(ROLES_CONTEXTUELS).map(([c, l]) => <option value={c}>{l}</option>)}</select>
+          <label for="message">Ce que vous apporteriez</label>
+          <textarea id="message" name="message" rows="3" maxlength="2000"></textarea>
+          <div><button type="submit">Je veux en être</button></div>
+        </form>
+      )}
+      {droits?.candidature_en_attente && <p class="avertissement">Votre candidature est en attente de réponse de l'équipe.</p>}
+
+      {droits?.valider_diffusion && droits.reglages && (
+        <form method="post" class="panneau bloc">
+          <h2>Validation externe</h2>
+          <p>Diffusion hors équipe : <strong>{droits.reglages.diffusion_validee ? "validée" : "pas encore validée"}</strong> ({droits.reglages.validateur_externe}).</p>
+          <div class="rangee">
+            <button type="submit" name="action" value="valider">Valider la diffusion</button>
+            <button type="submit" name="action" value="refuser" class="bouton creux">Refuser</button>
+          </div>
+        </form>
+      )}
+
+      {droits?.gerer && (
+        <form method="post" class="panneau bloc formulaire">
+          <h2>Étape du projet</h2>
+          <input type="hidden" name="action" value="etape" />
+          <label for="vers">Nouvelle étape</label>
+          <select id="vers" name="vers">{listeEtapes.map((e) => <option value={e.code} selected={e.code === p!.etape}>{e.libelle}</option>)}</select>
+          <label for="justification">Pourquoi</label>
+          <input id="justification" name="justification" maxlength="500" placeholder="Ex. : convention signée le 20/11" />
+          <p class="doux" style="font-size:.9rem">« Clos » ou « Abandonné » met fin à tous les badges du projet ; l'équipe garde la lecture 3 mois.</p>
+          <div class="rangee">
+            <button type="submit">Changer l'étape</button>
+            {p.etape_verrouillee && <button type="submit" name="action" value="deverrouiller" class="bouton creux" formnovalidate>Rendre la main aux agents</button>}
+          </div>
+        </form>
+      )}
+
+      {droits?.fixer_sensibilite && droits.reglages && (
+        <form method="post" class="panneau bloc formulaire">
+          <h2>Diffusion hors de l'équipe</h2>
+          <input type="hidden" name="action" value="diffusion" />
+          <fieldset>
+            <legend>Sensibilité</legend>
+            {Object.entries(SENSIBILITES).map(([c, l]) => (
+              <label class="option"><input type="radio" name="sensibilite" value={c} checked={droits!.reglages!.sensibilite === c} /> {l}</label>
+            ))}
+          </fieldset>
+          <label class="option"><input type="checkbox" name="titre_public" checked={droits.reglages.titre_public_autorise} /> Projet sensible : montrer le titre et une phrase hors équipe</label>
+          <label for="phrase">Phrase publique (projet sensible)</label>
+          <input id="phrase" name="phrase" maxlength="300" value={droits.reglages.phrase_publique ?? ""} />
+          <label for="validateur">Validateur externe <span class="doux">(ex. une fondation qui doit approuver toute diffusion ; vide s'il n'y en a pas)</span></label>
+          <input id="validateur" name="validateur" maxlength="200" value={droits.reglages.validateur_externe ?? ""} />
+          <label class="option"><input type="checkbox" name="besoins_publics" checked={droits.reglages.besoins_publics} /> Les besoins du projet peuvent circuler publiquement</label>
+          <div><button type="submit">Enregistrer</button></div>
+        </form>
+      )}
+
+      {droits && droits.niveau >= 4 && (
+        <section class="panneau bloc">
+          <h2>Aperçu en tant que</h2>
+          <p class="doux">Ce que voit chaque niveau, sans rien changer.</p>
+          <div class="rangee">
+            {NIVEAUX.slice(0, droits.niveau + 1).map((l, n) => (
+              <a class={`bouton ${String(n) === niveauApercu ? "" : "creux"}`} href={`${ici}?en_tant_que=${n}#apercu`}>{l}</a>
+            ))}
+          </div>
+          {niveauApercu !== null && (
+            <div id="apercu" class="apercu">
+              {!apercu ? <p><strong>Invisible</strong> à ce niveau.</p> : (
+                <>
+                  <p><strong>{apercu.titre}</strong>{apercu.etape ? ` · ${libEtape(apercu.etape)}` : " · étape masquée"}{apercu.phrase ? ` — ${apercu.phrase}` : ""}</p>
+                  {apercu.elements.length === 0 ? <p class="doux">Aucun contenu à ce niveau.</p> : (
+                    <dl class="elements">{apercu.elements.map((e) => (<><dt>{libellesTypes[e.type] ?? e.type}</dt><dd>{e.texte}</dd></>))}</dl>
+                  )}
+                  {apercu.documents.length > 0 && <p class="doux">Documents : {apercu.documents.map((d) => d.titre).join(", ")}</p>}
+                </>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+    </>
+  )}
+</Base>
+
+<style>
+  .titre { overflow-wrap: anywhere; }
+  .elements { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: 8px 18px; margin: 0; }
+  .elements dt { font-weight: 600; } .elements dd { margin: 0; overflow-wrap: anywhere; }
+  @media (max-width: 620px) { .elements { grid-template-columns: minmax(0, 1fr); } .elements dd { margin-bottom: 8px; } }
+  .formulaire { display: grid; gap: 8px; }
+  .formulaire input:not([type=radio]):not([type=checkbox]), .formulaire select, .formulaire textarea { width: 100%; font: inherit; }
+  fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .option { display: flex; gap: 8px; align-items: flex-start; }
+  .apercu { border-top: 1px solid var(--trait); padding-top: 12px; display: grid; gap: 8px; }
+</style>

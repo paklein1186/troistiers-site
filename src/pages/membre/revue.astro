@@ -1,0 +1,92 @@
+---
+import Base from "../../layouts/Base.astro";
+import { acteurConnecte, messageBase } from "../../lib/acteur";
+import { baseConfiguree, deciderRevue, etapes, maRevue, ROLES_CONTEXTUELS, type PropositionRevue } from "../../lib/base";
+
+// File de revue (brief, section 5) : propositions des agents (badges, étapes) et candidatures.
+// La coordination voit tout ; un gestionnaire de projet, ses projets. La base décide qui peut trancher.
+const u = Astro.locals.utilisateur;
+const ici = "/membre/revue";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree()) return Astro.redirect("/membre");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+
+let message = "";
+const fait = Astro.url.searchParams.get("fait");
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  const id = String(f.get("id") ?? "");
+  const decision = f.get("decision") === "accepter" ? "accepter" : "refuser";
+  const badge = String(f.get("badge") ?? "");
+  try {
+    await deciderRevue(acteur, id, decision, String(f.get("motif") ?? "").slice(0, 500),
+      decision === "accepter" && ROLES_CONTEXTUELS[badge] ? { badge } : undefined);
+    return Astro.redirect(`${ici}?fait=${decision}`, 303);
+  } catch (e) {
+    console.error("Base Trois-Tiers (revue) :", e);
+    message = messageBase(e);
+  }
+}
+
+let liste: PropositionRevue[] = [];
+let libellesEtapes: Record<string, string> = {};
+try {
+  [liste, libellesEtapes] = await Promise.all([
+    maRevue(acteur),
+    etapes().then((l) => Object.fromEntries(l.map((e) => [e.code, e.libelle]))),
+  ]);
+} catch (e) {
+  console.error("Base Trois-Tiers (revue, lecture) :", e);
+  message ||= "La file de revue n'a pas pu être chargée.";
+}
+const TYPES: Record<string, string> = { candidature: "Candidature", badge: "Badge proposé", etape: "Changement d'étape", classification: "Classement", diffusion: "Diffusion", opportunite: "Opportunité" };
+const resume = (r: PropositionRevue) => {
+  const o = r.objet as Record<string, string>;
+  if (r.type === "candidature") return `${r.personne ?? r.personne_email ?? "Quelqu'un"} souhaite rejoindre « ${r.projet} » comme ${ROLES_CONTEXTUELS[o.role] ?? o.role}.`;
+  if (r.type === "badge") return `Accorder « ${o.badge} » à ${r.personne ?? r.personne_email ?? "?"}${r.projet ? ` sur « ${r.projet} »` : ""}.`;
+  if (r.type === "etape") return `« ${r.projet} » : ${libellesEtapes[o.de] ?? o.de} → ${libellesEtapes[o.vers] ?? o.vers}${o.confiance ? ` (confiance ${Math.round(Number(o.confiance) * 100)} %)` : ""}.`;
+  return JSON.stringify(o);
+};
+---
+<Base titre="File de revue">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · Revue</p>
+  <section class="hero">
+    <h1>File de revue</h1>
+    <p class="lead">Ce que les agents proposent et les candidatures à vos projets. Rien de ce qui ouvre des droits ne se fait sans une décision humaine.</p>
+  </section>
+  {fait && <p class="pastille" role="status">{fait === "accepter" ? "Proposition acceptée." : "Proposition refusée."}</p>}
+  {message && <p class="avertissement" role="alert">{message}</p>}
+
+  {liste.length === 0 ? <p class="doux">Rien à examiner pour l'instant.</p> : (
+    <ul class="revue">
+      {liste.map((r) => (
+        <li class="panneau">
+          <p><span class="etiquette" style="margin:0 8px 0 0">{TYPES[r.type] ?? r.type}</span>{resume(r)}</p>
+          {r.justification && <p class="doux">« {r.justification} »</p>}
+          <p class="doux" style="font-size:.85rem">Proposé par {r.propose_par.startsWith("agent:") ? `l'agent ${r.propose_par.slice(6)}` : "la personne elle-même"} · {new Date(r.cree_le).toLocaleDateString("fr-BE")}
+            {r.projet_id && <> · <a href={`/membre/projets/${encodeURIComponent(r.projet_id)}`}>voir le projet</a></>}</p>
+          <form method="post" class="rangee">
+            <input type="hidden" name="id" value={r.id} />
+            {r.type === "candidature" && (
+              <select name="badge" aria-label="Rôle accordé">
+                {Object.entries(ROLES_CONTEXTUELS).map(([c, l]) => <option value={c} selected={c === (r.objet as Record<string, string>).role}>{l}</option>)}
+              </select>
+            )}
+            <input name="motif" maxlength="500" placeholder="Motif (facultatif)" aria-label="Motif" />
+            <button type="submit" name="decision" value="accepter">Accepter</button>
+            <button type="submit" name="decision" value="refuser" class="bouton creux">Refuser</button>
+          </form>
+        </li>
+      ))}
+    </ul>
+  )}
+</Base>
+
+<style>
+  .revue { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .revue li { overflow-wrap: anywhere; }
+  .revue input[name=motif] { flex: 1 1 200px; min-width: 0; }
+</style>

@@ -95,9 +95,39 @@ SELECT id, 'coordination', 'manuel', 'Décision de l''ASBL' FROM personnes WHERE
   Sur macOS, autoriser `cron` dans Réglages > Confidentialité et sécurité > Accès complet au disque si la
   sauvegarde ne se fait pas.
 
+## Lot 2 : badges contextuels et cycle de vie
+
+Migration `supabase/migrations/20261123130000_lot2_cycle_de_vie.sql` :
+- **Qui agit** : la personne connectée ou, pour le site (clé serveur), la personne passée en paramètre. Aucun
+  autre appelant ne peut agir au nom de quelqu'un.
+- **Gestionnaires** d'un projet : coordination, initiateur, référent de mission, animateur de groupe de travail.
+- **Création** (membres N2 et plus) : l'initiatrice ou l'initiateur est badgé automatiquement ; une tâche « fixer la
+  sensibilité » est créée ; le projet reste sensible, donc invisible hors équipe, tant qu'elle n'est pas réglée.
+- **Diffusion** : sensibilité, titre et phrase publics, validateur externe (rien ne descend sous N4 avant son
+  accord), besoins publics.
+- **Cycle de vie** : étapes du brief, avec un **plafond de divulgation par étape** (table `plafonds_etape`,
+  modifiable par la coordination), et un historique. Un gestionnaire change l'étape : c'est appliqué tout de suite
+  et l'étape est verrouillée. Un agent propose : une avancée ordinaire est appliquée (« détectée automatiquement ») ;
+  une ouverture de la divulgation, un retour en arrière, un abandon ou une étape verrouillée passe par la revue.
+- **Candidatures** (badge Candidat, converti ou retiré), **attribution et retrait** de badges, **propositions de
+  badges** par un agent : rien n'est accordé sans décision humaine.
+- **File de revue** : la coordination voit tout ; un gestionnaire, ses projets.
+- **Clôture** : tous les badges contextuels expirent ; les anciens membres d'équipe gardent la lecture **3 mois**
+  (décision du 23/11).
+- Documents (références, sans copie) et tâches.
+
+Site : `/membre/projets` (liste, proposer un projet), `/membre/projets/<id>` (fiche, candidature, étape,
+diffusion, validation externe, aperçu en tant que N0 à N5), `/membre/revue` (file de revue), onglet « Projets »
+de l'espace membres.
+
+Tests : `supabase/tests/lot2.sql`, 61 vérifications, dont le critère du brief (un projet créé, rejoint puis clos
+ne laisse aucun badge actif). `scripts/tester-base.sh` lance les deux lots (95 vérifications).
+
+**Installer le lot 2 sur la base existante** : SQL Editor > New query > coller le contenu de
+`supabase/migrations/20261123130000_lot2_cycle_de_vie.sql` > Run. (Pour une base vide : `supabase/installation.sql`.)
+
 ## Lots suivants
 
-- Lot 2 : création de projets, cycle de vie et plafond par étape, candidatures, écran de revue, expiration
-  à la clôture (anciens membres d'équipe : lecture 3 mois, décision du 23/11). Lecture par le site au nom de la
-  personne (jeton signé pour cette base).
-- Réconciliation nocturne ChangeTheGame ↔ base (écarts vers la file de revue) : avec le lot 2.
+- Lot 3 : le Pilote branché (lecture et écriture via MCP, données migrées hors de l'artefact).
+- Réconciliation nocturne ChangeTheGame ↔ base (écarts vers la file de revue) ; détection automatique d'étape
+  par les agents (la fonction `proposer_etape_agent` est prête) ; jalons poussés vers les quêtes CTG (lot 5).
