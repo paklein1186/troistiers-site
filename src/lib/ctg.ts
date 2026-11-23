@@ -18,6 +18,7 @@ import { resolve } from "node:path";
 import type { BadgePorte, Utilisateur } from "./acces";
 import type { Jetons } from "./jetons";
 import { chargerCommunaute, type Communaute } from "./config";
+import { recopierPersonne } from "./base";
 
 // Une variable vide dans .env (ex. « CTG_FUNCTIONS_URL= ») compte comme absente.
 const env = (k: string) => ((import.meta.env?.[k] as string | undefined) || process.env[k]) || undefined;
@@ -186,7 +187,10 @@ export async function lireProfil(jeton: string): Promise<Utilisateur> {
   const guilde = encodeURIComponent(env("CTG_GUILD_ID")!);
   const { statut, donnees } = await appeler("guild-member-profile", jeton, undefined, `?guild_id=${guilde}`);
   if (statut !== 200) throw new Error(`Profil CTG indisponible (${statut})`);
-  return versUtilisateur(donnees as ProfilCtg, chargerCommunaute());
+  const utilisateur = versUtilisateur(donnees as ProfilCtg, chargerCommunaute());
+  // Recopie dans la base Trois-Tiers (badge de statut), sans faire attendre la personne.
+  void recopierPersonne(jeton, utilisateur);
+  return utilisateur;
 }
 
 export interface DemandeCotisation {
