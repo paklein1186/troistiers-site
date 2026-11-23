@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { enTetes, parametresSynchro, recopierPersonne, sujetDuJeton } from "../src/lib/base";
+import { enTetes, ErreurBase, parametresSynchro, recopierPersonne, rpc, sujetDuJeton } from "../src/lib/base";
 
 const jeton = (charge: object) => `x.${Buffer.from(JSON.stringify(charge)).toString("base64url")}.y`;
 const ID = "4964c699-4684-43a9-b508-cee21c77e24e";
@@ -51,5 +51,16 @@ describe("base Trois-Tiers : recopie du badge de statut", () => {
   it("nouvelle clé secrète : apikey seulement ; ancienne clé : apikey et Authorization", () => {
     expect(enTetes("sb_secret_abc")).toEqual({ apikey: "sb_secret_abc", "content-type": "application/json" });
     expect(enTetes("eyJabc").authorization).toBe("Bearer eyJabc");
+  });
+
+  it("rpc : un refus de la base devient une erreur lisible (code 42501)", async () => {
+    process.env.TT_BASE_URL = "https://base.example.supabase.co";
+    process.env.TT_BASE_SERVICE_KEY = "sb_secret_test";
+    const f = vi.fn(async () => new Response(JSON.stringify({ code: "42501", message: "étape réservée aux gestionnaires du projet" }), { status: 403 }));
+    const e = await rpc("changer_etape", { p_projet: "x" }, f as unknown as typeof fetch).catch((x) => x);
+    expect(e).toBeInstanceOf(ErreurBase);
+    expect((e as ErreurBase).refus).toBe(true);
+    const ok = vi.fn(async () => new Response(JSON.stringify("membre_lieu"), { status: 200 }));
+    expect(await rpc<string>("synchroniser_personne", {}, ok as unknown as typeof fetch)).toBe("membre_lieu");
   });
 });

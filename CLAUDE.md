@@ -187,7 +187,12 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
 - **Lot 1, socle** (branche `lot1/socle`) : `supabase/migrations/` de ce dépôt, tests `supabase/tests/socle.sql`
   (34 vérifications, `scripts/tester-base.sh`), recopie du badge de statut à chaque lecture du profil CTG
   (`src/lib/base.ts`, `TT_BASE_URL` + `TT_BASE_SERVICE_KEY`), sauvegarde `scripts/sauvegarde-base.sh`.
-  Mode d'emploi : `docs/base-trois-tiers.md`.
+  Mode d'emploi : `docs/base-trois-tiers.md`. **Base créée et branchée le 23/11** (projet `djbvypinnoblgnuueonr`,
+  recopie de la fiche de PA vérifiée).
+- **Lot 2, badges contextuels et cycle de vie** (branche `lot2/cycle-de-vie`) : migration `20261123130000_lot2_cycle_de_vie.sql`
+  (création, diffusion, étapes avec plafond par étape et verrou, candidatures, revue, clôture : badges expirés,
+  lecture 3 mois) ; site `/membre/projets`, `/membre/projets/<id>`, `/membre/revue` ; appels au nom de la personne
+  (clé serveur + identifiant CTG, vérifié par la base). Tests : 95 vérifications (`scripts/tester-base.sh`).
 
 ## Avant d'ouvrir les paiements réels
 

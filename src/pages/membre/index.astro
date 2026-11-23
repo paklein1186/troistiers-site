@@ -7,6 +7,7 @@ import { jetonsValides, listerCodes, type CodeAchete } from "../../lib/ctg";
 import { garderJetons, lireJetons } from "../../lib/jetons";
 import { niveauAcces } from "../../lib/acces";
 import { chargerEnquetes, type Enquete } from "../../lib/space2";
+import { baseConfiguree, maRevue, sujetDuJeton } from "../../lib/base";
 
 const u = Astro.locals.utilisateur;
 if (!u) return Astro.redirect("/connexion");
@@ -48,12 +49,26 @@ const outils = acces.filter((e) => e.groupe === "outil" && e.niveau !== "aucun" 
 const onglets = [
   nourrir && { id: "lieu", libelle: "Mon lieu" },
   bibliotheque && { id: "bibliotheque", libelle: "Bibliothèque" },
+  baseConfiguree() && { id: "projets", libelle: "Projets" },
   outils.length > 0 && { id: "outils", libelle: "Outils", nombre: outils.length },
   codes.length > 0 && { id: "codes", libelle: "Codes d'adhésion", nombre: nbLibres || undefined },
   { id: "compte", libelle: "Mon compte" },
 ].filter((o): o is { id: string; libelle: string; nombre?: number } => Boolean(o));
 const demande = Astro.url.searchParams.get("onglet") ?? (Astro.url.searchParams.get("profil") ? "compte" : "");
 const onglet = onglets.find((o) => o.id === demande)?.id ?? onglets[0].id;
+
+// Onglet Projets : nombre de propositions à examiner (coordination, gestionnaires).
+let aExaminer = 0;
+if (onglet === "projets" && jetons) {
+  const acteur = sujetDuJeton(jetons.acces);
+  if (acteur) {
+    try {
+      aExaminer = (await maRevue(acteur)).length;
+    } catch (e) {
+      console.error("Base Trois-Tiers (revue) :", e);
+    }
+  }
+}
 
 let enquetes: Enquete[] = [];
 if (nourrir && onglet === "lieu") {
@@ -135,6 +150,17 @@ const profilMaj = Astro.url.searchParams.get("profil");
         <a class="bouton" href="/membre/bibliotheque">Interroger la bibliothèque</a>
         <a class="bouton creux" href="/membre/bibliotheque/contribuer">Nourrir la bibliothèque</a>
         <a class="bouton creux" href="/membre/bibliotheque/packs">Acheter des questions</a>
+      </div>
+    </section>
+  )}
+
+  {onglet === "projets" && (
+    <section class="panneau-onglet" id="panneau-projets" aria-labelledby="titre-projets">
+      <h2 id="titre-projets">Projets et missions</h2>
+      <p>Les projets du réseau que vous pouvez voir selon votre adhésion et vos rôles ; proposez-en un, rejoignez une équipe.</p>
+      <div class="rangee">
+        <a class="bouton" href="/membre/projets">Voir les projets</a>
+        {aExaminer > 0 && <a class="bouton creux" href="/membre/revue">File de revue ({aExaminer})</a>}
       </div>
     </section>
   )}
