@@ -178,3 +178,20 @@ export const ROLES_CONTEXTUELS: Record<string, string> = {
   membre_equipe: "Membre d'équipe", referent_mission: "Référent de mission", representant_lieu: "Représentant du lieu bénéficiaire",
   animateur_gt: "Animateur de groupe de travail", expert_externe: "Expert externe",
 };
+
+// ---------------------------------------------------------------------------
+// Lot 3 (étape 1) : tâches et sous-tâches.
+// ---------------------------------------------------------------------------
+export interface SousTache { id: string; texte: string; fait: boolean }
+export interface Tache {
+  id: string; projet_id: string; projet?: string; titre: string; couloir: string | null; debut: string | null; echeance: string | null;
+  jalon: boolean; absence: boolean; statut: "a_faire" | "en_cours" | "bloque" | "fait"; notes: string | null;
+  responsables: { id: string; nom: string }[]; responsables_alias: string[]; sous_taches: SousTache[]; modifiable?: boolean;
+}
+export const STATUTS_TACHE: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", bloque: "Bloqué", fait: "Fait" };
+export const tachesProjet = (projet: string, acteur: string) => rpc<Tache[]>("taches_projet", { p_projet: projet, p_acteur: acteur });
+export const mesTaches = (acteur: string) => rpc<Tache[]>("mes_taches", { p_acteur: acteur });
+export const modifierTache = (acteur: string, tache: string, champs: Record<string, unknown>) =>
+  rpc<Tache>("modifier_tache", { p_tache: tache, p_champs: champs, p_acteur: acteur });
+export const cocherSousTache = (acteur: string, tache: string, sousTache: string, fait: boolean) =>
+  rpc<string>("ecrire_sous_tache", { p_tache: tache, p_sous_tache: sousTache, p_texte: null, p_fait: fait, p_acteur: acteur });

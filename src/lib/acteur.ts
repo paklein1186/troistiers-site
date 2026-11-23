@@ -22,3 +22,24 @@ export function messageBase(e: unknown, defaut = "L'action n'a pas abouti. Rées
   if (code === "23514" || code === "22023") return "Valeur refusée par la base.";
   return defaut;
 }
+
+/** Actions communes sur les tâches (statut, sous-tâche cochée), depuis un formulaire. Renvoie true si traité. */
+export async function actionTache(acteur: string, f: FormData): Promise<boolean> {
+  const { cocherSousTache, modifierTache, STATUTS_TACHE } = await import("./base");
+  const action = String(f.get("action") ?? "");
+  const tache = String(f.get("tache") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(tache)) return false;
+  if (action === "statut") {
+    const statut = String(f.get("statut") ?? "");
+    if (!STATUTS_TACHE[statut]) return false;
+    await modifierTache(acteur, tache, { statut });
+    return true;
+  }
+  if (action === "sous_tache") {
+    const st = String(f.get("sous_tache") ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(st)) return false;
+    await cocherSousTache(acteur, tache, st, f.get("fait") === "1");
+    return true;
+  }
+  return false;
+}

@@ -1,10 +1,11 @@
 ---
 import Base from "../../../layouts/Base.astro";
-import { acteurConnecte, messageBase } from "../../../lib/acteur";
+import { acteurConnecte, actionTache, messageBase } from "../../../lib/acteur";
+import ListeTaches from "../../../components/ListeTaches.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, ROLES_CONTEXTUELS, rpc, SENSIBILITES, typesContenu, validerDiffusion,
-  type Droits, type Etape, type ProjetVu,
+  reglerDiffusion, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  type Droits, type Etape, type ProjetVu, type Tache,
 } from "../../../lib/base";
 
 // Fiche d'un projet : ce que la personne en voit (filtré par la base), et les actions permises
@@ -24,6 +25,7 @@ if (Astro.request.method === "POST" && acteur) {
   const f = await Astro.request.formData();
   const action = String(f.get("action") ?? "");
   try {
+    if (await actionTache(acteur, f)) return Astro.redirect(`${ici}#taches`, 303);
     if (action === "candidater") {
       await candidater(acteur, id, String(f.get("role") ?? "membre_equipe"), String(f.get("message") ?? "").slice(0, 2000));
     } else if (action === "etape") {
@@ -53,6 +55,7 @@ let droits: Droits | null = null;
 let listeEtapes: Etape[] = [];
 let libellesTypes: Record<string, string> = {};
 let apercu: ProjetVu | null = null;
+let taches: Tache[] = [];
 const niveauApercu = Astro.url.searchParams.get("en_tant_que");
 try {
   [p, droits, listeEtapes, libellesTypes] = await Promise.all([
@@ -61,6 +64,7 @@ try {
     etapes().then((l) => l.sort((a, b) => a.ordre - b.ordre)),
     typesContenu().then((l) => Object.fromEntries(l.map((t) => [t.code, t.libelle]))),
   ]);
+  if (droits && droits.niveau >= 4 && acteur) taches = await tachesProjet(id, acteur);
   // Aperçu en tant que : réservé à l'équipe du projet et à la coordination, jamais au-dessus de son niveau.
   const n = Number(niveauApercu);
   if (droits && droits.niveau >= 4 && niveauApercu !== null && Number.isInteger(n) && n >= 0 && n <= droits.niveau) {
@@ -74,6 +78,7 @@ if (!p && !message) return Astro.redirect("/membre/projets");
 const libEtape = (c: string | null) => (c ? listeEtapes.find((e) => e.code === c)?.libelle ?? c : null);
 const FAITS: Record<string, string> = {
   candidater: "Candidature envoyée : l'équipe du projet va l'examiner.",
+  statut: "Statut enregistré.",
   etape: "Étape changée. Elle est verrouillée : les agents ne feront plus que proposer.",
   deverrouiller: "Étape déverrouillée.",
   diffusion: "Diffusion réglée.",
@@ -112,6 +117,13 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
         <section class="bloc">
           <h2>Documents</h2>
           <ul class="simple">{p.documents.map((d) => <li><a href={d.reference} rel="noopener noreferrer" target="_blank">{d.titre}</a></li>)}</ul>
+        </section>
+      )}
+
+      {taches.length > 0 && (
+        <section class="bloc" id="taches">
+          <h2>Tâches <span class="doux" style="font-size:1rem">({taches.filter((t) => t.statut === "fait").length}/{taches.filter((t) => !t.absence).length} faites)</span></h2>
+          <ListeTaches taches={taches} retour={ici} />
         </section>
       )}
 
