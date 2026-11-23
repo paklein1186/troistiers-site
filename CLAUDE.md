@@ -193,6 +193,12 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   (création, diffusion, étapes avec plafond par étape et verrou, candidatures, revue, clôture : badges expirés,
   lecture 3 mois) ; site `/membre/projets`, `/membre/projets/<id>`, `/membre/revue` ; appels au nom de la personne
   (clé serveur + identifiant CTG, vérifié par la base). Tests : 95 vérifications (`scripts/tester-base.sh`).
+- **Lot 3, étape 1 — tâches et import des Pilotes** (branche `lot3/taches-import`) : migration
+  `20261123140000_lot3_taches_import.sql` (tâches complètes, sous-tâches, contenus, alias de personnes,
+  `importer_pilote`), site (tâches sur la fiche projet, `/membre/taches`), `scripts/extraire-pilote.mjs`.
+  Pilote du pivot : 44 tâches, 140 sous-tâches → projet « Pivot stratégique Trois-Tiers » (sensible), couloirs gardés.
+  Décision du 23/11 : **A3** — site en ligne sur un serveur (copie de secours sur le Mac mini plus tard), condition
+  pour le connecteur MCP (étape 2) ; l'équipe se connecte une fois au site pour être reliée. Tests : 117 vérifications.
 
 ## Avant d'ouvrir les paiements réels
 

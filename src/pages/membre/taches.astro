@@ -1,0 +1,43 @@
+---
+import Base from "../../layouts/Base.astro";
+import ListeTaches from "../../components/ListeTaches.astro";
+import { acteurConnecte, actionTache, messageBase } from "../../lib/acteur";
+import { baseConfiguree, mesTaches, type Tache } from "../../lib/base";
+
+// Mes tâches, tous projets confondus (celles où je suis responsable), avec leur statut à mettre à jour.
+const u = Astro.locals.utilisateur;
+const ici = "/membre/taches";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree()) return Astro.redirect("/membre");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+
+let message = "";
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  try {
+    if (await actionTache(acteur, await Astro.request.formData())) return Astro.redirect(ici, 303);
+  } catch (e) {
+    console.error("Base Trois-Tiers (tâche) :", e);
+    message = messageBase(e);
+  }
+}
+let taches: Tache[] = [];
+try {
+  taches = (await mesTaches(acteur)).map((t) => ({ ...t, modifiable: true }));
+} catch (e) {
+  console.error("Base Trois-Tiers (mes tâches) :", e);
+  message ||= "Vos tâches n'ont pas pu être chargées.";
+}
+const ouvertes = taches.filter((t) => t.statut !== "fait");
+---
+<Base titre="Mes tâches">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/projets">Projets</a> · Mes tâches</p>
+  <section class="hero">
+    <h1>Mes tâches</h1>
+    <p class="lead">Les tâches dont vous êtes responsable, dans tous les projets. {ouvertes.length} en cours ou à faire.</p>
+  </section>
+  {message && <p class="avertissement" role="alert">{message}</p>}
+  {taches.length === 0 ? <p class="doux">Aucune tâche à votre nom pour l'instant.</p> : <ListeTaches taches={taches} retour={ici} avecProjet />}
+</Base>

@@ -126,6 +126,32 @@ ne laisse aucun badge actif). `scripts/tester-base.sh` lance les deux lots (95 v
 **Installer le lot 2 sur la base existante** : SQL Editor > New query > coller le contenu de
 `supabase/migrations/20261123130000_lot2_cycle_de_vie.sql` > Run. (Pour une base vide : `supabase/installation.sql`.)
 
+## Lot 3, étape 1 : tâches et import d'un Pilote
+
+Migration `supabase/migrations/20261123140000_lot3_taches_import.sql` :
+- tâches complètes, comme dans les Pilotes : couloir, début et fin, jalon, absence, plusieurs responsables,
+  sous-tâches, identifiant externe (pas de doublon) ;
+- écrire : créer ou modifier une tâche (équipe du projet, coordination). La personne responsable peut changer
+  le statut et les notes de sa tâche et cocher ses sous-tâches. Ajout de contenus (comptes rendus…) par
+  l'équipe, classés au niveau équipe par défaut ;
+- codes de personnes des Pilotes (`alias_personnes`) : « pa », « eve », « yan » sont reliés à une fiche quand la
+  personne s'est connectée une fois au site ;
+- `importer_pilote` (clé serveur ou SQL Editor) : crée ou met à jour un projet, ses tâches et sous-tâches. On
+  peut le rejouer sans risque.
+
+Site : section « Tâches » sur la fiche d'un projet (équipe), page `/membre/taches` (mes tâches, tous projets).
+
+**Importer le Pilote du pivot** :
+1. exécuter la migration ci-dessus dans le SQL Editor ;
+2. exécuter le fichier d'import privé `import-pilote-pivot.sql`, fourni à part et jamais dans le dépôt, après y avoir mis
+   son adresse e-mail. Le fichier est produit par `scripts/extraire-pilote.mjs` à partir de la page du Pilote et
+   de son stockage partagé.
+
+**Relier une personne** (après sa première connexion au site), dans le SQL Editor :
+```sql
+SELECT relier_alias('pilote-pivot', 'eve', (SELECT id FROM personnes WHERE lower(email) = lower('…@…')), 'Eveline');
+```
+
 ## Lots suivants
 
 - Lot 3 : le Pilote branché (lecture et écriture via MCP, données migrées hors de l'artefact).

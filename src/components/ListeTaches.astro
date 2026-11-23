@@ -1,0 +1,80 @@
+---
+// Tâches regroupées par couloir, avec statut modifiable et sous-tâches à cocher (si la base le permet).
+import { STATUTS_TACHE, type Tache } from "../lib/base";
+interface Props { taches: Tache[]; retour: string; avecProjet?: boolean }
+const { taches, retour, avecProjet = false } = Astro.props;
+const couloirs = [...new Set(taches.map((t) => (avecProjet ? t.projet : t.couloir) ?? "Sans couloir"))];
+const date = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "");
+---
+{couloirs.map((c) => (
+  <div class="couloir">
+    <h3>{c}</h3>
+    <ul class="taches">
+      {taches.filter((t) => ((avecProjet ? t.projet : t.couloir) ?? "Sans couloir") === c).map((t) => (
+        <li class={`tache s-${t.statut}`}>
+          <div class="ligne">
+            <div class="quoi">
+              <b>{t.jalon ? "◆ " : ""}{t.titre}</b>
+              <span class="doux">
+                {t.jalon || t.debut === t.echeance ? date(t.echeance) : `${date(t.debut)} → ${date(t.echeance)}`}
+                {(t.responsables.length > 0 || t.responsables_alias.length > 0) && <> · {[...t.responsables.map((r) => r.nom), ...t.responsables_alias.map((a) => `${a} (à relier)`)].join(", ")}</>}
+                {t.absence && " · indisponibilité"}
+              </span>
+            </div>
+            {t.modifiable !== false && !t.absence ? (
+              <form method="post" class="statut">
+                <input type="hidden" name="action" value="statut" /><input type="hidden" name="tache" value={t.id} /><input type="hidden" name="retour" value={retour} />
+                <select name="statut" aria-label={`Statut de « ${t.titre} »`} data-envoi>
+                  {Object.entries(STATUTS_TACHE).map(([k, l]) => <option value={k} selected={k === t.statut}>{l}</option>)}
+                </select>
+                <noscript><button type="submit">OK</button></noscript>
+              </form>
+            ) : <span class="etiquette">{STATUTS_TACHE[t.statut]}</span>}
+          </div>
+          {t.sous_taches.length > 0 && (
+            <details>
+              <summary class="doux">{t.sous_taches.filter((s) => s.fait).length}/{t.sous_taches.length} sous-tâches</summary>
+              <ul class="sous">
+                {t.sous_taches.map((s) => (
+                  <li>
+                    {t.modifiable !== false ? (
+                      <form method="post">
+                        <input type="hidden" name="action" value="sous_tache" /><input type="hidden" name="tache" value={t.id} />
+                        <input type="hidden" name="sous_tache" value={s.id} /><input type="hidden" name="fait" value={s.fait ? "0" : "1"} />
+                        <input type="hidden" name="retour" value={retour} />
+                        <button type="submit" class="coche" aria-pressed={s.fait ? "true" : "false"}>{s.fait ? "☑" : "☐"}</button> <span class={s.fait ? "fait" : ""}>{s.texte}</span>
+                      </form>
+                    ) : <span class={s.fait ? "fait" : ""}>{s.fait ? "☑" : "☐"} {s.texte}</span>}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </li>
+      ))}
+    </ul>
+  </div>
+))}
+
+<style>
+  .couloir { margin-top: 18px; } .couloir h3 { margin-bottom: 6px; }
+  .taches { list-style: none; margin: 0; padding: 0; }
+  .tache { padding: 10px 0; border-top: 1px solid var(--trait); }
+  .ligne { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; }
+  .quoi { display: grid; gap: 2px; flex: 1 1 280px; min-width: 0; overflow-wrap: anywhere; }
+  .quoi .doux { font-size: .88rem; }
+  .s-fait .quoi b { text-decoration: line-through; color: var(--doux); }
+  .s-bloque .quoi b::after { content: " · bloqué"; color: #b4472e; font-weight: 600; }
+  .statut select { min-height: 40px; }
+  details summary { cursor: pointer; font-size: .88rem; margin-top: 4px; }
+  .sous { list-style: none; margin: 6px 0 0; padding: 0 0 0 4px; display: grid; gap: 2px; font-size: .94rem; }
+  .sous form { display: flex; align-items: center; gap: 4px; }
+  .coche { background: none; border: 0; color: var(--encre); padding: 0 4px; min-height: 32px; font-size: 1.1rem; cursor: pointer; }
+  .fait { text-decoration: line-through; color: var(--doux); }
+</style>
+
+<script>
+  // Le statut s'enregistre dès qu'on le change.
+  document.querySelectorAll<HTMLSelectElement>("select[data-envoi]").forEach((s) =>
+    s.addEventListener("change", () => s.form?.requestSubmit()));
+</script>

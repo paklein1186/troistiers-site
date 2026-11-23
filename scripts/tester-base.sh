@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Lance les tests de la base Trois-Tiers sur un serveur Postgres 16 de TEST (jamais la base de production).
 # Chaque lot est testé sur une base vide qui lui est propre, avec les migrations jusqu'à ce lot :
-#   socle.sql (lot 1) : migrations du lot 1 ;  lot2.sql : migrations des lots 1 et 2.
+#   socle.sql (lot 1) : migrations du lot 1 ;  lot2.sql et lot3.sql : toutes les migrations.
 # Usage : PG_TEST_URL=postgres://postgres@localhost:5432/postgres scripts/tester-base.sh
 # (PG_TEST_URL : une connexion qui a le droit de créer et supprimer des bases.)
 set -euo pipefail
@@ -23,5 +23,6 @@ lancer() {   # lancer <base> <fichier de test> <migrations…>
 }
 lancer tt_test_lot1 supabase/tests/socle.sql supabase/migrations/20261123120000_socle.sql supabase/migrations/20261123120100_reglages_initiaux.sql
 lancer tt_test_lot2 supabase/tests/lot2.sql $(ls supabase/migrations/*.sql | sort)
+lancer tt_test_lot3 supabase/tests/lot3.sql $(ls supabase/migrations/*.sql | sort)
 echo "$(grep -c '^OK' <<<"$total") vérifications réussies, $(grep -c -E '^KO|ERROR' <<<"$total") en échec."
 ! grep -q -E '^KO|ERROR' <<<"$total"
