@@ -6,7 +6,8 @@
  * adhésions ; la base dit ce que chaque niveau voit.
  *
  * Variables (.env, jamais dans le dépôt) : TT_BASE_URL (adresse du projet Supabase) et
- * TT_BASE_SERVICE_KEY (clé service_role de CE projet, pas celle de ChangeTheGame). Sans elles, rien ne se passe.
+ * TT_BASE_SERVICE_KEY (clé secrète « sb_secret_… », ou ancienne clé service_role, de CE projet — pas celle de
+ * ChangeTheGame). Sans elles, rien ne se passe.
  */
 import type { Utilisateur } from "./acces";
 
@@ -38,6 +39,18 @@ export function parametresSynchro(id: string, u: Utilisateur) {
 }
 
 /**
+ * En-têtes d'appel. Nouvelle clé secrète Supabase (« sb_secret_… ») : seulement « apikey ».
+ * Ancienne clé service_role (un jeton « eyJ… ») : « apikey » et « Authorization ».
+ */
+export function enTetes(cle: string): Record<string, string> {
+  return {
+    apikey: cle,
+    ...(cle.startsWith("eyJ") ? { authorization: `Bearer ${cle}` } : {}),
+    "content-type": "application/json",
+  };
+}
+
+/**
  * Recopie la personne et son badge de statut dans la base Trois-Tiers.
  * Ne bloque jamais la connexion : une erreur est seulement journalisée.
  */
@@ -49,7 +62,7 @@ export async function recopierPersonne(jetonCtg: string, u: Utilisateur, f: type
   try {
     const r = await f(`${env("TT_BASE_URL")!.replace(/\/$/, "")}/rest/v1/rpc/synchroniser_personne`, {
       method: "POST",
-      headers: { apikey: cle, authorization: `Bearer ${cle}`, "content-type": "application/json" },
+      headers: enTetes(cle),
       body: JSON.stringify(parametresSynchro(id, u)),
       signal: AbortSignal.timeout(5000),
     });
