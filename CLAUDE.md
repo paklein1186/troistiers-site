@@ -199,6 +199,10 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   Pilote du pivot : 44 tâches, 140 sous-tâches → projet « Pivot stratégique Trois-Tiers » (sensible), couloirs gardés.
   Décision du 23/11 : **A3** — site en ligne sur un serveur (copie de secours sur le Mac mini plus tard), condition
   pour le connecteur MCP (étape 2) ; l'équipe se connecte une fois au site pour être reliée. Tests : 117 vérifications.
+- **Pilote natif** (25/11, branche `lot3/pilote-natif`) : `/membre/projets/<id>/pilote`, design et actions de l'artefact
+  (Tableau par couloirs, Planning avec congés `data/conges.yaml`, filtres, compteurs), enregistré dans la base
+  (migration `20261125100000_lot3_pilote_natif.sql` : couloirs, responsables par code, suppressions, `pilote_projet`).
+  Polices Fraunces et Public Sans servies par le site (@fontsource). Tests : 130 vérifications.
 
 ## Avant d'ouvrir les paiements réels
 

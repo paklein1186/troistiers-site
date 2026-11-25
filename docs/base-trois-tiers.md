@@ -152,6 +152,21 @@ Site : section « Tâches » sur la fiche d'un projet (équipe), page `/membre/t
 SELECT relier_alias('pilote-pivot', 'eve', (SELECT id FROM personnes WHERE lower(email) = lower('…@…')), 'Eveline');
 ```
 
+## Pilote natif (lot 3)
+
+Migration `supabase/migrations/20261125100000_lot3_pilote_natif.sql` : couloirs d'un projet (ordre et porteur,
+`regler_couloirs`), responsables par code de Pilote pas encore relié, suppression d'une tâche ou d'une sous-tâche,
+`pilote_projet` (tout ce qu'affiche le Pilote, pour l'équipe du projet).
+
+Site : `/membre/projets/<id>/pilote` (bouton « Ouvrir le Pilote » sur la fiche du projet). Même design et mêmes actions
+que l'artefact Pilote : vue Tableau par couloirs (responsables cliquables, statut, sous-tâches à cocher, ajouter,
+supprimer, « ✎ éditer » titre / dates / jalon / couloir, « + Ajouter une tâche »), vue Planning hebdomadaire avec les
+congés scolaires (`data/conges.yaml`, modifiable sans code), compteurs et filtre par responsable. Tout est enregistré
+dans la base, au nom de la personne, avec ses droits ; l'état est relu toutes les 30 secondes.
+
+Pour le pivot : exécuter la migration, puis le petit fichier privé `pilote-pivot-couloirs.sql` (ordre et couleurs des
+5 couloirs, noms P-A / Eveline / Yan / Collectif), fourni à part.
+
 ## Lots suivants
 
 - Lot 3 : le Pilote branché (lecture et écriture via MCP, données migrées hors de l'artefact).
