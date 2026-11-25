@@ -40,7 +40,8 @@ CREATE TEMP TABLE export1 AS SELECT $j${
              "subtasks": [{"t": "Convocation", "d": true}, {"t": "PV", "d": false}]},
             {"id": "SPW-01", "title": "Visite lieu A", "chantier": "SPW", "pilot": "eve", "mission": "lieu-a", "status": "done",
              "end": "2026-11-10", "notes": "Fait"},
-            {"id": "SPW-02", "title": "Rapport", "chantier": "SPW", "pilot": "isa", "mission": "lieu-a", "status": "block"}],
+            {"id": "SPW-02", "title": "Rapport", "chantier": "SPW", "pilot": "isa", "mission": "lieu-a", "status": "block",
+             "start": "2026-11-20"}],
   "absences": [{"id": "abs-1", "who": "eve", "start": "2026-12-22", "end": "2026-12-31", "label": "Congés"}],
   "proposals": [{"id": "p1", "kind": "update", "status": "accepted", "mission": "lieu-a", "reason": "Mail du lieu A",
                  "created_at": "2026-11-20T08:00:00Z", "author": "agent-missions"}],
@@ -80,6 +81,7 @@ SELECT pg_temp.ok('tâches de mission dans la mission', (SELECT string_agg(ref_e
 SELECT pg_temp.ok('porteur d''abord, puis contributeurs, sans doublon', (SELECT porteur || ' ' || array_to_string(responsables_alias, ',')
   || ' ' || array_to_string(dependances, ',') || ' ' || estimation_h FROM taches WHERE ref_externe = 'GOUV-01'), 'pa pa,eve SPW-01 4');
 SELECT pg_temp.ok('sans début : seulement l''échéance', (SELECT COALESCE(debut::text, '—') || ' ' || echeance FROM taches WHERE ref_externe = 'SPW-01'), '— 2026-11-10');
+SELECT pg_temp.ok('sans échéance : reste sans échéance', (SELECT debut || ' ' || COALESCE(echeance::text, '—') FROM taches WHERE ref_externe = 'SPW-02'), '2026-11-20 —');
 SELECT pg_temp.ok('sous-tâches', (SELECT string_agg(texte || CASE WHEN fait THEN '✓' ELSE '' END, ',' ORDER BY ordre) FROM sous_taches s
   JOIN taches t ON t.id = s.tache_id WHERE t.ref_externe = 'GOUV-01'), 'Convocation✓,PV');
 SELECT pg_temp.ok('absence comme indisponibilité', (SELECT titre || ' ' || debut || ' ' || array_to_string(responsables_alias, ',')

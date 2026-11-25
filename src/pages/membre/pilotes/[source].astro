@@ -1,14 +1,26 @@
 ---
+import "@fontsource/fraunces/400.css";
+import "@fontsource/fraunces/600.css";
+import "@fontsource/fraunces/900.css";
+import "@fontsource/public-sans/400.css";
+import "@fontsource/public-sans/500.css";
+import "@fontsource/public-sans/600.css";
+import "@fontsource/public-sans/700.css";
+import "@fontsource/public-sans/800.css";
+import "../../../styles/pilote-artefact.css";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parse } from "yaml";
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
 import {
-  baseConfiguree, historiquePilote, importerPiloteMissions, SOURCE_PILOTE, STATUTS_TACHE, tableauPilote,
-  type BilanImport, type EntreeHistorique, type TableauPilote, type Tache,
+  baseConfiguree, historiquePilote, importerPiloteMissions, SOURCE_PILOTE, tableauPilote,
+  type BilanImport, type EntreeHistorique, type TableauPilote,
 } from "../../../lib/base";
 
-// Tableau de bord d'un Pilote à missions (Pilote 3/3) : ses missions (fiches), toutes les tâches avec recherche,
-// le journal et les propositions des agents, et l'import de l'export de l'artefact (coordination).
-// Pendant la transition, l'artefact reste le lieu de travail : ici, c'est une copie synchronisée, en lecture.
+// Le Pilote 3/3 sur troistiers.space, avec le design et les onglets de l'artefact (Tableau, Missions, Planning,
+// Salle d'attente, Agents & journal, recherche, fiches). Données : la copie synchronisée de la base Trois-Tiers,
+// en lecture seule pendant la transition (on modifie dans l'artefact, puis « Synchroniser »). Réservé à l'équipe.
 const u = Astro.locals.utilisateur;
 const source = Astro.params.source ?? "";
 const ici = `/membre/pilotes/${encodeURIComponent(source)}`;
@@ -17,22 +29,13 @@ if (!baseConfiguree() || !SOURCE_PILOTE.test(source)) return Astro.redirect("/me
 const acteur = await acteurConnecte(Astro.cookies);
 if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
 
-const ONGLETS = [
-  { id: "missions", libelle: "Missions" },
-  { id: "taches", libelle: "Tâches" },
-  { id: "journal", libelle: "Journal" },
-  { id: "import", libelle: "Synchroniser" },
-] as const;
-const q = Astro.url.searchParams;
-let onglet = ONGLETS.find((o) => o.id === q.get("onglet"))?.id ?? "missions";
-
-// Import de l'export JSON de l'artefact (coordination ; la base revérifie le droit).
+// Synchroniser : dépôt de l'export JSON de l'artefact (coordination ; la base revérifie le droit).
 let bilan: BilanImport | null = null;
 let message = "";
-if (Astro.request.method === "POST") {
+const envoi = Astro.request.method === "POST";
+if (envoi) {
   const origine = Astro.request.headers.get("origin");
   if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
-  onglet = "import";
   try {
     const f = await Astro.request.formData();
     const fichier = f.get("export");
@@ -49,316 +52,127 @@ if (Astro.request.method === "POST") {
     }
   } catch (e) {
     console.error("Pilote (import) :", e);
-    message = (e as { code?: string })?.code === "42501" ? "L'import est réservé à la coordination." : messageBase(e, "L'import n'a pas abouti.");
+    message = (e as { code?: string })?.code === "42501" ? "La synchronisation est réservée à la coordination." : messageBase(e, "La synchronisation n'a pas abouti.");
   }
 }
 
 let tableau: TableauPilote | null = null;
 let historique: EntreeHistorique[] = [];
+let erreur = "";
 try {
   tableau = await tableauPilote(source, acteur);
-  if (tableau && onglet === "journal") historique = await historiquePilote(tableau.racine.id, acteur, 400);
+  if (tableau) historique = await historiquePilote(tableau.racine.id, acteur, 1000);
 } catch (e) {
   console.error("Pilote (tableau) :", e);
-  message ||= "Le tableau de bord n'a pas pu être chargé.";
+  erreur = "Le Pilote n'a pas pu être chargé. Réessayez dans un instant.";
 }
-// Premier import : la coordination voit la page d'import même si le Pilote n'existe pas encore.
-if (!tableau && !message && Astro.request.method !== "POST" && onglet !== "import") return Astro.redirect("/membre/projets");
 
-const nomDe = (code?: string | null) => (code ? tableau?.personnes.find((p) => p.code === code)?.nom ?? code : "");
-const lienSur = (url?: string) => (url && /^https?:\/\//i.test(url) ? url : null);
-const date = (d?: string | null) => (d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLocaleDateString("fr-BE", { day: "2-digit", month: "short", year: "numeric" }) : "");
-const dateHeure = (d?: string | null) => (d ? new Date(d).toLocaleString("fr-BE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
-const STATUTS_MISSION: Record<string, string> = { active: "Active", veille: "En veille", cloturee: "Clôturée" };
+// Première synchronisation : le Pilote n'existe pas encore dans la base ; la page propose le dépôt de l'export.
+const premiereFois = !tableau && !erreur;
 
-// Missions : filtres de statut et de type.
-const mStatut = q.get("statut") ?? "active";
-const mType = q.get("type") ?? "tous";
-const missions = (tableau?.missions ?? []).filter((m) =>
-  (mStatut === "toutes" || (m.fiche.statut ?? "active") === mStatut) && (mType === "tous" || (m.fiche.type ?? "autre") === mType));
-const compteMissions = (s: string) => (tableau?.missions ?? []).filter((m) => (m.fiche.statut ?? "active") === s).length;
-
-// Tâches : recherche (titre, notes, sous-tâches, référence, mission), personne, statut.
-const recherche = (q.get("q") ?? "").trim().slice(0, 100);
-const qui = q.get("qui") ?? "";
-const tStatut = q.get("st") ?? "ouvertes";
-const normaliser = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-const mots = normaliser(recherche).split(/\s+/).filter(Boolean);
-const idDeQui = tableau?.personnes.find((p) => p.code === qui)?.id ?? null;
-const codesDe = (t: Tache) => [...(t.responsables_alias ?? []), ...(t.porteur ? [t.porteur] : [])];
-const taches = (tableau?.taches ?? []).filter((t) => {
-  if (t.absence) return false;
-  if (tStatut === "ouvertes" ? t.statut === "fait" : tStatut !== "toutes" && t.statut !== tStatut) return false;
-  if (qui && !codesDe(t).includes(qui) && !t.responsables.some((r) => r.id === idDeQui)) return false;
-  if (!mots.length) return true;
-  const texte = normaliser([t.ref, t.titre, t.notes, t.projet, t.couloir, ...t.sous_taches.map((s) => s.texte)].filter(Boolean).join(" "));
-  return mots.every((m) => texte.includes(m));
-}).sort((a, b) => (a.echeance ?? "9").localeCompare(b.echeance ?? "9") || a.titre.localeCompare(b.titre));
-const absences = (tableau?.taches ?? []).filter((t) => t.absence && (t.echeance ?? "") >= new Date().toISOString().slice(0, 10))
-  .sort((a, b) => (a.debut ?? "").localeCompare(b.debut ?? ""));
-const enRetard = (t: Tache) => t.statut !== "fait" && !!t.echeance && t.echeance < new Date().toISOString().slice(0, 10);
-
-const genre = q.get("genre") ?? "tout";
-const entrees = historique.filter((h) => genre === "tout" || h.genre === genre);
-const lien = (params: Record<string, string>) => `${ici}?${new URLSearchParams(params)}`;
+// Données au format de l'artefact (identifiants des tâches et des missions, codes des personnes et des chantiers).
+let donnees = "{}";
+if (tableau) {
+  const codeChantier = new Map(tableau.chantiers.map((c) => [c.nom, c.code ?? c.nom]));
+  const codeMission = new Map(tableau.missions.map((m) => [m.id, m.ref.split(":mission:")[1] ?? m.ref]));
+  const codePersonne = new Map(tableau.personnes.filter((p) => p.id).map((p) => [p.id!, p.code]));
+  const STATUT: Record<string, string> = { a_faire: "todo", en_cours: "doing", bloque: "block", fait: "done" };
+  const membres = [...tableau.personnes].sort((a, b) => Number(a.code === "col") - Number(b.code === "col"))
+    .map((p) => ({ k: p.code, n: p.nom }));
+  const taches = tableau.taches.filter((t) => !t.absence).map((t) => {
+    const codes = [...new Set([...t.responsables.map((r) => codePersonne.get(r.id)).filter(Boolean), ...t.responsables_alias])] as string[];
+    return {
+      id: t.ref ?? t.id, title: t.titre, status: STATUT[t.statut] ?? "todo",
+      chantier: t.couloir ? codeChantier.get(t.couloir) ?? t.couloir : null,
+      pilot: t.porteur ?? null, contributors: codes.filter((c) => c !== t.porteur),
+      mission: t.mission ? codeMission.get(t.projet_id) ?? null : null,
+      start: t.debut, end: t.echeance, milestone: t.jalon, deps: t.dependances ?? [], estimate_h: t.estimation_h ?? null,
+      notes: t.notes ?? "", source: t.source ?? null, subtasks: t.sous_taches.map((s) => ({ t: s.texte, d: s.fait })),
+    };
+  });
+  const absences = tableau.taches.filter((t) => t.absence).map((t) => ({
+    id: t.ref ?? t.id, who: t.porteur ?? t.responsables_alias[0] ?? null, start: t.debut, end: t.echeance, label: t.titre,
+  }));
+  const missions = tableau.missions.map((m) => ({
+    id: codeMission.get(m.id), name: m.titre, type: m.fiche.type ?? "autre", statut: m.fiche.statut ?? "active",
+    lieu: m.fiche.lieu ?? m.territoire ?? "", referent: m.fiche.referent ?? null, aliases: m.fiche.alias ?? [],
+    context_md: m.fiche.contexte ?? "", requests_md: m.fiche.demandes ?? "", next_actions: m.fiche.prochaines_actions ?? [],
+    sources: m.fiche.sources ?? [], last_activity: m.fiche.derniere_activite ?? null,
+  }));
+  const journal = historique.filter((h) => h.genre === "journal").map((h) => ({
+    id: h.ref, ts: h.quand, who: h.qui, type: h.type, summary: h.resume ?? "", task_id: h.tache, source: h.source ?? null,
+  }));
+  const propositions = historique.filter((h) => h.genre === "proposition").map((h) => ({
+    id: h.ref, kind: h.type, status: h.statut ?? "accepted", author: h.qui, created_at: h.quand, reason: h.resume ?? "",
+    task_id: h.tache, mission: codeMission.get(h.projet_id) ?? null, source: h.source ?? null,
+  }));
+  const conges = parse(readFileSync(resolve(process.cwd(), "data/conges.yaml"), "utf8"));
+  const periodes = (z: string, l?: { nom: string; debut: string; fin: string }[]) =>
+    (l ?? []).map((p) => ({ z, n: p.nom, s: String(p.debut).slice(0, 10), e: String(p.fin).slice(0, 10) }));
+  donnees = JSON.stringify({
+    racine: tableau.racine, peut_importer: tableau.peut_importer, vue: envoi ? "journal" : null,
+    import: envoi ? { bilan, message } : null,
+    membres, chantiers: tableau.chantiers.map((c) => ({ k: c.code ?? c.nom, n: c.nom })),
+    taches, absences, missions, journal, propositions,
+    conges: [...periodes("be", conges?.belgique?.periodes), ...periodes("fr", conges?.france?.periodes)],
+  }).replace(/</g, "\\u003c");
+}
+const titre = tableau?.racine.titre ?? (source === "pilote-33" ? "Pilote 3/3" : "Pilote");
 ---
-<Base titre={tableau ? `${tableau.racine.titre} · tableau de bord` : "Pilote"}>
-  <p class="surtitre"><a href="/membre?onglet=projets">Espace membres</a> · <a href="/membre/projets">Projets</a> · {tableau?.racine.titre ?? "Pilote"}</p>
-  <section class="hero">
-    <h1>{tableau?.racine.titre ?? "Pilote"}</h1>
-    <p class="lead">Les missions, les tâches et le journal du Pilote, réservés à l'équipe.</p>
-    {tableau?.racine.synchro && (
-      <p class="synchro">
-        <b>Copie synchronisée</b> de l'artefact : on travaille encore dans l'artefact, le site en garde une copie en lecture.
-        {tableau.racine.synchro_le && <> Dernière synchronisation : {dateHeure(tableau.racine.synchro_le)}.</>}
-        {lienSur(tableau.racine.artefact ?? undefined) && <> <a href={tableau.racine.artefact!} rel="noopener">Ouvrir l'artefact</a>.</>}
-      </p>
-    )}
-  </section>
-
-  {message && <p class="avertissement" role="alert">{message}</p>}
-
-  <nav class="onglets-membre" aria-label="Rubriques du Pilote">
-    {ONGLETS.filter((o) => o.id !== "import" || !tableau || tableau.peut_importer).map((o) => (
-      <a href={lien({ onglet: o.id })} aria-current={o.id === onglet ? "page" : undefined}>
-        {o.libelle}
-        {o.id === "missions" && tableau && <span class="compte">{tableau.missions.length}</span>}
-        {o.id === "taches" && tableau && <span class="compte">{tableau.taches.filter((t) => !t.absence && t.statut !== "fait").length}</span>}
-      </a>
-    ))}
-    {tableau && <a href={`/membre/projets/${tableau.racine.id}/pilote`}>Tableau et planning</a>}
-  </nav>
-
-  {onglet === "missions" && tableau && (
-    <section class="panneau-onglet">
-      <div class="filtres">
-        <span class="flabel">Statut</span>
-        {[["active", `Actives · ${compteMissions("active")}`], ["veille", `En veille · ${compteMissions("veille")}`], ["cloturee", `Clôturées · ${compteMissions("cloturee")}`], ["toutes", "Toutes"]].map(([k, l]) => (
-          <a class="puce" aria-current={mStatut === k ? "true" : undefined} href={lien({ onglet: "missions", statut: k, type: mType })}>{l}</a>
-        ))}
-        <span class="flabel">Type</span>
-        {[["tous", "Tous"], ["marche-public", "Marché public"], ["autre", "Autres"]].map(([k, l]) => (
-          <a class="puce" aria-current={mType === k ? "true" : undefined} href={lien({ onglet: "missions", statut: mStatut, type: k })}>{l}</a>
-        ))}
+<Base titre={titre}>
+  <div class="p33">
+    <div class="wrap" id="app">
+      <div class="head">
+        <div>
+          <p class="eyebrow"><a href="/membre/projets">Projets</a> · Trois-Tiers · outil de pilotage partagé</p>
+          <h1>{titre}</h1>
+          <p class="sub">Le Gantt de l'équipe, tenu à jour par les agents du Pilote : PV, mails, Drive, grille des prestations, Element. Pendant la transition, on travaille dans l'artefact ; le site en garde une copie, en lecture, réservée à l'équipe.</p>
+          <p class="status-line" id="statusline">{erreur || (premiereFois ? "Le Pilote n'est pas encore synchronisé." : "Chargement…")}</p>
+        </div>
       </div>
-      {missions.length === 0 ? <p class="doux">Aucune mission pour ces filtres.</p> : (
-        <div class="grille">
-          {missions.map((m) => (
-            <article class="mission" id={`mission-${m.ref.split(":").pop()}`}>
-              <header>
-                <h2>{m.titre}</h2>
-                <span class={`etiquette ${m.fiche.type === "marche-public" ? "mp" : ""}`}>{m.fiche.type === "marche-public" ? "Marché public" : "Autre mission"}</span>
-                {m.fiche.statut && m.fiche.statut !== "active" && <span class="etiquette">{STATUTS_MISSION[m.fiche.statut] ?? m.fiche.statut}</span>}
-              </header>
-              <p class="doux meta">
-                {[m.fiche.lieu, m.fiche.referent ? `Référent·e : ${nomDe(m.fiche.referent)}` : null,
-                  m.fiche.derniere_activite ? `Dernière activité : ${date(m.fiche.derniere_activite)}` : null].filter(Boolean).join(" · ")}
-              </p>
-              <p class="compteurs">
-                <span><b>{m.taches}</b> tâche{m.taches > 1 ? "s" : ""}</span>
-                <span class="c-fait"><b>{m.faites}</b> faite{m.faites > 1 ? "s" : ""}</span>
-                <span class="c-cours"><b>{m.en_cours}</b> en cours</span>
-                {m.bloquees > 0 && <span class="c-bloque"><b>{m.bloquees}</b> bloquée{m.bloquees > 1 ? "s" : ""}</span>}
-              </p>
-              {(m.fiche.prochaines_actions ?? []).length > 0 && (
-                <div>
-                  <h3>Prochaines actions</h3>
-                  <ul class="liste">{m.fiche.prochaines_actions!.map((a) => <li>{a}</li>)}</ul>
-                </div>
-              )}
-              {m.fiche.contexte && <details><summary>Contexte</summary><p class="texte">{m.fiche.contexte}</p></details>}
-              {m.fiche.demandes && <details><summary>Demandes du lieu</summary><p class="texte">{m.fiche.demandes}</p></details>}
-              {(m.fiche.sources ?? []).length > 0 && (
-                <details><summary>Sources ({m.fiche.sources!.length})</summary>
-                  <ul class="liste sources">
-                    {m.fiche.sources!.slice().reverse().map((s) => (
-                      <li>{s.date && <span class="doux">{date(s.date)} · </span>}{lienSur(s.url) ? <a href={s.url} rel="noopener">{s.label ?? s.url}</a> : s.label}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              <p class="liens">
-                <a href={`/membre/projets/${m.id}/pilote`}>Tâches de la mission</a>
-                <a href={`/membre/projets/${m.id}`}>Fiche projet</a>
-                <a href={lien({ onglet: "taches", q: m.titre.split(" (")[0], st: "toutes" })}>Chercher</a>
-              </p>
-            </article>
-          ))}
+
+      {tableau ? (
+        <>
+          <div class="toolbar">
+            <div class="tabs" id="tabs" role="tablist"></div>
+            <div class="search" role="search"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6"/><path d="m13 13 5 5" stroke-linecap="round"/></svg><input type="search" id="q" autocomplete="off" spellcheck="false" enterkeyhint="search" placeholder="Rechercher : tâche, mission, note, décision, ID…" aria-label="Rechercher dans le Pilote" aria-controls="search-results" /><kbd>/</kbd></div>
+          </div>
+          <div id="search-results" hidden></div>
+          <div class="filters" id="filters"></div>
+          <div class="summary" id="summary"></div>
+          <div id="view-tableau"></div>
+          <div id="view-missions" hidden></div>
+          <div id="view-planning" hidden></div>
+          <div id="view-attente" hidden></div>
+          <div id="view-journal" hidden></div>
+          <div id="fiche"></div>
+          <p class="foot">Copie synchronisée de l'artefact Pilote : missions, tâches, absences, journal et propositions des agents. Les modifications, validations et analyses de PV se font encore dans l'artefact ; « Synchroniser » (onglet Agents &amp; journal) met cette copie à jour.</p>
+        </>
+      ) : premiereFois && (
+        <div class="section" style="margin-top:22px">
+          <h2>Première synchronisation</h2>
+          {message && <p class="pill warn" role="alert">{message}</p>}
+          <p class="hint">Dans l'artefact Pilote, onglet « Agents &amp; journal », cliquez « Exporter tout (JSON) », puis déposez le fichier ici. Réservé à la coordination.</p>
+          <form method="post" enctype="multipart/form-data" class="formrow" style="margin-top:8px">
+            <div class="field wide"><label for="export">Export de l'artefact (.json)</label><input id="export" name="export" type="file" accept="application/json,.json" required /></div>
+            <button class="btn primary" type="submit">Synchroniser</button>
+          </form>
         </div>
       )}
-    </section>
-  )}
-
-  {onglet === "taches" && tableau && (
-    <section class="panneau-onglet">
-      <form method="get" class="recherche" role="search">
-        <input type="hidden" name="onglet" value="taches" />
-        <label class="visuellement-cache" for="q">Rechercher</label>
-        <input id="q" name="q" type="search" value={recherche} placeholder="Rechercher : titre, notes, sous-tâches, mission, référence…" />
-        <label class="visuellement-cache" for="qui">Personne</label>
-        <select id="qui" name="qui">
-          <option value="">Tout le monde</option>
-          {tableau.personnes.map((p) => <option value={p.code} selected={p.code === qui}>{p.nom}</option>)}
-        </select>
-        <label class="visuellement-cache" for="st">Statut</label>
-        <select id="st" name="st">
-          {[["ouvertes", "Pas encore faites"], ["toutes", "Tous statuts"], ...Object.entries(STATUTS_TACHE)].map(([k, l]) => <option value={k} selected={k === tStatut}>{l}</option>)}
-        </select>
-        <button type="submit">Filtrer</button>
-      </form>
-      <p class="doux">{taches.length} tâche{taches.length > 1 ? "s" : ""}{recherche ? ` pour « ${recherche} »` : ""}, de la plus proche échéance à la plus lointaine.</p>
-      <ul class="taches">
-        {taches.map((t) => (
-          <li class={`st-${t.statut}`}>
-            <details>
-              <summary>
-                <span class="ref">{t.ref}</span>
-                <span class="titre">{t.titre}</span>
-                <span class={`statut s-${t.statut}`}>{STATUTS_TACHE[t.statut]}</span>
-                <span class="doux ligne2">
-                  {t.mission ? <b>{t.projet}</b> : t.couloir}
-                  {t.porteur && <> · {nomDe(t.porteur)}</>}
-                  {t.echeance && <> · <span class={enRetard(t) ? "retard" : ""}>{t.jalon ? "◆ " : "échéance "}{date(t.echeance)}</span></>}
-                  {t.sous_taches.length > 0 && <> · {t.sous_taches.filter((s) => s.fait).length}/{t.sous_taches.length}</>}
-                </span>
-              </summary>
-              <div class="detail">
-                <p class="doux">
-                  {[t.debut ? `Du ${date(t.debut)} au ${date(t.echeance)}` : null,
-                    codesDe(t).length ? `Avec : ${[...new Set(codesDe(t))].map(nomDe).join(", ")}` : null,
-                    t.estimation_h ? `${t.estimation_h} h estimées` : null,
-                    t.dependances?.length ? `Dépend de : ${t.dependances.join(", ")}` : null].filter(Boolean).join(" · ")}
-                </p>
-                {t.sous_taches.length > 0 && <ul class="sous">{t.sous_taches.map((s) => <li class={s.fait ? "fait" : ""}>{s.fait ? "☑" : "☐"} {s.texte}</li>)}</ul>}
-                {t.notes && <p class="texte">{t.notes}</p>}
-                <p class="liens">
-                  <a href={`/membre/projets/${t.projet_id}/pilote`}>{t.mission ? "Pilote de la mission" : "Tableau et planning"}</a>
-                  {t.source && lienSur(t.source.url) && <a href={t.source.url} rel="noopener">{t.source.label ?? "Source"}</a>}
-                </p>
-              </div>
-            </details>
-          </li>
-        ))}
-      </ul>
-      {absences.length > 0 && (
-        <div class="panneau bloc">
-          <h2>Indisponibilités à venir</h2>
-          <ul class="liste">
-            {absences.map((a) => <li><b>{nomDe(a.porteur)}</b> · {a.titre} · {date(a.debut)}{a.echeance !== a.debut && <> → {date(a.echeance)}</>}</li>)}
-          </ul>
-        </div>
-      )}
-    </section>
-  )}
-
-  {onglet === "journal" && tableau && (
-    <section class="panneau-onglet">
-      <div class="filtres">
-        {[["tout", "Tout"], ["journal", "Journal"], ["proposition", "Propositions des agents"]].map(([k, l]) => (
-          <a class="puce" aria-current={genre === k ? "true" : undefined} href={lien({ onglet: "journal", genre: k })}>{l}</a>
-        ))}
-      </div>
-      <p class="doux">Les {entrees.length} dernières entrées, de la plus récente à la plus ancienne. Les décisions des agents restent prises dans l'artefact.</p>
-      <ol class="journal">
-        {entrees.map((h) => (
-          <li>
-            <span class="quand doux">{dateHeure(h.quand)}</span>
-            <span class={`etiquette g-${h.genre}`}>{h.genre === "proposition" ? `Proposition · ${h.type ?? ""}` : h.type ?? "journal"}</span>
-            {h.statut && <span class="doux"> ({h.statut === "accepted" ? "acceptée" : h.statut === "rejected" ? "refusée" : h.statut === "pending" ? "en attente" : h.statut})</span>}
-            <p>{h.resume}</p>
-            <p class="doux petit">
-              {[h.qui ? nomDe(h.qui) : null, h.tache, h.projet !== tableau!.racine.titre ? h.projet : null].filter(Boolean).join(" · ")}
-              {h.source && lienSur(h.source.url) && <> · <a href={h.source.url} rel="noopener">{h.source.label ?? "Source"}</a></>}
-            </p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )}
-
-  {onglet === "import" && (!tableau || tableau.peut_importer) && (
-    <section class="panneau-onglet">
-      {bilan && (
-        <div class="panneau bloc reussi" role="status">
-          <h2>Synchronisation faite</h2>
-          <p>{bilan.missions} missions, {bilan.taches} tâches ({bilan.sous_taches} sous-tâches), {bilan.absences} indisponibilités,
-            {" "}{bilan.historique} entrées de journal et propositions.{bilan.retirees > 0 && <> {bilan.retirees} tâche(s) retirée(s) de l'artefact, retirée(s) ici aussi.</>}</p>
-          {bilan.alias_non_relies.length > 0 && <p class="doux">Personnes pas encore reliées à un compte du site : {bilan.alias_non_relies.join(", ")}. Elles le seront quand la coordination les reliera, après leur première connexion.</p>}
-        </div>
-      )}
-      <div class="panneau bloc">
-        <h2>Mettre à jour la copie</h2>
-        <ol>
-          <li>Dans l'artefact Pilote, onglet « Agents &amp; journal », cliquez « Exporter tout (JSON) ».</li>
-          <li>Déposez ici le fichier téléchargé.</li>
-        </ol>
-        <form method="post" enctype="multipart/form-data" class="formulaire">
-          <label for="export">Fichier exporté (.json)</label>
-          <input id="export" name="export" type="file" accept="application/json,.json" required />
-          <div><button type="submit">Synchroniser</button></div>
-        </form>
-        <p class="doux petit">Relancer la synchronisation ne crée pas de doublon. Ce qui a été retiré de l'artefact est retiré ici. Les missions et leurs tâches restent réservées à l'équipe.</p>
-      </div>
-    </section>
-  )}
+    </div>
+  </div>
+  {tableau && <script type="application/json" id="p33-donnees" set:html={donnees} />}
 </Base>
 
-<style>
-  .synchro { margin-top: 12px; padding: 10px 14px; border-left: 3px solid var(--lier); background: var(--surface); border-radius: 6px; font-size: .95rem; }
-  .actions-tete { margin-top: 12px; }
-  .bouton-lien { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 14px; border: 1px solid var(--trait); border-radius: 8px; background: var(--surface); text-decoration: none; font-weight: 600; }
-  .onglets-membre { display: flex; gap: 4px; margin: 28px 0 0; border-bottom: 1px solid var(--trait); overflow-x: auto; scrollbar-width: thin; }
-  .onglets-membre a { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; text-decoration: none; color: var(--doux); font-weight: 600; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
-  .onglets-membre a[aria-current="page"] { color: var(--encre); border-bottom-color: var(--accent); }
-  .onglets-membre .compte { font: 500 .74rem var(--mono); background: var(--accent-doux); color: var(--accent); border-radius: 999px; padding: 1px 7px; }
-  .panneau-onglet { display: grid; gap: 16px; margin-top: 24px; min-width: 0; }
-  .filtres { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .flabel { font: 600 .72rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--doux); margin-right: 2px; }
-  .flabel:not(:first-child) { margin-left: 10px; }
-  .puce { display: inline-flex; align-items: center; min-height: 34px; padding: 4px 12px; border: 1px solid var(--trait); border-radius: 999px; text-decoration: none; color: var(--encre); font-size: .9rem; background: var(--surface); }
-  .puce[aria-current] { background: var(--accent); color: var(--sur-accent); border-color: var(--accent); }
-  .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 14px; }
-  .mission { display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--trait); border-radius: 10px; background: var(--surface); min-width: 0; overflow-wrap: anywhere; }
-  .mission header { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
-  .mission h2 { font-size: 1.12rem; margin: 0 6px 0 0; }
-  .mission h3 { font-size: .9rem; margin: 4px 0 2px; }
-  .etiquette.mp { background: var(--accent-doux); color: var(--accent); }
-  .meta, .petit { font-size: .88rem; margin: 0; }
-  .compteurs { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; font-size: .9rem; }
-  .c-fait b { color: var(--relier); } .c-cours b { color: var(--lier); } .c-bloque b { color: #c4462e; }
-  .liste { margin: 0; padding-left: 1.2em; font-size: .93rem; }
-  .sources { font-size: .86rem; }
-  .texte { white-space: pre-wrap; font-size: .93rem; margin: 6px 0 0; }
-  details summary { cursor: pointer; min-height: 28px; font-weight: 600; font-size: .93rem; }
-  .liens { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 0; font-size: .93rem; }
-  .recherche { display: flex; flex-wrap: wrap; gap: 8px; }
-  .recherche input[type="search"] { flex: 1 1 280px; min-width: 0; }
-  .recherche select { flex: 0 1 auto; }
-  .visuellement-cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .taches { list-style: none; margin: 0; padding: 0; }
-  .taches > li { border-top: 1px solid var(--trait); padding: 8px 0; overflow-wrap: anywhere; }
-  .taches summary { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: baseline; font-weight: 400; list-style: none; }
-  .taches summary::-webkit-details-marker { display: none; }
-  .taches .ref { font: 500 .78rem var(--mono); color: var(--doux); }
-  .taches .titre { font-weight: 600; }
-  .taches .ligne2 { grid-column: 2 / 4; font-size: .88rem; }
-  .statut { font: 600 .74rem var(--mono); padding: 2px 8px; border-radius: 999px; background: var(--fond); border: 1px solid var(--trait); white-space: nowrap; }
-  .s-en_cours { color: var(--lier); border-color: currentColor; } .s-fait { color: var(--relier); border-color: currentColor; } .s-bloque { color: #c4462e; border-color: currentColor; }
-  .retard { color: #c4462e; font-weight: 600; }
-  .detail { padding: 8px 0 4px; display: grid; gap: 6px; }
-  .detail p { margin: 0; }
-  .sous { list-style: none; padding: 0; margin: 0; font-size: .92rem; }
-  .sous .fait { color: var(--doux); text-decoration: line-through; }
-  .journal { list-style: none; padding: 0; margin: 0; }
-  .journal li { border-top: 1px solid var(--trait); padding: 10px 0; overflow-wrap: anywhere; }
-  .journal p { margin: 4px 0 0; }
-  .quand { font: 500 .8rem var(--mono); margin-right: 8px; }
-  .g-proposition { background: var(--accent-doux); color: var(--accent); }
-  .reussi { border-left: 3px solid var(--relier); }
-  .formulaire { display: grid; gap: 8px; margin-top: 8px; max-width: 560px; }
-  @media (max-width: 560px) { .taches summary { grid-template-columns: 1fr auto; } .taches .ref { grid-column: 1 / 3; } .taches .ligne2 { grid-column: 1 / 3; } }
+<style is:global>
+  /* La page du Pilote occupe toute la largeur, comme l'artefact. */
+  .enveloppe:has(> .p33) { max-width: none; padding-inline: 0; }
+  main:has(> .p33) { padding-block: 0; }
+  .p33 { min-height: 70vh; }
+  .p33 .eyebrow a { color: inherit; }
+  .p33 .stsel.ro { display: inline-block; cursor: default; text-align: center; width: auto; min-width: 84px; }
 </style>
 
 <script>
-  document.querySelector<HTMLElement>('.onglets-membre a[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  if (document.getElementById("p33-donnees")) import("../../../scripts/pilote-missions");
 </script>

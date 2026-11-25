@@ -207,7 +207,8 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   projet racine + tableau de bord) ; « Ma journée » et l'analyse des PV par Claude : plus tard. Pendant la transition,
   l'artefact reste le lieu de travail, le site en garde une **copie synchronisée en lecture seule** (migration
   `20261125120000_lot3_pilote_missions.sql`, `importer_pilote_missions` reçoit l'export JSON tel quel) ; page
-  `/membre/pilotes/pilote-33` (Missions, Tâches + recherche, Journal, Synchroniser). Synchro automatique bloquée :
+  `/membre/pilotes/pilote-33`, **au design de l'artefact** (25/11, demande de PA : Tableau, Missions, Planning, Salle
+  d'attente, Agents & journal + Synchroniser, recherche, fiches ; CSS de l'artefact limité à `.p33`). Synchro automatique bloquée :
   l'artefact appartient à une autre organisation claude.ai qui refuse ArtifactData depuis Claude Code ; PA règle
   l'accès (option 1) le 26/11 ; en attendant, dépôt manuel de l'export. Tests : 161 vérifications.
 

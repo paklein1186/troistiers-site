@@ -185,10 +185,14 @@ Migration `supabase/migrations/20261125120000_lot3_pilote_missions.sql` :
 - `tableau_pilote`, `historique_pilote`, `pilotes_visibles` (équipe N4) ; `relier_alias` ne touche plus que les
   projets du Pilote concerné.
 
-Site : `/membre/pilotes/pilote-33` (carte en tête de `/membre/projets`) : onglets Missions (fiches, filtres statut et
-type), Tâches (recherche dans titres, notes, sous-tâches, missions ; filtres personne et statut ; indisponibilités à
-venir), Journal (journal et propositions des agents), Synchroniser (dépôt de l'export, coordination). Chaque mission
-ouvre son Pilote (Tableau et Planning, en lecture).
+Site : `/membre/pilotes/pilote-33` (carte en tête de `/membre/projets`), avec le design et les onglets de l'artefact
+(feuille de style `src/styles/pilote-artefact.css`, rendu `src/scripts/pilote-missions.ts`) : Tableau (par chantier ou
+par personne, filtres, compteurs), Missions (fiches), Planning (congés scolaires, absences), Salle d'attente, Agents &
+journal (dont « Synchroniser », coordination), recherche transversale (« / ») et fiche de chaque tâche. En lecture
+seule : « Ma journée », l'Hebdo, les validations et l'analyse des PV restent dans l'artefact pour l'instant.
+
+Migration `20261126090000_lot3_pilote_missions_dates.sql` : une tâche sans échéance reste sans échéance (avant, elle
+prenait sa date de début et paraissait en retard). Après l'avoir exécutée, relancer « Synchroniser ».
 
 Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
 claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
