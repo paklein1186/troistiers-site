@@ -3146,50 +3146,27 @@ GRANT EXECUTE ON FUNCTION public.regler_enjeux(uuid, text, boolean, uuid) TO aut
 --
 -- - Les enjeux validés sont visibles des membres adhérents (N2) et plus, là où le titre l'est (avant : gradient des
 --   besoins, N3 pendant le projet). Toujours publics si les besoins du projet le sont.
--- - La personne qui pilote le projet (nom et e-mail) s'affiche pour les membres connectés (N2 et plus), jamais pour le
---   public : l'e-mail de contact du projet s'il est réglé, sinon le référent de mission, l'animateur ou l'initiateur,
---   sinon le référent indiqué dans le Pilote (s'il s'est déjà connecté au site).
-
-ALTER TABLE public.projets ADD COLUMN contact_email text
-  CHECK (contact_email IS NULL OR contact_email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$');
+-- - La personne qui pilote le projet (nom et identifiant ChangeTheGame, pour un lien vers son profil) s'affiche pour les
+--   membres connectés (N2 et plus), jamais pour le public : le référent de mission, l'animateur ou l'initiateur, sinon
+--   le référent indiqué dans le Pilote (s'il s'est déjà connecté au site). Aucun e-mail n'est diffusé.
 
 CREATE FUNCTION public.lead_projet(pr public.projets)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WITH badge AS (       -- référent de mission, sinon animateur, sinon initiateur
-    SELECT COALESCE(a.libelle, pe.nom) AS nom, pe.email
+    SELECT COALESCE(a.libelle, pe.nom) AS nom, pe.id, 1 AS rang,
+           array_position(ARRAY['referent_mission', 'animateur_gt', 'initiateur'], b.badge_code) AS ordre
     FROM public.badge_attributions b JOIN public.personnes pe ON pe.id = b.personne_id
     LEFT JOIN public.alias_personnes a ON a.personne_id = pe.id AND a.source = pr.source_pilote
     WHERE b.portee_type = 'projet' AND b.portee_id = pr.id AND b.statut = 'actif'
       AND b.badge_code IN ('referent_mission', 'animateur_gt', 'initiateur')
-    ORDER BY array_position(ARRAY['referent_mission', 'animateur_gt', 'initiateur'], b.badge_code), b.debut NULLS LAST
-    LIMIT 1
   ), pilote AS (        -- référent indiqué dans le Pilote, s'il est relié à un compte
-    SELECT COALESCE(a.libelle, pe.nom) AS nom, pe.email
+    SELECT COALESCE(a.libelle, pe.nom) AS nom, pe.id, 2 AS rang, 0 AS ordre
     FROM public.alias_personnes a JOIN public.personnes pe ON pe.id = a.personne_id
     WHERE a.source = pr.source_pilote AND a.alias = pr.fiche ->> 'referent'
-    LIMIT 1
-  ), choix AS (
-    SELECT nom, email FROM badge UNION ALL SELECT nom, email FROM pilote
   )
-  SELECT CASE
-    WHEN pr.contact_email IS NOT NULL THEN jsonb_build_object('nom', (SELECT nom FROM choix LIMIT 1), 'email', pr.contact_email)
-    ELSE (SELECT jsonb_build_object('nom', nom, 'email', email) FROM choix WHERE email IS NOT NULL LIMIT 1)
-  END;
-$$;
-
--- E-mail de contact d'un projet (vide : celui du référent) : coordination et gestionnaires de la diffusion.
-CREATE FUNCTION public.regler_contact(p_projet uuid, p_email text, p_acteur uuid DEFAULT NULL)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_acteur uuid := public.acteur(p_acteur);
-BEGIN
-  IF NOT (public.niveau_reseau(v_acteur) >= 5 OR public.a_droit(v_acteur, p_projet, 'fixer_sensibilite')
-          OR (auth.uid() IS NULL AND p_acteur IS NULL AND public.appel_serveur())) THEN
-    RAISE EXCEPTION 'réservé aux gestionnaires de la diffusion' USING ERRCODE = 'insufficient_privilege';
-  END IF;
-  UPDATE public.projets SET contact_email = nullif(trim(lower(p_email)), '') WHERE id = p_projet;
-  PERFORM public.noter(v_acteur, 'humain', 'contact_regle', 'projet', p_projet::text, NULL, jsonb_build_object('email', p_email));
-END;
+  SELECT jsonb_build_object('nom', nom, 'id', id)
+  FROM (SELECT * FROM badge UNION ALL SELECT * FROM pilote) c
+  ORDER BY rang, ordre LIMIT 1;
 $$;
 
 CREATE OR REPLACE FUNCTION public.vue_projet(p_projet uuid, p_niveau int)
@@ -3243,9 +3220,8 @@ BEGIN
     -- Enjeux validés : membres adhérents (N2) et plus là où le titre est visible ; public si les besoins le sont.
     'enjeux', CASE WHEN p_niveau >= 4 THEN pr.enjeux
                    WHEN pr.enjeux_valide AND (p_niveau >= 2 OR public.forme_visible(pr, 'besoins', p_niveau) IS NOT NULL) THEN pr.enjeux END,
-    -- Personne qui pilote le projet (nom, e-mail) : membres connectés (N2 et plus), jamais le public.
+    -- Personne qui pilote le projet (nom, identifiant ChangeTheGame) : membres connectés (N2 et plus), jamais le public.
     'lead', CASE WHEN p_niveau >= 2 THEN public.lead_projet(pr) END,
-    'contact_email', CASE WHEN p_niveau >= 4 THEN pr.contact_email END,
     'enjeux_valide', CASE WHEN p_niveau >= 4 THEN pr.enjeux_valide END,
     'famille', CASE WHEN pr.parent_id IS NOT NULL AND pr.source_pilote IS NOT NULL THEN
       (SELECT jsonb_build_object('code', f.code, 'famille', f.famille, 'libelle', f.libelle, 'ordre', f.ordre)
@@ -3257,5 +3233,4 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.lead_projet(public.projets) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.regler_contact(uuid, text, uuid) TO authenticated, service_role;
 

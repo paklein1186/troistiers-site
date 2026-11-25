@@ -6,7 +6,7 @@ import { niveauAcces } from "../lib/acces";
 import { chargerContenu } from "../lib/contenu";
 import missions from "../../data/missions.exemple.json";
 import { acteurConnecte } from "../lib/acteur";
-import { baseConfiguree, etapes, projetsVisibles, type ProjetVu } from "../lib/base";
+import { baseConfiguree, etapes, profilCtg, projetsVisibles, type ProjetVu } from "../lib/base";
 
 const k = chargerContenu();
 const c = chargerCommunaute();
@@ -44,7 +44,8 @@ if (baseConfiguree()) {
 }
 const nbEnCours = enCours.reduce((n, g) => n + g.projets.length, 0);
 const resumeDe = (p: ProjetVu) => [p.resume, p.enjeux].filter(Boolean).join(" ");
-const piedDe = (p: ProjetVu) => (p.lead?.email ? `Contact : ${p.lead.nom ? p.lead.nom + " · " : ""}${p.lead.email}` : undefined);
+const piedDe = (p: ProjetVu) => (p.lead?.id ? `Pilotage : ${p.lead.nom ?? "voir le profil"}` : undefined);
+const lienPied = (p: ProjetVu) => (p.lead?.id ? profilCtg(p.lead.id, k.liens.changethegame_guilde) ?? undefined : undefined);
 ---
 <Base titre="Projets">
   <section class="hero">
@@ -85,6 +86,7 @@ const piedDe = (p: ProjetVu) => (p.lead?.email ? `Contact : ${p.lead.nom ? p.lea
               lien: acteur ? `/membre/projets/${p.id}` : undefined,
               facultatif: true,
               pied: piedDe(p),
+              lienPied: lienPied(p),
             }))} />
           </div>
         ))

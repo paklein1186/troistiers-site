@@ -78,7 +78,7 @@ const valid = Number(Astro.url.searchParams.get("valides") ?? 0);
           <textarea id={`resume-${p.id}`} name={`resume-${p.id}`} rows="2" maxlength="600">{p.resume ?? ""}</textarea>
           <label for={`enjeux-${p.id}`}>Enjeux</label>
           <textarea id={`enjeux-${p.id}`} name={`enjeux-${p.id}`} rows="3" maxlength="1200">{p.enjeux ?? ""}</textarea>
-          <p class="doux petit"><a href={`/membre/projets/${p.id}#resume`}>Ouvrir la fiche</a>{p.lead?.email && <> · contact : {p.lead.email}</>}</p>
+          <p class="doux petit"><a href={`/membre/projets/${p.id}#resume`}>Ouvrir la fiche</a>{p.lead?.nom && <> · pilotage : {p.lead.nom}</>}</p>
         </fieldset>
       ))}
       <div class="barre-actions"><button type="submit">Valider les projets cochés</button></div>

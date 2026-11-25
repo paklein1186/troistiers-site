@@ -233,8 +233,8 @@ vignettes par défaut ou liste (`?vue=liste`), filtres par famille (`?famille=`)
 
 Décisions du 28/11 (migration `20261128090000_lead_enjeux_membres.sql`) : les **enjeux** validés sont visibles des
 membres adhérents (N2) et plus, là où le titre l'est (public si les besoins le sont) ; la **personne qui pilote** le
-projet (nom, e-mail) s'affiche pour les membres connectés, jamais pour le public (`lead_projet` : e-mail de contact du
-projet, réglé sur la fiche, sinon référent de mission, animateur ou initiateur, sinon référent du Pilote relié) ;
+projet s'affiche pour les membres connectés, jamais pour le public, avec un lien vers son profil ChangeTheGame (aucun
+e-mail diffusé ; `lead_projet` : référent de mission, animateur ou initiateur, sinon référent du Pilote relié) ;
 « Présentation à venir » n'est plus affiché ; `/membre/projets/brouillons` : relire, corriger et valider d'un coup les
 résumés et enjeux des projets que l'on gère.
 

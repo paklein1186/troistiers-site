@@ -1,7 +1,7 @@
 ---
 // Liste à deux colonnes (date ou catégorie à gauche, titre et texte à droite).
 import AFaire from "./AFaire.astro";
-interface Props { elements: { cle: string; titre: string; texte: string; etat?: string; lien?: string; facultatif?: boolean; pied?: string }[] }
+interface Props { elements: { cle: string; titre: string; texte: string; etat?: string; lien?: string; facultatif?: boolean; pied?: string; lienPied?: string }[] }
 const { elements } = Astro.props;
 ---
 <div class="liste">
@@ -11,7 +11,7 @@ const { elements } = Astro.props;
       <div>
         <h3>{e.lien ? <a href={e.lien}>{e.titre}</a> : e.titre}{e.etat && <span class="etiquette">{e.etat}</span>}</h3>
         {!(e.facultatif && !e.texte) && <p><AFaire v={e.texte} /></p>}
-        {e.pied && <p class="pied">{e.pied}</p>}
+        {e.pied && <p class="pied">{e.lienPied ? <a href={e.lienPied} rel="noopener">{e.pied} sur ChangeTheGame</a> : e.pied}</p>}
       </div>
     </div>
   ))}

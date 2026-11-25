@@ -224,8 +224,8 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   les projets réservés aux membres, avec lien vers la fiche) ; **résumé public** rédigé par Claude, validé d'un clic sur
   la fiche (migration `20261127090000_resume_public.sql`) ; **enjeux** (2-3 phrases, gradient des besoins, migration
   `20261127100000_enjeux.sql`) ; `/membre/projets` en vignettes ou liste, filtres famille et groupe. 28/11 : enjeux visibles
-  dès N2 (adhérents), **e-mail de la personne qui pilote** affiché aux membres connectés (jamais au public), page
-  `/membre/projets/brouillons` (tout valider d'un coup) ; migration `20261128090000_lead_enjeux_membres.sql`. Tests : 195 vérifications.
+  dès N2 (adhérents), **personne qui pilote** affichée aux membres connectés avec un lien vers son profil ChangeTheGame (aucun e-mail ; jamais au public), page
+  `/membre/projets/brouillons` (tout valider d'un coup) ; migration `20261128090000_lead_enjeux_membres.sql`. Tests : 193 vérifications.
 
 ## Avant d'ouvrir les paiements réels
 

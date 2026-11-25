@@ -1,7 +1,8 @@
 ---
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
-import { baseConfiguree, creerProjet, etapes, NATURES, pilotesVisibles, projetsVisibles, type PiloteVisible, type ProjetVu } from "../../../lib/base";
+import { baseConfiguree, creerProjet, etapes, NATURES, pilotesVisibles, profilCtg, projetsVisibles, type PiloteVisible, type ProjetVu } from "../../../lib/base";
+import { chargerContenu } from "../../../lib/contenu";
 
 // Projets et missions de la base Trois-Tiers, tels que la personne connectée a le droit de les voir
 // (niveaux N0 à N5, sensibilité, étape : tout est filtré par la base).
@@ -72,6 +73,8 @@ const lien = (m: Record<string, string>) => {
   const t = u.toString();
   return t ? `${ici}?${t}` : ici;
 };
+const lienGuilde = chargerContenu().liens.changethegame_guilde;
+const profil = (p: ProjetVu) => (p.lead?.id ? profilCtg(p.lead.id, lienGuilde) : null);
 const brouillons = projets.filter((p) => p.niveau >= 4 && ((p.resume && !p.resume_valide) || (p.enjeux && !p.enjeux_valide))).length;
 const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.famille] ?? ""} · ${p.famille.libelle}` : (NATURES[p.nature] ?? p.nature);
 ---
@@ -139,8 +142,8 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
               {p.enjeux && (
                 <p class="enjeux"><strong>Enjeux</strong> {p.enjeux}{p.niveau >= 4 && !p.enjeux_valide && <span class="brouillon">brouillon</span>}</p>
               )}
-              {p.lead?.email && (
-                <p class="lead-contact">Contact : {p.lead.nom && <>{p.lead.nom} · </>}<a href={`mailto:${p.lead.email}`}>{p.lead.email}</a></p>
+              {p.lead && profil(p) && (
+                <p class="lead-contact">Pilotage : <a href={profil(p)!} rel="noopener">{p.lead.nom ?? "profil"} sur ChangeTheGame</a></p>
               )}
             </li>
           ))}
@@ -156,7 +159,7 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
                 {[p.territoire, p.etape ? libellesEtapes[p.etape] ?? p.etape : null].filter(Boolean).join(" · ") || (p.phrase ?? "")}
               </p>
               {p.resume && <p class="ligne-resume">{p.resume}</p>}
-              {p.lead?.email && <p class="ligne-resume doux">Contact : {p.lead.nom && <>{p.lead.nom} · </>}<a href={`mailto:${p.lead.email}`}>{p.lead.email}</a></p>}
+              {p.lead && profil(p) && <p class="ligne-resume doux">Pilotage : <a href={profil(p)!} rel="noopener">{p.lead.nom ?? "profil"} sur ChangeTheGame</a></p>}
             </li>
           ))}
         </ul>

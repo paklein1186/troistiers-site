@@ -227,12 +227,8 @@ SELECT pg_temp.ok('enjeux en brouillon : seulement l''équipe', pg_temp.en('serv
 -- Personne qui pilote le projet (28/11).
 UPDATE projets SET sensibilite = 'semi_sensible', validateur_externe = NULL WHERE ref_externe = 'pilote-m:mission:lieu-a';
 SELECT pg_temp.ok('lead : référente de la mission, pour un membre', pg_temp.en('service_role', NULL,
-  $q$SELECT (public.vue_projet(id, 2)->'lead'->>'nom') || ' <' || (public.vue_projet(id, 2)->'lead'->>'email') || '>' FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'Eveline <autre@ex.org>');
+  $q$SELECT (public.vue_projet(id, 2)->'lead'->>'nom') || ' ' || (public.vue_projet(id, 2)->'lead'->>'id') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'Eveline 00000000-0000-0000-0000-0000000000c1');
+SELECT pg_temp.ok('lead : aucun e-mail diffusé', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.vue_projet(id, 2)->'lead' ? 'email')::text FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'false');
 SELECT pg_temp.ok('lead : jamais pour le public', pg_temp.en('service_role', NULL,
   $q$SELECT COALESCE(public.vue_projet(id, 0)->>'lead', '—') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '—');
-SELECT pg_temp.ok('lead : un allié ne règle pas l''e-mail de contact', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000b9',
-  $q$SELECT public.regler_contact((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'), 'x@ex.org')::text$q$), 'refusé');
-SELECT pg_temp.ok('lead : e-mail de contact réglé par la coordination', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
-  $q$SELECT public.regler_contact((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'), 'Contact@Lieu.be')::text$q$), '∅');
-SELECT pg_temp.ok('lead : l''e-mail de contact passe devant', pg_temp.en('service_role', NULL,
-  $q$SELECT (public.vue_projet(id, 2)->'lead'->>'nom') || ' <' || (public.vue_projet(id, 2)->'lead'->>'email') || '>' FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'Eveline <contact@lieu.be>');

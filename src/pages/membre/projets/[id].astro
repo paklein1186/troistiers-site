@@ -4,9 +4,10 @@ import { acteurConnecte, actionTache, messageBase } from "../../../lib/acteur";
 import ListeTaches from "../../../components/ListeTaches.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerContact, reglerDiffusion, reglerEnjeux, reglerResume, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
-  type Droits, type Etape, type ProjetVu, type Tache,
+  reglerDiffusion, reglerEnjeux, reglerResume, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
+import { chargerContenu } from "../../../lib/contenu";
 
 // Fiche d'un projet : ce que la personne en voit (filtré par la base), et les actions permises
 // (candidater, régler la diffusion, changer l'étape, valider la diffusion, aperçu en tant que).
@@ -43,7 +44,6 @@ if (Astro.request.method === "POST" && acteur) {
     } else if (action === "resume" || action === "resume_valider" || action === "resume_retirer") {
       await reglerResume(acteur, id, String(f.get("resume") ?? "").slice(0, 600), action === "resume_valider");
       await reglerEnjeux(acteur, id, String(f.get("enjeux") ?? "").slice(0, 1200), action === "resume_valider");
-      await reglerContact(acteur, id, String(f.get("contact") ?? "").trim().slice(0, 200));
     } else if (action === "valider" || action === "refuser") {
       await validerDiffusion(acteur, id, action === "valider");
     }
@@ -111,7 +111,7 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
         {p.phrase && <p>{p.phrase}</p>}
         {p.resume && (p.niveau < 4 || p.resume_valide) && <p>{p.resume}</p>}
         {p.enjeux && (p.niveau < 4 || p.enjeux_valide) && <p class="enjeux"><strong>Enjeux.</strong> {p.enjeux}</p>}
-        {p.lead?.email && <p class="doux">Contact : {p.lead.nom && <>{p.lead.nom} · </>}<a href={`mailto:${p.lead.email}`}>{p.lead.email}</a></p>}
+        {p.lead && profilCtg(p.lead.id, chargerContenu().liens.changethegame_guilde) && <p class="doux">Pilotage : <a href={profilCtg(p.lead.id, chargerContenu().liens.changethegame_guilde)!} rel="noopener">{p.lead.nom ?? "profil"} sur ChangeTheGame</a></p>}
         <p class="doux" style="font-size:.9rem">Vous voyez ce projet au niveau {NIVEAUX[p.niveau] ?? p.niveau}.</p>
       </section>
 
@@ -189,8 +189,6 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
           <textarea id="resume-texte" name="resume" rows="3" maxlength="600">{p.resume ?? ""}</textarea>
           <label for="enjeux-texte">Enjeux <span class="doux">(2 à 3 phrases : ce qui se joue, opportunité, besoin repéré{p.enjeux ? <> · {p.enjeux_valide ? "validés" : "brouillon à valider"}</> : null})</span></label>
           <textarea id="enjeux-texte" name="enjeux" rows="4" maxlength="1200">{p.enjeux ?? ""}</textarea>
-          <label for="contact">E-mail de contact <span class="doux">(montré aux membres connectés ; vide : celui du référent{p.lead?.email && !p.contact_email ? <>, aujourd'hui {p.lead.email}</> : null})</span></label>
-          <input id="contact" name="contact" type="email" maxlength="200" value={p.contact_email ?? ""} />
           <div class="rangee">
             <button type="submit" name="action" value="resume_valider">Enregistrer et valider</button>
             <button type="submit" name="action" value="resume" class="bouton creux">Enregistrer comme brouillon</button>
