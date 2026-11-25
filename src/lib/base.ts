@@ -128,6 +128,7 @@ export interface ProjetVu {
   territoire: string | null; etape: string | null; sensibilite: string | null; etape_verrouillee: boolean | null;
   elements: ElementVu[]; documents: DocumentVu[];
   resume?: string | null; resume_valide?: boolean | null;
+  enjeux?: string | null; enjeux_valide?: boolean | null;
   famille?: { code: string; famille: "socle" | "coordination" | "groupe"; libelle: string; ordre: number } | null;
 }
 export interface Droits {
@@ -323,3 +324,6 @@ export function famillesDuTableau(t: TableauPilote) {
 /** Résumé public d'un projet : écrire (brouillon) ou écrire et valider. */
 export const reglerResume = (acteur: string, projet: string, texte: string, valider: boolean) =>
   rpc<null>("regler_resume", { p_projet: projet, p_texte: texte, p_valider: valider, p_acteur: acteur });
+/** Enjeux d'un projet (ce qui se joue, opportunité, besoin repéré) : brouillon, ou écrire et valider. */
+export const reglerEnjeux = (acteur: string, projet: string, texte: string, valider: boolean) =>
+  rpc<null>("regler_enjeux", { p_projet: projet, p_texte: texte, p_valider: valider, p_acteur: acteur });

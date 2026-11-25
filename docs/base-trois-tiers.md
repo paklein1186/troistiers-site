@@ -225,6 +225,12 @@ noms ni montants) : rédigé à la main en attendant l'agent (2A), il ne s'affic
 coordination ou un gestionnaire de la diffusion, depuis la fiche du projet (bloc « Résumé public », `regler_resume`).
 Brouillons du Pilote 3/3 : fichier privé `pilote-33-resumes.sql`, fourni à part.
 
+**Enjeux** (27/11 ; migration `20261127100000_enjeux.sql`) : 2 à 3 phrases sur ce qui se joue (enjeu, opportunité,
+besoin repéré), rédigées et validées comme le résumé (`regler_enjeux`, même bloc « Résumé et enjeux » sur la fiche).
+Hors équipe, elles suivent le gradient des besoins : N3 pendant le projet, N2 après capitalisation, public si les
+besoins du projet sont publics. Brouillons : fichier privé `pilote-33-enjeux.sql`. Espace membres `/membre/projets` :
+vignettes par défaut ou liste (`?vue=liste`), filtres par famille (`?famille=`) et par groupe de travail (`?groupe=`).
+
 Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
 claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
 

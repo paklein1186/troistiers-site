@@ -4,7 +4,7 @@ import { acteurConnecte, actionTache, messageBase } from "../../../lib/acteur";
 import ListeTaches from "../../../components/ListeTaches.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerResume, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, reglerResume, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache,
 } from "../../../lib/base";
 
@@ -42,6 +42,7 @@ if (Astro.request.method === "POST" && acteur) {
       });
     } else if (action === "resume" || action === "resume_valider" || action === "resume_retirer") {
       await reglerResume(acteur, id, String(f.get("resume") ?? "").slice(0, 600), action === "resume_valider");
+      await reglerEnjeux(acteur, id, String(f.get("enjeux") ?? "").slice(0, 1200), action === "resume_valider");
     } else if (action === "valider" || action === "refuser") {
       await validerDiffusion(acteur, id, action === "valider");
     }
@@ -85,9 +86,9 @@ const FAITS: Record<string, string> = {
   deverrouiller: "Étape déverrouillée.",
   diffusion: "Diffusion réglée.",
   valider: "Diffusion hors équipe validée.",
-  resume: "Résumé enregistré comme brouillon : il ne s'affiche pas encore hors de l'équipe.",
-  resume_valider: "Résumé validé : il s'affiche sur la page Projets là où le titre est visible.",
-  resume_retirer: "Validation retirée : le résumé n'est plus affiché hors de l'équipe.",
+  resume: "Résumé et enjeux enregistrés comme brouillons : ils ne s'affichent pas encore hors de l'équipe.",
+  resume_valider: "Résumé et enjeux validés : le résumé s'affiche là où le titre est visible, les enjeux là où les besoins le sont.",
+  resume_retirer: "Validation retirée : résumé et enjeux ne s'affichent plus hors de l'équipe.",
   refuser: "Diffusion hors équipe refusée.",
 };
 const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre actif", "N4 équipe", "N5 coordination"];
@@ -108,6 +109,7 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
         </p>
         {p.phrase && <p>{p.phrase}</p>}
         {p.resume && (p.niveau < 4 || p.resume_valide) && <p>{p.resume}</p>}
+        {p.enjeux && (p.niveau < 4 || p.enjeux_valide) && <p class="enjeux"><strong>Enjeux.</strong> {p.enjeux}</p>}
         <p class="doux" style="font-size:.9rem">Vous voyez ce projet au niveau {NIVEAUX[p.niveau] ?? p.niveau}.</p>
       </section>
 
@@ -179,15 +181,16 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
 
       {droits?.fixer_sensibilite && (
         <form method="post" class="panneau bloc formulaire" id="resume">
-          <h2>Résumé public</h2>
-          <p class="doux">Une ou deux phrases, sans noms de personnes ni montants. Une fois validé, il s'affiche sur la page Projets du site, pour les niveaux qui voient le titre de ce projet.
-            {p.resume ? <> État : <strong>{p.resume_valide ? "validé" : "brouillon à valider"}</strong>.</> : null}</p>
-          <label for="resume-texte">Résumé</label>
+          <h2>Résumé et enjeux</h2>
+          <p class="doux">Sans noms de personnes ni montants. Une fois validés, le résumé s'affiche pour les niveaux qui voient le titre du projet ; les enjeux, pour ceux qui voient ses besoins (actifs, alliés et partenaires pendant le projet, ou tout le monde si les besoins sont publics).</p>
+          <label for="resume-texte">Résumé <span class="doux">(1 à 2 phrases{p.resume ? <> · {p.resume_valide ? "validé" : "brouillon à valider"}</> : null})</span></label>
           <textarea id="resume-texte" name="resume" rows="3" maxlength="600">{p.resume ?? ""}</textarea>
+          <label for="enjeux-texte">Enjeux <span class="doux">(2 à 3 phrases : ce qui se joue, opportunité, besoin repéré{p.enjeux ? <> · {p.enjeux_valide ? "validés" : "brouillon à valider"}</> : null})</span></label>
+          <textarea id="enjeux-texte" name="enjeux" rows="4" maxlength="1200">{p.enjeux ?? ""}</textarea>
           <div class="rangee">
             <button type="submit" name="action" value="resume_valider">Enregistrer et valider</button>
             <button type="submit" name="action" value="resume" class="bouton creux">Enregistrer comme brouillon</button>
-            {p.resume_valide && <button type="submit" name="action" value="resume_retirer" class="bouton creux">Retirer la validation</button>}
+            {(p.resume_valide || p.enjeux_valide) && <button type="submit" name="action" value="resume_retirer" class="bouton creux">Retirer la validation</button>}
           </div>
         </form>
       )}
@@ -242,6 +245,7 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
 
 <style>
   .titre { overflow-wrap: anywhere; }
+  .enjeux { max-width: 70ch; color: var(--doux); }
   .elements { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: 8px 18px; margin: 0; }
   .elements dt { font-weight: 600; } .elements dd { margin: 0; overflow-wrap: anywhere; }
   @media (max-width: 620px) { .elements { grid-template-columns: minmax(0, 1fr); } .elements dd { margin-bottom: 8px; } }

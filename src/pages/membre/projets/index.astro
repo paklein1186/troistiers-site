@@ -51,6 +51,28 @@ if (baseConfiguree()) {
     message ||= "Les projets n'ont pas pu être chargés.";
   }
 }
+
+// Vues et filtres (dans l'adresse, sans JavaScript) : vignettes ou liste ; famille ; groupe de travail.
+const q = Astro.url.searchParams;
+const vue = q.get("vue") === "liste" ? "liste" : "vignettes";
+const FAMILLES: Record<string, string> = { coordination: "Coordination", groupe: "Groupes de travail", socle: "Fonction socle", autres: "Autres projets" };
+const familleDe = (p: ProjetVu) => p.famille?.famille ?? "autres";
+const familleChoisie = FAMILLES[q.get("famille") ?? ""] ? q.get("famille")! : "toutes";
+const groupesDispo = [...new Map(projets.filter((p) => p.famille?.famille === "groupe").map((p) => [p.famille!.code, p.famille!])).values()]
+  .sort((a, b) => a.ordre - b.ordre);
+const groupeChoisi = familleChoisie === "groupe" && groupesDispo.some((g) => g.code === q.get("groupe")) ? q.get("groupe")! : "";
+const filtres = projets
+  .filter((p) => familleChoisie === "toutes" || familleDe(p) === familleChoisie)
+  .filter((p) => !groupeChoisi || p.famille?.code === groupeChoisi)
+  .sort((a, b) => (a.famille?.ordre ?? 99) - (b.famille?.ordre ?? 99) || a.titre.localeCompare(b.titre, "fr"));
+const compteFamille = (f: string) => projets.filter((p) => familleDe(p) === f).length;
+const lien = (m: Record<string, string>) => {
+  const u = new URLSearchParams({ vue, famille: familleChoisie, groupe: groupeChoisi, ...m });
+  for (const [k, v] of [...u]) if (!v || (k === "famille" && v === "toutes") || (k === "vue" && v === "vignettes")) u.delete(k);
+  const t = u.toString();
+  return t ? `${ici}?${t}` : ici;
+};
+const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.famille] ?? ""} · ${p.famille.libelle}` : (NATURES[p.nature] ?? p.nature);
 ---
 <Base titre="Projets et missions">
   <p class="surtitre"><a href="/membre">Espace membres</a> · Projets</p>
@@ -74,18 +96,61 @@ if (baseConfiguree()) {
           ))}
         </div>
       )}
+      {projets.length > 0 && (
+        <div class="outils">
+          <nav class="puces" aria-label="Filtrer par famille">
+            <a href={lien({ famille: "toutes", groupe: "" })} aria-current={familleChoisie === "toutes" ? "true" : undefined}>Toutes · {projets.length}</a>
+            {Object.entries(FAMILLES).filter(([f]) => compteFamille(f) > 0).map(([f, l]) => (
+              <a href={lien({ famille: f, groupe: "" })} aria-current={familleChoisie === f ? "true" : undefined}>{l} · {compteFamille(f)}</a>
+            ))}
+          </nav>
+          <nav class="vues" aria-label="Affichage">
+            <a href={lien({ vue: "vignettes" })} aria-current={vue === "vignettes" ? "true" : undefined}>Vignettes</a>
+            <a href={lien({ vue: "liste" })} aria-current={vue === "liste" ? "true" : undefined}>Liste</a>
+          </nav>
+        </div>
+      )}
+      {familleChoisie === "groupe" && groupesDispo.length > 1 && (
+        <nav class="puces sous" aria-label="Filtrer par groupe de travail">
+          <a href={lien({ groupe: "" })} aria-current={!groupeChoisi ? "true" : undefined}>Tous les groupes</a>
+          {groupesDispo.map((g) => (
+            <a href={lien({ groupe: g.code })} aria-current={groupeChoisi === g.code ? "true" : undefined}>{g.libelle} · {projets.filter((p) => p.famille?.code === g.code).length}</a>
+          ))}
+        </nav>
+      )}
+
       {projets.length === 0 ? (
         <p class="doux">Aucun projet visible pour l'instant.</p>
+      ) : filtres.length === 0 ? (
+        <p class="doux">Aucun projet dans ce filtre.</p>
+      ) : vue === "vignettes" ? (
+        <ul class="vignettes">
+          {filtres.map((p) => (
+            <li class="vignette">
+              <p class="famille">{etiquetteFamille(p)}</p>
+              <h2><a href={`${ici}/${encodeURIComponent(p.id)}`}>{p.titre}</a></h2>
+              <p class="meta">
+                {[p.territoire, p.etape ? libellesEtapes[p.etape] ?? p.etape : null].filter(Boolean).join(" · ")}
+                {p.niveau >= 4 && <span class="pastille">Votre équipe</span>}
+              </p>
+              {p.resume ? <p class="resume">{p.resume}{p.niveau >= 4 && !p.resume_valide && <span class="brouillon">brouillon</span>}</p> : p.phrase ? <p class="resume">{p.phrase}</p> : <p class="resume doux">Présentation à venir.</p>}
+              {p.enjeux && (
+                <p class="enjeux"><strong>Enjeux</strong> {p.enjeux}{p.niveau >= 4 && !p.enjeux_valide && <span class="brouillon">brouillon</span>}</p>
+              )}
+            </li>
+          ))}
+        </ul>
       ) : (
         <ul class="projets">
-          {projets.map((p) => (
+          {filtres.map((p) => (
             <li>
               <a href={`${ici}/${encodeURIComponent(p.id)}`}><b>{p.titre}</b></a>
-              <span class="etiquette">{NATURES[p.nature] ?? p.nature}</span>
+              <span class="etiquette">{etiquetteFamille(p)}</span>
               {p.niveau >= 4 && <span class="pastille">Votre équipe</span>}
               <p class="doux">
-                {[p.theme, p.territoire, p.etape ? libellesEtapes[p.etape] ?? p.etape : null].filter(Boolean).join(" · ") || (p.phrase ?? "")}
+                {[p.territoire, p.etape ? libellesEtapes[p.etape] ?? p.etape : null].filter(Boolean).join(" · ") || (p.phrase ?? "")}
               </p>
+              {p.resume && <p class="ligne-resume">{p.resume}</p>}
             </li>
           ))}
         </ul>
@@ -115,6 +180,25 @@ if (baseConfiguree()) {
 </Base>
 
 <style>
+  .outils { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .puces, .vues { display: flex; flex-wrap: wrap; gap: 6px; }
+  .puces.sous { margin: -4px 0 14px; }
+  .puces a, .vues a { min-height: 38px; display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--trait); background: var(--surface); color: var(--encre); font-weight: 600; font-size: .92rem; text-decoration: none; }
+  .puces.sous a { min-height: 34px; font-weight: 500; font-size: .88rem; }
+  .vues a { border-radius: 8px; }
+  .puces a[aria-current="true"], .vues a[aria-current="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
+  .vignettes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+  .vignette { display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--trait); border-radius: 10px; background: var(--surface); min-width: 0; overflow-wrap: anywhere; }
+  .vignette .famille { margin: 0; font: 500 .72rem var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+  .vignette h2 { margin: 0; font-size: 1.12rem; line-height: 1.25; }
+  .vignette h2 a { color: var(--encre); text-decoration: none; }
+  .vignette h2 a:hover { text-decoration: underline; }
+  .vignette .meta { margin: 0; font-size: .88rem; color: var(--doux); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .vignette .resume { margin: 0; font-size: .95rem; }
+  .vignette .enjeux { margin: 0; font-size: .9rem; color: var(--doux); border-top: 1px solid var(--trait); padding-top: 8px; }
+  .vignette .enjeux strong { display: block; font: 500 .72rem var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--encre); margin-bottom: 2px; }
+  .brouillon { margin-left: 6px; font: 500 .7rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--lier); }
+  .ligne-resume { margin-top: 4px; font-size: .94rem; max-width: 75ch; }
   .pilotes { display: grid; gap: 10px; margin-bottom: 18px; }
   .pilote-carte { display: grid; gap: 2px; padding: 14px 16px; border: 1px solid var(--trait); border-left: 4px solid var(--accent); border-radius: 10px; background: var(--surface); text-decoration: none; color: var(--encre); }
   .pilote-carte:hover { border-color: var(--accent); }
