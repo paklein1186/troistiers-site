@@ -40,7 +40,8 @@ CREATE TEMP TABLE export1 AS SELECT $j${
              "subtasks": [{"t": "Convocation", "d": true}, {"t": "PV", "d": false}]},
             {"id": "SPW-01", "title": "Visite lieu A", "chantier": "SPW", "pilot": "eve", "mission": "lieu-a", "status": "done",
              "end": "2026-11-10", "notes": "Fait"},
-            {"id": "SPW-02", "title": "Rapport", "chantier": "SPW", "pilot": "isa", "mission": "lieu-a", "status": "block"}],
+            {"id": "SPW-02", "title": "Rapport", "chantier": "SPW", "pilot": "isa", "mission": "lieu-a", "status": "block",
+             "start": "2026-11-20"}],
   "absences": [{"id": "abs-1", "who": "eve", "start": "2026-12-22", "end": "2026-12-31", "label": "Congés"}],
   "proposals": [{"id": "p1", "kind": "update", "status": "accepted", "mission": "lieu-a", "reason": "Mail du lieu A",
                  "created_at": "2026-11-20T08:00:00Z", "author": "agent-missions"}],
@@ -80,6 +81,7 @@ SELECT pg_temp.ok('tâches de mission dans la mission', (SELECT string_agg(ref_e
 SELECT pg_temp.ok('porteur d''abord, puis contributeurs, sans doublon', (SELECT porteur || ' ' || array_to_string(responsables_alias, ',')
   || ' ' || array_to_string(dependances, ',') || ' ' || estimation_h FROM taches WHERE ref_externe = 'GOUV-01'), 'pa pa,eve SPW-01 4');
 SELECT pg_temp.ok('sans début : seulement l''échéance', (SELECT COALESCE(debut::text, '—') || ' ' || echeance FROM taches WHERE ref_externe = 'SPW-01'), '— 2026-11-10');
+SELECT pg_temp.ok('sans échéance : reste sans échéance', (SELECT debut || ' ' || COALESCE(echeance::text, '—') FROM taches WHERE ref_externe = 'SPW-02'), '2026-11-20 —');
 SELECT pg_temp.ok('sous-tâches', (SELECT string_agg(texte || CASE WHEN fait THEN '✓' ELSE '' END, ',' ORDER BY ordre) FROM sous_taches s
   JOIN taches t ON t.id = s.tache_id WHERE t.ref_externe = 'GOUV-01'), 'Convocation✓,PV');
 SELECT pg_temp.ok('absence comme indisponibilité', (SELECT titre || ' ' || debut || ' ' || array_to_string(responsables_alias, ',')
@@ -142,3 +144,49 @@ SELECT pg_temp.ok('rendre la main au site', pg_temp.en('authenticated', '0000000
   $q$SELECT public.regler_synchro('pilote-m', false)::text$q$), '3');
 SELECT pg_temp.ok('ensuite, modifier une tâche fonctionne', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
   $q$SELECT public.modifier_tache((SELECT id FROM taches WHERE ref_externe = 'GOUV-01'), '{"statut": "fait"}')->>'statut'$q$), 'fait');
+
+-- Familles : règles par chantier et par type de mission, puis mission, puis tâche.
+SELECT pg_temp.ok('un allié ne classe pas', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.classer_pilote('pilote-m', 'chantier', 'SPW', 'coordination-spw')::text$q$), 'refusé');
+SELECT pg_temp.ok('famille inconnue refusée', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'chantier', 'SPW', 'n-importe')::text$q$), 'refusé');
+SELECT pg_temp.ok('règles posées par la coordination', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.classer_pilote('pilote-m', 'type_mission', 'marche-public', 'coordination-spw')::text
+       || public.classer_pilote('pilote-m', 'type_mission', 'autre', 'gt-pistes')::text
+       || public.classer_pilote('pilote-m', 'chantier', 'GOUV', 'socle-strategie')::text$q$), '∅');
+CREATE TEMP TABLE fam AS SELECT 1;
+CREATE FUNCTION pg_temp.familles() RETURNS text LANGUAGE sql AS $$
+  SELECT string_agg((x->>'ref') || '=' || (x->>'famille') || CASE WHEN (x->>'famille_choisie')::boolean THEN '*' ELSE '' END, ',' ORDER BY x->>'ref')
+  FROM jsonb_array_elements(public.tableau_pilote('pilote-m', '00000000-0000-0000-0000-0000000000a1')->'taches') x WHERE NOT (x->>'absence')::boolean $$;
+SELECT pg_temp.ok('par type de mission', pg_temp.familles(), 'GOUV-01=gt-pistes,SPW-01=coordination-spw');
+SELECT pg_temp.ok('par mission', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'mission', 'lieu-b', 'gt-sdc')::text || pg_temp.familles()$q$), 'GOUV-01=gt-sdc,SPW-01=coordination-spw');
+SELECT pg_temp.ok('par tâche (choisie à la main)', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'tache', 'GOUV-01', 'socle-admin')::text || pg_temp.familles()$q$), 'GOUV-01=socle-admin*,SPW-01=coordination-spw');
+SELECT pg_temp.ok('déclasser une tâche', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'tache', 'GOUV-01', NULL)::text || pg_temp.familles()$q$), 'GOUV-01=gt-sdc,SPW-01=coordination-spw');
+SELECT pg_temp.ok('le classement survit à une synchronisation', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.importer_pilote_missions('pilote-m', (SELECT e FROM export1)) ->> 'taches') || ' ' || pg_temp.familles()$q$),
+  '3 GOUV-01=socle-strategie,SPW-01=coordination-spw,SPW-02=coordination-spw');
+
+-- Décisions du 26/11 sur le gradient.
+SELECT pg_temp.ok('1A : budget aux N3 pendant le projet (transparent)', (SELECT COALESCE(public.forme_visible(
+  jsonb_populate_record(NULL::public.projets, '{"nature": "mission", "titre": "x", "etape": "negociation", "sensibilite": "transparent"}'), 'budget', 3), '—')), 'complet');
+SELECT pg_temp.ok('1A : semi-sensible garde le budget à l''équipe', (SELECT COALESCE(public.forme_visible(
+  jsonb_populate_record(NULL::public.projets, '{"nature": "mission", "titre": "x", "etape": "negociation", "sensibilite": "semi_sensible"}'), 'budget', 3), '—')), '—');
+UPDATE projets SET etape = 'mise_en_place' WHERE ref_externe = 'pilote-m:mission:lieu-a';
+SELECT pg_temp.ok('l''étape choisie sur le site survit à la synchronisation', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.importer_pilote_missions('pilote-m', (SELECT e FROM export1)) ->> 'missions') || ' ' ||
+     (SELECT etape FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a')$q$), '2 mise_en_place');
+SELECT pg_temp.ok('4 : synchronisation avec deux nouvelles missions', pg_temp.en('service_role', NULL,
+  $q$SELECT public.importer_pilote_missions('pilote-m', jsonb_set((SELECT e FROM export1), '{missions}',
+       ((SELECT e FROM export1)->'missions') || '[{"id": "lieu-c", "name": "Lieu C", "type": "marche-public", "referent": "eve"}, {"id": "gt-d", "name": "GT D", "type": "autre"}]')) ->> 'missions'$q$), '4');
+SELECT pg_temp.ok('4 : chacune prend le défaut de sa famille', (SELECT string_agg(titre || ':' || sensibilite || ':' || COALESCE(validateur_externe, '-'), ', ' ORDER BY titre)
+  FROM projets WHERE ref_externe IN ('pilote-m:mission:lieu-c', 'pilote-m:mission:gt-d')), 'GT D:semi_sensible:-, Lieu C:semi_sensible:Le lieu accompagné');
+SELECT pg_temp.ok('4 : une mission existante n''est pas re-réglée', (SELECT sensibilite FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'), 'sensible');
+SELECT pg_temp.ok('3A : la personne reliée est membre de l''équipe du Pilote et de chaque mission', (SELECT count(*)::text FROM badge_attributions
+  WHERE personne_id = '00000000-0000-0000-0000-0000000000c1' AND badge_code = 'membre_equipe' AND statut = 'actif'), '5');
+SELECT pg_temp.ok('3A : et référente de ses missions', (SELECT string_agg(p.titre, ', ' ORDER BY p.titre) FROM badge_attributions b JOIN projets p ON p.id = b.portee_id
+  WHERE b.personne_id = '00000000-0000-0000-0000-0000000000c1' AND b.badge_code = 'referent_mission'), 'Lieu A (Namur), Lieu C');
+SELECT pg_temp.ok('3A : elle voit maintenant le Pilote', pg_temp.en('service_role', NULL,
+  $q$SELECT jsonb_array_length(public.tableau_pilote('pilote-m', '00000000-0000-0000-0000-0000000000c1')->'missions')::text$q$), '4');

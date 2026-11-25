@@ -33,6 +33,9 @@ try {
   erreur = "Le Pilote n'a pas pu être chargé. Réessayez dans un instant.";
 }
 if (!etat && !erreur) return Astro.redirect(`/membre/projets/${encodeURIComponent(id)}`);
+// Le Pilote racine d'un Pilote à missions (Pilote 3/3) s'ouvre dans sa page complète, au design de l'artefact.
+if (etat?.projet.synchro && !etat.projet.parent && etat.projet.ref && /^[a-z0-9-]{3,40}$/.test(etat.projet.ref))
+  return Astro.redirect(`/membre/pilotes/${encodeURIComponent(etat.projet.ref)}`);
 const conges = parse(readFileSync(resolve(process.cwd(), "data/conges.yaml"), "utf8"));
 const sourcePilote = etat?.projet.ref?.split(":")[0] ?? null;
 const tableauDeBord = etat?.projet.synchro || etat?.projet.parent ? `/membre/pilotes/${encodeURIComponent(sourcePilote ?? "")}` : null;
@@ -45,7 +48,7 @@ const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</
     {etat?.projet.synchro && (
       <p class="synchro-note"><b>Copie synchronisée</b> de l'artefact : lecture seule ici, on modifie encore dans l'artefact.
         {etat.projet.synchro_le && <> Dernière synchronisation : {new Date(etat.projet.synchro_le).toLocaleString("fr-BE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.</>}
-        {tableauDeBord && <> <a href={tableauDeBord}>Tableau de bord du Pilote</a>.</>}</p>
+        {tableauDeBord && <> <a href={tableauDeBord}>Ouvrir le Pilote complet</a>.</>}</p>
     )}
     {!etat?.projet.synchro && tableauDeBord && <p class="synchro-note"><a href={tableauDeBord}>Tableau de bord du Pilote</a></p>}
     {etat?.projet.synchro ? (
@@ -61,10 +64,10 @@ const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</
         <button class="tab" data-view="planning" role="tab" aria-selected="false">Planning</button>
         {tableauDeBord && (
           <>
-            <a class="tablien" href={`${tableauDeBord}?onglet=missions`}>Missions</a>
-            <a class="tablien" href={`${tableauDeBord}?onglet=taches`}>Tâches et recherche</a>
-            <a class="tablien" href={`${tableauDeBord}?onglet=journal`}>Journal</a>
-            {etat?.projet.synchro && <a class="tablien" href={`${tableauDeBord}?onglet=import`}>Synchroniser</a>}
+            <a class="tablien" href={`${tableauDeBord}#missions`}>Missions</a>
+            <a class="tablien" href={`${tableauDeBord}#tableau`}>Toutes les tâches</a>
+            <a class="tablien" href={`${tableauDeBord}#journal`}>Journal</a>
+            {etat?.projet.synchro && <a class="tablien" href={`${tableauDeBord}#journal`}>Synchroniser</a>}
           </>
         )}
       </div>
@@ -435,5 +438,5 @@ const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</
     try { const r = await fetch(URL_ETAT, { cache: "no-store" }); if (r.ok) { etat = await r.json(); tout(); } } catch { /* nouvelle tentative au prochain tour */ }
   }, 30_000);
 
-  if (etat) { statut(etat.projet.synchro ? "Copie en lecture : les modifications se font dans l'artefact, puis « Synchroniser »." : etat.peut_editer ? "Connecté à la base Trois-Tiers — vos modifications sont partagées avec l'équipe du projet." : "Lecture : vous pouvez mettre à jour les tâches dont vous êtes responsable."); tout(); }
+  if (etat) { statut((etat.projet as { synchro?: boolean }).synchro ? "Copie en lecture : les modifications se font dans l'artefact, puis « Synchroniser »." : etat.peut_editer ? "Connecté à la base Trois-Tiers — vos modifications sont partagées avec l'équipe du projet." : "Lecture : vous pouvez mettre à jour les tâches dont vous êtes responsable."); tout(); }
 </script>
