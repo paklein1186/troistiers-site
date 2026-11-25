@@ -25,5 +25,6 @@ lancer tt_test_lot1 supabase/tests/socle.sql supabase/migrations/20261123120000_
 lancer tt_test_lot2 supabase/tests/lot2.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_lot3 supabase/tests/lot3.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_pilote supabase/tests/pilote.sql $(ls supabase/migrations/*.sql | sort)
+lancer tt_test_missions supabase/tests/pilote_missions.sql $(ls supabase/migrations/*.sql | sort)
 echo "$(grep -c '^OK' <<<"$total") vérifications réussies, $(grep -c -E '^KO|ERROR' <<<"$total") en échec."
 ! grep -q -E '^KO|ERROR' <<<"$total"

@@ -34,12 +34,20 @@ try {
 }
 if (!etat && !erreur) return Astro.redirect(`/membre/projets/${encodeURIComponent(id)}`);
 const conges = parse(readFileSync(resolve(process.cwd(), "data/conges.yaml"), "utf8"));
+const sourcePilote = etat?.projet.ref?.split(":")[0] ?? null;
+const tableauDeBord = etat?.projet.synchro || etat?.projet.parent ? `/membre/pilotes/${encodeURIComponent(sourcePilote ?? "")}` : null;
 const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</g, "\\u003c");
 ---
 <Base titre={etat ? `Pilote · ${etat.projet.titre}` : "Pilote"}>
   <div class="pilote">
     <p class="eyebrow"><a href="/membre/projets">Projets</a> · <a href={`/membre/projets/${encodeURIComponent(id)}`}>{etat?.projet.titre ?? "Projet"}</a> · Pilote</p>
     <h1 class="p-h1">{etat?.projet.titre ?? "Pilote"}</h1>
+    {etat?.projet.synchro && (
+      <p class="synchro-note"><b>Copie synchronisée</b> de l'artefact : lecture seule ici, on modifie encore dans l'artefact.
+        {etat.projet.synchro_le && <> Dernière synchronisation : {new Date(etat.projet.synchro_le).toLocaleString("fr-BE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.</>}
+        {tableauDeBord && <> <a href={tableauDeBord}>Tableau de bord du Pilote</a>.</>}</p>
+    )}
+    {!etat?.projet.synchro && tableauDeBord && <p class="synchro-note"><a href={tableauDeBord}>Tableau de bord du Pilote</a></p>}
     <p class="sub">Tableau éditable (tâches, dates, responsables, statut, sous-tâches) et planning hebdomadaire avec les congés scolaires de Belgique et de l'Yonne. Tout est enregistré dans la base Trois-Tiers et partagé avec l'équipe du projet.</p>
     <p class="status-line" id="statusline">{erreur || "Chargement…"}</p>
 
@@ -63,6 +71,7 @@ const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</
 </Base>
 
 <style is:global>
+  .pilote .synchro-note{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--c0);background:var(--panel);border-radius:6px;font-size:.92rem;max-width:860px}
   .pilote{
     --paper:#FAF7F1;--panel:#FFFFFF;--panel-2:#F3EEE4;--band:#F6F2E9;--ink:#24211B;--ink-soft:#5C574C;--ink-faint:#8C877A;
     --line:#E4DDCF;--line-soft:#EFE9DC;--shadow:0 1px 2px rgba(40,34,20,.05),0 8px 24px rgba(40,34,20,.06);--accent:#B4472E;

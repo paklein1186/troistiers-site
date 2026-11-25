@@ -203,6 +203,13 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   (Tableau par couloirs, Planning avec congés `data/conges.yaml`, filtres, compteurs), enregistré dans la base
   (migration `20261125100000_lot3_pilote_natif.sql` : couloirs, responsables par code, suppressions, `pilote_projet`).
   Polices Fraunces et Public Sans servies par le site (@fontsource). Tests : 130 vérifications.
+- **Pilote 3/3** (25/11, branche `lot3/pilote-33`) : décision **1A** (chaque mission = un projet de la base, le Pilote 3/3 =
+  projet racine + tableau de bord) ; « Ma journée » et l'analyse des PV par Claude : plus tard. Pendant la transition,
+  l'artefact reste le lieu de travail, le site en garde une **copie synchronisée en lecture seule** (migration
+  `20261125120000_lot3_pilote_missions.sql`, `importer_pilote_missions` reçoit l'export JSON tel quel) ; page
+  `/membre/pilotes/pilote-33` (Missions, Tâches + recherche, Journal, Synchroniser). Synchro automatique bloquée :
+  l'artefact appartient à une autre organisation claude.ai qui refuse ArtifactData depuis Claude Code ; PA règle
+  l'accès (option 1) le 26/11 ; en attendant, dépôt manuel de l'export. Tests : 161 vérifications.
 
 ## Avant d'ouvrir les paiements réels
 

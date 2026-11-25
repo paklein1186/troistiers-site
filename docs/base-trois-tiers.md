@@ -167,6 +167,32 @@ dans la base, au nom de la personne, avec ses droits ; l'état est relu toutes l
 Pour le pivot : exécuter la migration, puis le petit fichier privé `pilote-pivot-couloirs.sql` (ordre et couleurs des
 5 couloirs, noms P-A / Eveline / Yan / Collectif), fourni à part.
 
+## Pilote à missions : le Pilote 3/3 (lot 3)
+
+Décisions du 25/11 : chaque mission du Pilote 3/3 devient un projet de la base (nature « mission ») ; le Pilote 3/3
+devient un projet « racine » (tâches générales, indisponibilités) qui rassemble les missions. Pendant la transition,
+l'artefact reste le lieu de travail : la base en garde une **copie synchronisée, en lecture seule sur le site**.
+
+Migration `supabase/migrations/20261125120000_lot3_pilote_missions.sql` :
+- `projets` : `parent_id` (mission → Pilote), `source_pilote`, `fiche` (contexte, demandes, prochaines actions,
+  sources, référent·e…), `synchro_externe`, `synchro_le` ; `taches` : `porteur`, `dependances`, `estimation_h`, `source` ;
+- `pilote_historique` : journal et propositions des agents ;
+- `importer_pilote_missions(source, export)` : reçoit tel quel l'export « Exporter tout (JSON) » de l'artefact
+  (coordination, ou SQL Editor) ; relançable sans doublon ; ce qui a disparu de l'artefact disparaît de la copie ;
+  une tâche qui change de mission change de projet ; chantier = couloir ; pilote puis contributeurs = responsables ;
+- lecture seule : un déclencheur refuse toute modification d'une copie synchronisée hors import ;
+  `regler_synchro(source, false)` rend la main au site à la fin de la transition ;
+- `tableau_pilote`, `historique_pilote`, `pilotes_visibles` (équipe N4) ; `relier_alias` ne touche plus que les
+  projets du Pilote concerné.
+
+Site : `/membre/pilotes/pilote-33` (carte en tête de `/membre/projets`) : onglets Missions (fiches, filtres statut et
+type), Tâches (recherche dans titres, notes, sous-tâches, missions ; filtres personne et statut ; indisponibilités à
+venir), Journal (journal et propositions des agents), Synchroniser (dépôt de l'export, coordination). Chaque mission
+ouvre son Pilote (Tableau et Planning, en lecture).
+
+Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
+claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
+
 ## Lots suivants
 
 - Lot 3 : le Pilote branché (lecture et écriture via MCP, données migrées hors de l'artefact).
