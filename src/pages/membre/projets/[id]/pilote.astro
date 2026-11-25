@@ -48,13 +48,25 @@ const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</
         {tableauDeBord && <> <a href={tableauDeBord}>Tableau de bord du Pilote</a>.</>}</p>
     )}
     {!etat?.projet.synchro && tableauDeBord && <p class="synchro-note"><a href={tableauDeBord}>Tableau de bord du Pilote</a></p>}
-    <p class="sub">Tableau éditable (tâches, dates, responsables, statut, sous-tâches) et planning hebdomadaire avec les congés scolaires de Belgique et de l'Yonne. Tout est enregistré dans la base Trois-Tiers et partagé avec l'équipe du projet.</p>
+    {etat?.projet.synchro ? (
+      <p class="sub">Tableau par chantier et planning hebdomadaire avec les congés scolaires de Belgique et de l'Yonne, en lecture : les autres onglets (missions, recherche, journal) sont à côté.</p>
+    ) : (
+      <p class="sub">Tableau éditable (tâches, dates, responsables, statut, sous-tâches) et planning hebdomadaire avec les congés scolaires de Belgique et de l'Yonne. Tout est enregistré dans la base Trois-Tiers et partagé avec l'équipe du projet.</p>
+    )}
     <p class="status-line" id="statusline">{erreur || "Chargement…"}</p>
 
     <div class="toolbar">
       <div class="tabs" role="tablist">
         <button class="tab on" data-view="tableau" role="tab" aria-selected="true">Tableau</button>
         <button class="tab" data-view="planning" role="tab" aria-selected="false">Planning</button>
+        {tableauDeBord && (
+          <>
+            <a class="tablien" href={`${tableauDeBord}?onglet=missions`}>Missions</a>
+            <a class="tablien" href={`${tableauDeBord}?onglet=taches`}>Tâches et recherche</a>
+            <a class="tablien" href={`${tableauDeBord}?onglet=journal`}>Journal</a>
+            {etat?.projet.synchro && <a class="tablien" href={`${tableauDeBord}?onglet=import`}>Synchroniser</a>}
+          </>
+        )}
       </div>
       <div class="filters" id="filtres"></div>
     </div>
@@ -96,8 +108,10 @@ const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</
   .pilote .status-line{margin-top:8px;font-size:12.5px;color:var(--ink-faint)}
   .pilote .status-line.warn{color:var(--st-block)}
   .pilote .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
-  .pilote .tabs{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .pilote .tabs{display:inline-flex;flex-wrap:wrap;max-width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
   .pilote .tab{border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:7px 15px;border-radius:8px;cursor:pointer;min-height:auto}
+  .pilote .tablien{font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:7px 15px;border-radius:8px;text-decoration:none;white-space:nowrap}
+  .pilote .tablien:hover{color:var(--ink);background:var(--panel)}
   .pilote .tab.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
   .pilote .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
   .pilote .flabel{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
@@ -421,5 +435,5 @@ const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</
     try { const r = await fetch(URL_ETAT, { cache: "no-store" }); if (r.ok) { etat = await r.json(); tout(); } } catch { /* nouvelle tentative au prochain tour */ }
   }, 30_000);
 
-  if (etat) { statut(etat.peut_editer ? "Connecté à la base Trois-Tiers — vos modifications sont partagées avec l'équipe du projet." : "Lecture : vous pouvez mettre à jour les tâches dont vous êtes responsable."); tout(); }
+  if (etat) { statut(etat.projet.synchro ? "Copie en lecture : les modifications se font dans l'artefact, puis « Synchroniser »." : etat.peut_editer ? "Connecté à la base Trois-Tiers — vos modifications sont partagées avec l'équipe du projet." : "Lecture : vous pouvez mettre à jour les tâches dont vous êtes responsable."); tout(); }
 </script>

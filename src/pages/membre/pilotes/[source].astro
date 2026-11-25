@@ -114,11 +114,6 @@ const lien = (params: Record<string, string>) => `${ici}?${new URLSearchParams(p
         {lienSur(tableau.racine.artefact ?? undefined) && <> <a href={tableau.racine.artefact!} rel="noopener">Ouvrir l'artefact</a>.</>}
       </p>
     )}
-    {tableau && (
-      <p class="actions-tete">
-        <a class="bouton-lien" href={`/membre/projets/${tableau.racine.id}/pilote`}>Tableau et planning des tâches générales</a>
-      </p>
-    )}
   </section>
 
   {message && <p class="avertissement" role="alert">{message}</p>}
@@ -131,6 +126,7 @@ const lien = (params: Record<string, string>) => `${ici}?${new URLSearchParams(p
         {o.id === "taches" && tableau && <span class="compte">{tableau.taches.filter((t) => !t.absence && t.statut !== "fait").length}</span>}
       </a>
     ))}
+    {tableau && <a href={`/membre/projets/${tableau.racine.id}/pilote`}>Tableau et planning</a>}
   </nav>
 
   {onglet === "missions" && tableau && (
