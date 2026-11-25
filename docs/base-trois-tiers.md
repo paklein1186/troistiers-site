@@ -204,6 +204,19 @@ Dans le Pilote : filtre « Famille », « Grouper par Famille », et pour la coo
 d'une tâche et sur chaque mission (`classer_pilote`). Les exceptions du Pilote 3/3 sont chargées par un fichier privé
 (`pilote-33-familles.sql`), fourni à part.
 
+Gradient de diffusion (étude sur 10 missions, décisions du 26/11 : 1A, 2A, 3A, 4 ; migration
+`20261126110000_lot3_gradient_decisions.sql`) :
+- **1A** : le budget est visible des N3 (actifs, alliés, partenaires) dès la négociation (plafond d'étape « en cours ») ;
+  un projet semi-sensible le garde à l'équipe.
+- **2A** : les versions adaptées sous N4 seront proposées par un agent et relues par le référent (étape 2, à faire).
+- **3A** : une personne reliée à un code d'un Pilote à missions devient membre d'équipe du Pilote et de chaque mission,
+  et référente des missions dont elle est référente dans l'artefact (`equiper_pilote`, appelée par `relier_alias` et
+  à chaque synchronisation). Le code « col » (collectif) n'est relié à personne.
+- **4** : une nouvelle mission reçoit le réglage de sa famille (`pilote_defauts_famille`) : socle sensible ;
+  coordination semi-sensible avec validation par le lieu accompagné ; groupes de travail semi-sensible.
+- La synchronisation garde l'étape choisie sur le site ; seuls « en veille » et « clôturée » viennent de l'artefact.
+- Réglages de l'échantillon et des missions existantes : fichier privé `pilote-33-gradient.sql`, fourni à part.
+
 Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
 claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
 

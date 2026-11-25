@@ -168,3 +168,25 @@ SELECT pg_temp.ok('déclasser une tâche', pg_temp.en('service_role', NULL,
 SELECT pg_temp.ok('le classement survit à une synchronisation', pg_temp.en('service_role', NULL,
   $q$SELECT (public.importer_pilote_missions('pilote-m', (SELECT e FROM export1)) ->> 'taches') || ' ' || pg_temp.familles()$q$),
   '3 GOUV-01=socle-strategie,SPW-01=coordination-spw,SPW-02=coordination-spw');
+
+-- Décisions du 26/11 sur le gradient.
+SELECT pg_temp.ok('1A : budget aux N3 pendant le projet (transparent)', (SELECT COALESCE(public.forme_visible(
+  jsonb_populate_record(NULL::public.projets, '{"nature": "mission", "titre": "x", "etape": "negociation", "sensibilite": "transparent"}'), 'budget', 3), '—')), 'complet');
+SELECT pg_temp.ok('1A : semi-sensible garde le budget à l''équipe', (SELECT COALESCE(public.forme_visible(
+  jsonb_populate_record(NULL::public.projets, '{"nature": "mission", "titre": "x", "etape": "negociation", "sensibilite": "semi_sensible"}'), 'budget', 3), '—')), '—');
+UPDATE projets SET etape = 'mise_en_place' WHERE ref_externe = 'pilote-m:mission:lieu-a';
+SELECT pg_temp.ok('l''étape choisie sur le site survit à la synchronisation', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.importer_pilote_missions('pilote-m', (SELECT e FROM export1)) ->> 'missions') || ' ' ||
+     (SELECT etape FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a')$q$), '2 mise_en_place');
+SELECT pg_temp.ok('4 : synchronisation avec deux nouvelles missions', pg_temp.en('service_role', NULL,
+  $q$SELECT public.importer_pilote_missions('pilote-m', jsonb_set((SELECT e FROM export1), '{missions}',
+       ((SELECT e FROM export1)->'missions') || '[{"id": "lieu-c", "name": "Lieu C", "type": "marche-public", "referent": "eve"}, {"id": "gt-d", "name": "GT D", "type": "autre"}]')) ->> 'missions'$q$), '4');
+SELECT pg_temp.ok('4 : chacune prend le défaut de sa famille', (SELECT string_agg(titre || ':' || sensibilite || ':' || COALESCE(validateur_externe, '-'), ', ' ORDER BY titre)
+  FROM projets WHERE ref_externe IN ('pilote-m:mission:lieu-c', 'pilote-m:mission:gt-d')), 'GT D:semi_sensible:-, Lieu C:semi_sensible:Le lieu accompagné');
+SELECT pg_temp.ok('4 : une mission existante n''est pas re-réglée', (SELECT sensibilite FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'), 'sensible');
+SELECT pg_temp.ok('3A : la personne reliée est membre de l''équipe du Pilote et de chaque mission', (SELECT count(*)::text FROM badge_attributions
+  WHERE personne_id = '00000000-0000-0000-0000-0000000000c1' AND badge_code = 'membre_equipe' AND statut = 'actif'), '5');
+SELECT pg_temp.ok('3A : et référente de ses missions', (SELECT string_agg(p.titre, ', ' ORDER BY p.titre) FROM badge_attributions b JOIN projets p ON p.id = b.portee_id
+  WHERE b.personne_id = '00000000-0000-0000-0000-0000000000c1' AND b.badge_code = 'referent_mission'), 'Lieu A (Namur), Lieu C');
+SELECT pg_temp.ok('3A : elle voit maintenant le Pilote', pg_temp.en('service_role', NULL,
+  $q$SELECT jsonb_array_length(public.tableau_pilote('pilote-m', '00000000-0000-0000-0000-0000000000c1')->'missions')::text$q$), '4');
