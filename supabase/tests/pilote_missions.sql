@@ -144,3 +144,27 @@ SELECT pg_temp.ok('rendre la main au site', pg_temp.en('authenticated', '0000000
   $q$SELECT public.regler_synchro('pilote-m', false)::text$q$), '3');
 SELECT pg_temp.ok('ensuite, modifier une tâche fonctionne', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
   $q$SELECT public.modifier_tache((SELECT id FROM taches WHERE ref_externe = 'GOUV-01'), '{"statut": "fait"}')->>'statut'$q$), 'fait');
+
+-- Familles : règles par chantier et par type de mission, puis mission, puis tâche.
+SELECT pg_temp.ok('un allié ne classe pas', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.classer_pilote('pilote-m', 'chantier', 'SPW', 'coordination-spw')::text$q$), 'refusé');
+SELECT pg_temp.ok('famille inconnue refusée', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'chantier', 'SPW', 'n-importe')::text$q$), 'refusé');
+SELECT pg_temp.ok('règles posées par la coordination', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.classer_pilote('pilote-m', 'type_mission', 'marche-public', 'coordination-spw')::text
+       || public.classer_pilote('pilote-m', 'type_mission', 'autre', 'gt-pistes')::text
+       || public.classer_pilote('pilote-m', 'chantier', 'GOUV', 'socle-strategie')::text$q$), '∅');
+CREATE TEMP TABLE fam AS SELECT 1;
+CREATE FUNCTION pg_temp.familles() RETURNS text LANGUAGE sql AS $$
+  SELECT string_agg((x->>'ref') || '=' || (x->>'famille') || CASE WHEN (x->>'famille_choisie')::boolean THEN '*' ELSE '' END, ',' ORDER BY x->>'ref')
+  FROM jsonb_array_elements(public.tableau_pilote('pilote-m', '00000000-0000-0000-0000-0000000000a1')->'taches') x WHERE NOT (x->>'absence')::boolean $$;
+SELECT pg_temp.ok('par type de mission', pg_temp.familles(), 'GOUV-01=gt-pistes,SPW-01=coordination-spw');
+SELECT pg_temp.ok('par mission', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'mission', 'lieu-b', 'gt-sdc')::text || pg_temp.familles()$q$), 'GOUV-01=gt-sdc,SPW-01=coordination-spw');
+SELECT pg_temp.ok('par tâche (choisie à la main)', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'tache', 'GOUV-01', 'socle-admin')::text || pg_temp.familles()$q$), 'GOUV-01=socle-admin*,SPW-01=coordination-spw');
+SELECT pg_temp.ok('déclasser une tâche', pg_temp.en('service_role', NULL,
+  $q$SELECT public.classer_pilote('pilote-m', 'tache', 'GOUV-01', NULL)::text || pg_temp.familles()$q$), 'GOUV-01=gt-sdc,SPW-01=coordination-spw');
+SELECT pg_temp.ok('le classement survit à une synchronisation', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.importer_pilote_missions('pilote-m', (SELECT e FROM export1)) ->> 'taches') || ' ' || pg_temp.familles()$q$),
+  '3 GOUV-01=socle-strategie,SPW-01=coordination-spw,SPW-02=coordination-spw');

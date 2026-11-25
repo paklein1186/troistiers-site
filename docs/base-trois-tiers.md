@@ -194,6 +194,16 @@ seule : « Ma journée », l'Hebdo, les validations et l'analyse des PV restent 
 Migration `20261126090000_lot3_pilote_missions_dates.sql` : une tâche sans échéance reste sans échéance (avant, elle
 prenait sa date de début et paraissait en retard). Après l'avoir exécutée, relancer « Synchroniser ».
 
+Familles d'activité (migration `20261126100000_lot3_pilote_familles.sql`, décisions du 26/11) : **fonction socle**
+(stratégie et gouvernance, administration, finances et facturation, financements et instruments, animation et
+communication), **coordination** (marché public wallon) et **groupes de travail** (SDC, AMO et réseau d'accompagnants,
+réseaux européens, tiers-lieux en maison de retraite, réseau territoires, institut recherche et données, pistes à
+dispatcher). Le classement appartient au site et survit aux synchronisations : une tâche prend son classement propre,
+sinon celui de sa mission, sinon celui du type de mission (marché public → coordination), sinon celui de son chantier.
+Dans le Pilote : filtre « Famille », « Grouper par Famille », et pour la coordination un choix de famille dans la fiche
+d'une tâche et sur chaque mission (`classer_pilote`). Les exceptions du Pilote 3/3 sont chargées par un fichier privé
+(`pilote-33-familles.sql`), fourni à part.
+
 Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
 claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
 

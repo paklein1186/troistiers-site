@@ -31,10 +31,30 @@ const S = {
 };
 const vueInitiale = (location.hash.match(/^#(tableau|missions|planning|attente|journal)$/) || [])[1];
 const U = {
-  view: vueInitiale || DATA.vue || "tableau", fResp: "all", fCh: "all", group: "chantier", hideDone: false,
+  view: vueInitiale || DATA.vue || "tableau", fResp: "all", fCh: "all", fFam: "all", group: "chantier", hideDone: false,
   openSubs: new Set(), mfilter: "active", mtype: "all", jFilter: "all", q: "", sOpen: false, sType: "all", sMore: {}, fiche: null, mfocus: "",
 };
 
+/* Familles d'activité : fonction socle, coordination, groupes de travail (classement propre au site). */
+const FAM = DATA.familles || [];
+const FAMG = { socle: "Fonction socle", coordination: "Coordination", groupe: "Groupes de travail" };
+const famDe = (code) => FAM.find((f) => f.code === code);
+const famLib = (code) => { const f = famDe(code); return f ? FAMG[f.famille] + " · " + f.libelle : "Non classé"; };
+const famOk = (code) => U.fFam === "all" || code === U.fFam || (famDe(code) || {}).famille === U.fFam;
+function selectFamille(id, valeur, attrs, avecTous) {
+  const groupes = Object.entries(FAMG).map(([g, l]) => `<optgroup label="${esc(l)}">${avecTous ? `<option value="${g}" ${valeur === g ? "selected" : ""}>${esc(l)} : tout</option>` : ""}${FAM.filter((f) => f.famille === g).map((f) => `<option value="${esc(f.code)}" ${valeur === f.code ? "selected" : ""}>${esc(f.libelle)}</option>`).join("")}</optgroup>`).join("");
+  return `<select class="fsel" id="${esc(id)}" ${attrs}>${avecTous ? `<option value="all">Toutes</option>` : ""}${groupes}</select>`;
+}
+async function classer(type, ref, famille) {
+  try {
+    const r = await fetch(DATA.url_classer, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type, ref, famille }) });
+    const j = await r.json();
+    if (!r.ok) { alert(j.erreur || "Classement refusé."); return; }
+    for (const x of j.taches) { const t = S.tasks.get(x.id); if (t) { t.famille = x.famille; t.famille_choisie = x.choisie; } }
+    for (const x of j.missions) { const m = missionById(x.id); if (m) { m.famille = x.famille; m.famille_choisie = x.choisie; } }
+    renderAll();
+  } catch { alert("Le classement n’a pas pu être enregistré. Réessayez."); }
+}
 const members = () => S.config.members;
 const chantiers = () => S.config.chantiers;
 const mName = (k) => (members().find((m) => m.k === k) || {}).n || (k ? k : "—");
@@ -97,16 +117,18 @@ function renderFilters() {
     <div class="fgroup"><span class="flabel">Chantier</span>
       <select class="fsel" id="f-ch" data-chg="fch"><option value="all">Tous</option>${chantiers().map((c) => `<option value="${esc(c.k)}" ${U.fCh === c.k ? "selected" : ""}>${esc(c.k)} · ${esc(c.n)}</option>`).join("")}</select>
     </div>
+    ${FAM.length ? `<div class="fgroup"><span class="flabel">Famille</span>${selectFamille("f-fam", U.fFam, 'data-chg="ffam"', true)}</div>` : ""}
     <div class="fgroup"><span class="flabel">Grouper par</span>
       <button class="fchip ${U.group === "pilot" ? "on" : ""}" data-act="group" data-k="pilot">Personne</button>
       <button class="fchip ${U.group === "chantier" ? "on" : ""}" data-act="group" data-k="chantier">Chantier</button>
+      ${FAM.length ? `<button class="fchip ${U.group === "famille" ? "on" : ""}" data-act="group" data-k="famille">Famille</button>` : ""}
     </div>
     <label class="ck"><input type="checkbox" id="f-hide" data-chg="hide" ${U.hideDone ? "checked" : ""}> Masquer les tâches faites</label>`;
 }
 function renderSummary() {
   const el = $("#summary");
   if (U.view !== "tableau" && U.view !== "planning") { el.innerHTML = ""; return; }
-  const list = [...S.tasks.values()].filter((t) => U.fResp === "all" || t.pilot === U.fResp || (t.contributors || []).includes(U.fResp));
+  const list = [...S.tasks.values()].filter((t) => (U.fResp === "all" || t.pilot === U.fResp || (t.contributors || []).includes(U.fResp)) && famOk(t.famille));
   const c = { todo: 0, doing: 0, block: 0, done: 0 }; let late = 0; const tm = todayMs();
   for (const t of list) { c[t.status] = (c[t.status] || 0) + 1; if (t.status !== "done" && toMs(t.end) !== null && toMs(t.end) < tm) late++; }
   const pend = S.proposals.filter((p) => p.status === "pending").length;
@@ -121,11 +143,16 @@ function renderSummary() {
 function filtered() {
   return [...S.tasks.values()].filter((t) =>
     (U.fResp === "all" || t.pilot === U.fResp || (t.contributors || []).includes(U.fResp)) &&
-    (U.fCh === "all" || t.chantier === U.fCh) && (!U.hideDone || t.status !== "done"));
+    (U.fCh === "all" || t.chantier === U.fCh) && famOk(t.famille) && (!U.hideDone || t.status !== "done"));
 }
 function grouped(list) {
   let g;
-  if (U.group === "pilot") {
+  if (U.group === "famille") {
+    g = FAM.map((f) => ({ key: f.code, label: FAMG[f.famille] + " · " + f.libelle, c: "col", items: [] }));
+    const none = { key: "", label: "Non classé", c: "none", items: [] };
+    for (const t of list) (g.find((x) => x.key === t.famille) || none).items.push(t);
+    g.push(none);
+  } else if (U.group === "pilot") {
     g = members().map((m) => ({ key: m.k, label: m.n, c: m.k, items: [] }));
     const none = { key: "", label: "Sans pilote", c: "none", items: [] };
     for (const t of list) (g.find((x) => x.key === t.pilot) || none).items.push(t);
@@ -186,6 +213,7 @@ function missionCard(m) {
   const kindL = (k) => (k === "mail" ? "mail" : k === "pv" ? "PV" : k === "element" ? "Element" : k === "whatsapp" ? "WhatsApp" : "Drive");
   return `<div class="mcard ${U.mfocus === m.id ? "hl" : ""}" data-mid="${esc(m.id)}" id="mission-${esc(m.id)}">
     <div class="mhead"><span class="mname">${esc(m.name)}</span><span class="mtype ${m.type === "marche-public" ? "mp" : ""}">${m.type === "marche-public" ? "Marché public" : "Autre mission"}</span>${fresh ? '<span class="mnew">du nouveau</span>' : ""}</div>
+    ${FAM.length ? `<div class="mmeta"><span class="famtag">${esc(famLib(m.famille))}</span>${DATA.peut_classer ? `<label>Classer ${selectFamille("mfam-" + m.id, m.famille_choisie ? m.famille : "", `data-chg="classer" data-type="mission" data-ref="${esc(m.id)}"`, false).replace('<optgroup', `<option value="">Automatique</option><optgroup`)}</label>` : ""}</div>` : ""}
     <div class="mmeta">${m.lieu ? `<span>${esc(m.lieu)}</span>` : ""}<span>Statut : ${esc(MSTAT[m.statut || "active"] || m.statut)}</span>${m.referent ? `<span>Référent·e : ${esc(mName(m.referent))}</span>` : ""}${m.last_activity ? `<span>activité : ${esc(fmtD(m.last_activity))}</span>` : ""}</div>
     ${m.context_md ? `<div class="mlab">Contexte</div><div class="md">${mdLite(m.context_md)}</div>` : ""}
     ${m.requests_md ? `<div class="mlab">Demandes et attentes</div><div class="md">${mdLite(m.requests_md)}</div>` : ""}
@@ -196,13 +224,14 @@ function missionCard(m) {
   </div>`;
 }
 function renderMissions() {
-  const list = S.missions.filter((m) => (U.mfilter === "all" || (m.statut || "active") === U.mfilter) && (U.mtype === "all" || (m.type || "autre") === U.mtype))
+  const list = S.missions.filter((m) => (U.mfilter === "all" || (m.statut || "active") === U.mfilter) && (U.mtype === "all" || (m.type || "autre") === U.mtype) && famOk(m.famille))
     .sort((a, b) => (b.last_activity || "").localeCompare(a.last_activity || "") || a.name.localeCompare(b.name, "fr"));
   const cnt = (k) => S.missions.filter((m) => (m.statut || "active") === k).length;
   $("#view-missions").innerHTML = `
     <div class="mtools">
       <div class="fgroup"><span class="flabel">Statut</span>${[["active", "Actives · " + cnt("active")], ["veille", "En veille · " + cnt("veille")], ["cloturee", "Clôturées · " + cnt("cloturee")], ["all", "Toutes"]].map(([k, l]) => `<button class="fchip ${U.mfilter === k ? "on" : ""}" data-act="mfilter" data-k="${k}">${l}</button>`).join("")}</div>
       <div class="fgroup"><span class="flabel">Type</span>${[["all", "Tous"], ["marche-public", "Marché public"], ["autre", "Autres"]].map(([k, l]) => `<button class="fchip ${U.mtype === k ? "on" : ""}" data-act="mtype" data-k="${k}">${l}</button>`).join("")}</div>
+      ${FAM.length ? `<div class="fgroup"><span class="flabel">Famille</span>${selectFamille("m-fam", U.fFam, 'data-chg="ffam"', true)}</div>` : ""}
     </div>
     <p class="msg" style="margin-top:8px">L’agent Missions tient les fiches à jour dans l’artefact ; elles arrivent ici à chaque synchronisation.</p>
     ${list.length ? `<div class="mgrid">${list.map(missionCard).join("")}</div>` : `<div class="board" style="margin-top:14px"><p class="empty"><b>Aucune mission dans ce filtre.</b></p></div>`}`;
@@ -407,6 +436,7 @@ function ficheTask(t) {
       <div class="fkv"><span class="fl">${t.milestone ? "Jalon" : "Dates"}</span><span class="tmeta">${datesLine(t)}</span></div>
       <div class="fkv"><span class="fl">Qui</span><div class="resp">${respChips(t)}</div></div>
       ${t.estimate_h ? `<div class="fkv"><span class="fl">Durée estimée</span><span>${esc(t.estimate_h)} h</span></div>` : ""}
+      ${FAM.length ? `<div class="fkv"><span class="fl">Famille</span>${DATA.peut_classer ? selectFamille("tfam-" + t.id, t.famille_choisie ? t.famille : "", `data-chg="classer" data-type="tache" data-ref="${esc(t.id)}"`, false).replace('<optgroup', `<option value="">Automatique · ${esc(t.famille_choisie ? "" : famLib(t.famille))}</option><optgroup`) : `<span>${esc(famLib(t.famille))}</span>`}</div>` : ""}
     </div>
     ${m ? `<div class="cxlab">Mission</div><div class="flinked"><div class="cxrow"><button class="mchip" data-act="gomission" data-mid="${esc(m.id)}">${esc(m.name)}</button>${m.lieu ? `<span>${esc(m.lieu)}</span>` : ""}${m.referent ? `<span>référent·e ${esc(mName(m.referent))}</span>` : ""}</div>${(m.next_actions || []).length ? `<ul class="cxsubs">${m.next_actions.slice(0, 4).map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : ""}</div>` : ""}
     <div class="cxlab">Sous-tâches · ${nd}/${subs.length}</div>
@@ -465,6 +495,8 @@ document.addEventListener("click", (ev) => {
 document.addEventListener("change", (ev) => {
   const el = ev.target as HTMLInputElement;
   if (el.dataset.chg === "fch") { U.fCh = el.value; renderAll(); }
+  else if (el.dataset.chg === "ffam") { U.fFam = el.value; renderAll(); }
+  else if (el.dataset.chg === "classer") classer(el.dataset.type, el.dataset.ref, el.value || null);
   else if (el.dataset.chg === "hide") { U.hideDone = el.checked; renderAll(); }
 });
 const q = $("#q") as HTMLInputElement;

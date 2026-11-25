@@ -210,7 +210,12 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   `/membre/pilotes/pilote-33`, **au design de l'artefact** (25/11, demande de PA : Tableau, Missions, Planning, Salle
   d'attente, Agents & journal + Synchroniser, recherche, fiches ; CSS de l'artefact limité à `.p33`). Synchro automatique bloquée :
   l'artefact appartient à une autre organisation claude.ai qui refuse ArtifactData depuis Claude Code ; PA règle
-  l'accès (option 1) le 26/11 ; en attendant, dépôt manuel de l'export. Tests : 161 vérifications.
+  l'accès (option 1) le 26/11 ; en attendant, dépôt manuel de l'export. **Familles** (26/11) : fonction socle (stratégie,
+  admin, finances, instruments, **volet animation**), coordination (marché public wallon), groupes de travail (SDC, AMO et
+  réseau d'accompagnants, réseaux européens, tiers-lieux en maison de retraite, **réseau territoires**, **institut
+  recherche et données**, **pistes à dispatcher** par la coordination) ; classement propre au site, corrigeable dans le
+  Pilote (migration `20261126100000_lot3_pilote_familles.sql`). Mission ASPA (FRB) : rangée en AMO, maison de retraite ?
+  à confirmer. Tests : 169 vérifications.
 
 ## Avant d'ouvrir les paiements réels
 

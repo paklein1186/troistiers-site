@@ -188,7 +188,7 @@ export interface Tache {
   jalon: boolean; absence: boolean; statut: "a_faire" | "en_cours" | "bloque" | "fait"; notes: string | null;
   responsables: { id: string; nom: string }[]; responsables_alias: string[]; sous_taches: SousTache[]; modifiable?: boolean;
   ref?: string | null; porteur?: string | null; dependances?: string[]; estimation_h?: number | null; source?: { label?: string; url?: string } | null;
-  mission?: boolean;
+  mission?: boolean; famille?: string | null; famille_choisie?: boolean;
 }
 export const STATUTS_TACHE: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", bloque: "Bloqué", fait: "Fait" };
 export const tachesProjet = (projet: string, acteur: string) => rpc<Tache[]>("taches_projet", { p_projet: projet, p_acteur: acteur });
@@ -278,10 +278,13 @@ export interface FicheMission {
 export interface MissionVue {
   id: string; ref: string; titre: string; territoire: string | null; etape: string; fiche: FicheMission;
   taches: number; faites: number; en_cours: number; bloquees: number;
+  famille?: string | null; famille_choisie?: boolean;
 }
 export interface TableauPilote {
   racine: { id: string; titre: string; synchro: boolean; synchro_le: string | null; artefact: string | null; source: string };
   peut_importer: boolean;
+  peut_classer?: boolean;
+  familles?: { code: string; famille: "socle" | "coordination" | "groupe"; libelle: string }[];
   chantiers: { nom: string; code?: string }[];
   personnes: { code: string; nom: string; relie: boolean; id: string | null }[];
   missions: MissionVue[];
@@ -303,3 +306,14 @@ export const historiquePilote = (projet: string, acteur: string, limite = 300) =
   rpc<EntreeHistorique[]>("historique_pilote", { p_projet: projet, p_acteur: acteur, p_limite: limite });
 export const importerPiloteMissions = (source: string, exportJson: unknown, acteur: string) =>
   rpc<BilanImport>("importer_pilote_missions", { p_source: source, p_export: exportJson, p_acteur: acteur });
+export const FAMILLE_PILOTE = /^[a-z0-9-]{3,40}$/;
+export const classerPilote = (source: string, type: "tache" | "mission", ref: string, famille: string | null, acteur: string) =>
+  rpc<null>("classer_pilote", { p_source: source, p_type: type, p_ref: ref, p_famille: famille, p_acteur: acteur });
+/** Familles des tâches et des missions d'un Pilote, avec les identifiants de l'artefact (pour la page du Pilote). */
+export function famillesDuTableau(t: TableauPilote) {
+  const codeMission = (m: MissionVue) => m.ref.split(":mission:")[1] ?? m.ref;
+  return {
+    taches: t.taches.filter((x) => !x.absence).map((x) => ({ id: x.ref ?? x.id, famille: x.famille ?? null, choisie: !!x.famille_choisie })),
+    missions: t.missions.map((m) => ({ id: codeMission(m), famille: m.famille ?? null, choisie: !!m.famille_choisie })),
+  };
+}

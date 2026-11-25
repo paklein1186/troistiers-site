@@ -88,6 +88,7 @@ if (tableau) {
       mission: t.mission ? codeMission.get(t.projet_id) ?? null : null,
       start: t.debut, end: t.echeance, milestone: t.jalon, deps: t.dependances ?? [], estimate_h: t.estimation_h ?? null,
       notes: t.notes ?? "", source: t.source ?? null, subtasks: t.sous_taches.map((s) => ({ t: s.texte, d: s.fait })),
+      famille: t.famille ?? null, famille_choisie: !!t.famille_choisie,
     };
   });
   const absences = tableau.taches.filter((t) => t.absence).map((t) => ({
@@ -98,6 +99,7 @@ if (tableau) {
     lieu: m.fiche.lieu ?? m.territoire ?? "", referent: m.fiche.referent ?? null, aliases: m.fiche.alias ?? [],
     context_md: m.fiche.contexte ?? "", requests_md: m.fiche.demandes ?? "", next_actions: m.fiche.prochaines_actions ?? [],
     sources: m.fiche.sources ?? [], last_activity: m.fiche.derniere_activite ?? null,
+    famille: m.famille ?? null, famille_choisie: !!m.famille_choisie,
   }));
   const journal = historique.filter((h) => h.genre === "journal").map((h) => ({
     id: h.ref, ts: h.quand, who: h.qui, type: h.type, summary: h.resume ?? "", task_id: h.tache, source: h.source ?? null,
@@ -110,7 +112,8 @@ if (tableau) {
   const periodes = (z: string, l?: { nom: string; debut: string; fin: string }[]) =>
     (l ?? []).map((p) => ({ z, n: p.nom, s: String(p.debut).slice(0, 10), e: String(p.fin).slice(0, 10) }));
   donnees = JSON.stringify({
-    racine: tableau.racine, peut_importer: tableau.peut_importer, vue: envoi ? "journal" : null,
+    racine: tableau.racine, peut_importer: tableau.peut_importer, peut_classer: !!tableau.peut_classer,
+    familles: tableau.familles ?? [], url_classer: `${ici}/classer`, vue: envoi ? "journal" : null,
     import: envoi ? { bilan, message } : null,
     membres, chantiers: tableau.chantiers.map((c) => ({ k: c.code ?? c.nom, n: c.nom })),
     taches, absences, missions, journal, propositions,
@@ -170,6 +173,8 @@ const titre = tableau?.racine.titre ?? (source === "pilote-33" ? "Pilote 3/3" : 
   main:has(> .p33) { padding-block: 0; }
   .p33 { min-height: 70vh; }
   .p33 .eyebrow a { color: inherit; }
+  .p33 .famtag { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--ink-soft); background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
+  .p33 .mmeta label .fsel { max-width: 240px; }
   .p33 .stsel.ro { display: inline-block; cursor: default; text-align: center; width: auto; min-width: 84px; }
 </style>
 
