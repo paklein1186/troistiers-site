@@ -129,6 +129,7 @@ export interface ProjetVu {
   elements: ElementVu[]; documents: DocumentVu[];
   resume?: string | null; resume_valide?: boolean | null;
   enjeux?: string | null; enjeux_valide?: boolean | null;
+  lead?: { nom: string | null; id: string } | null;
   famille?: { code: string; famille: "socle" | "coordination" | "groupe"; libelle: string; ordre: number } | null;
 }
 export interface Droits {
@@ -327,3 +328,8 @@ export const reglerResume = (acteur: string, projet: string, texte: string, vali
 /** Enjeux d'un projet (ce qui se joue, opportunité, besoin repéré) : brouillon, ou écrire et valider. */
 export const reglerEnjeux = (acteur: string, projet: string, texte: string, valider: boolean) =>
   rpc<null>("regler_enjeux", { p_projet: projet, p_texte: texte, p_valider: valider, p_acteur: acteur });
+/** Lien vers le profil ChangeTheGame d'une personne (même identifiant que sur le site). */
+export function profilCtg(id: string, lienGuilde: string): string | null {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  try { return `${new URL(lienGuilde).origin}/users/${id}`; } catch { return null; }
+}

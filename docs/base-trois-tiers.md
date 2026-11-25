@@ -231,6 +231,13 @@ Hors équipe, elles suivent le gradient des besoins : N3 pendant le projet, N2 a
 besoins du projet sont publics. Brouillons : fichier privé `pilote-33-enjeux.sql`. Espace membres `/membre/projets` :
 vignettes par défaut ou liste (`?vue=liste`), filtres par famille (`?famille=`) et par groupe de travail (`?groupe=`).
 
+Décisions du 28/11 (migration `20261128090000_lead_enjeux_membres.sql`) : les **enjeux** validés sont visibles des
+membres adhérents (N2) et plus, là où le titre l'est (public si les besoins le sont) ; la **personne qui pilote** le
+projet s'affiche pour les membres connectés, jamais pour le public, avec un lien vers son profil ChangeTheGame (aucun
+e-mail diffusé ; `lead_projet` : référent de mission, animateur ou initiateur, sinon référent du Pilote relié) ;
+« Présentation à venir » n'est plus affiché ; `/membre/projets/brouillons` : relire, corriger et valider d'un coup les
+résumés et enjeux des projets que l'on gère.
+
 Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
 claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
 

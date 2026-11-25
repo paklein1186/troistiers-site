@@ -1,0 +1,101 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { acteurConnecte, messageBase } from "../../../lib/acteur";
+import { baseConfiguree, mesDroits, projetsVisibles, reglerEnjeux, reglerResume, type ProjetVu } from "../../../lib/base";
+
+// Relire et valider d'un coup les résumés et enjeux en brouillon des projets que l'on gère (coordination, référents).
+// Chaque texte reste modifiable ; seuls les projets cochés sont validés. La base revérifie le droit, projet par projet.
+const u = Astro.locals.utilisateur;
+const ici = "/membre/projets/brouillons";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree()) return Astro.redirect("/membre/projets");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+
+const UUID = /^[0-9a-f-]{36}$/i;
+let message = "";
+let valides = 0;
+const echecs: string[] = [];
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  const ids = f.getAll("valider").map(String).filter((x) => UUID.test(x)).slice(0, 200);
+  for (const id of ids) {
+    try {
+      await reglerResume(acteur, id, String(f.get(`resume-${id}`) ?? "").slice(0, 600), true);
+      await reglerEnjeux(acteur, id, String(f.get(`enjeux-${id}`) ?? "").slice(0, 1200), true);
+      valides++;
+    } catch (e) {
+      console.error("Brouillons :", e);
+      echecs.push(String(f.get(`titre-${id}`) ?? id));
+    }
+  }
+  if (!ids.length) message = "Cochez au moins un projet à valider.";
+  else if (!echecs.length) return Astro.redirect(`${ici}?valides=${valides}`, 303);
+}
+
+let brouillons: ProjetVu[] = [];
+try {
+  const tous = await projetsVisibles(acteur);
+  const candidats = tous.filter((p) => p.niveau >= 4 && ((p.resume && !p.resume_valide) || (p.enjeux && !p.enjeux_valide)));
+  // Seulement les projets dont la personne gère la diffusion (sinon la validation serait refusée).
+  const droits = await Promise.all(candidats.map((p) => mesDroits(p.id, acteur).catch(() => null)));
+  brouillons = candidats.filter((_, i) => droits[i]?.fixer_sensibilite)
+    .sort((a, b) => (a.famille?.ordre ?? 99) - (b.famille?.ordre ?? 99) || a.titre.localeCompare(b.titre, "fr"));
+} catch (e) {
+  console.error("Brouillons (liste) :", e);
+  message ||= messageBase(e, "Les brouillons n'ont pas pu être chargés.");
+}
+const valid = Number(Astro.url.searchParams.get("valides") ?? 0);
+---
+<Base titre="Brouillons à valider">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/projets">Projets</a> · Brouillons</p>
+  <section class="hero">
+    <h1>Brouillons à valider</h1>
+    <p class="lead">Les résumés et les enjeux rédigés pour vos projets. Relisez, corrigez si besoin, puis validez : ils s'affichent alors pour les membres (et pour le public quand le projet l'est).</p>
+  </section>
+  {valid > 0 && <p class="pastille" role="status">{valid} projet{valid > 1 ? "s" : ""} validé{valid > 1 ? "s" : ""}.</p>}
+  {message && <p class="avertissement" role="alert">{message}</p>}
+  {echecs.length > 0 && <p class="avertissement" role="alert">{valides} validé(s) ; non validé(s), faute de droit ou d'erreur : {echecs.join(", ")}.</p>}
+
+  {brouillons.length === 0 ? (
+    <p class="doux">Aucun brouillon à valider. <a href="/membre/projets">Retour aux projets</a></p>
+  ) : (
+    <form method="post" class="brouillons">
+      <div class="barre-actions">
+        <label class="option"><input type="checkbox" id="tout" checked /> Tout cocher</label>
+        <button type="submit">Valider les projets cochés</button>
+      </div>
+      {brouillons.map((p) => (
+        <fieldset class="brouillon-projet">
+          <legend>
+            <label class="option"><input type="checkbox" name="valider" value={p.id} checked class="case" /> <strong>{p.titre}</strong></label>
+            {p.famille && <span class="doux"> · {p.famille.libelle}</span>}
+          </legend>
+          <input type="hidden" name={`titre-${p.id}`} value={p.titre} />
+          <label for={`resume-${p.id}`}>Résumé</label>
+          <textarea id={`resume-${p.id}`} name={`resume-${p.id}`} rows="2" maxlength="600">{p.resume ?? ""}</textarea>
+          <label for={`enjeux-${p.id}`}>Enjeux</label>
+          <textarea id={`enjeux-${p.id}`} name={`enjeux-${p.id}`} rows="3" maxlength="1200">{p.enjeux ?? ""}</textarea>
+          <p class="doux petit"><a href={`/membre/projets/${p.id}#resume`}>Ouvrir la fiche</a>{p.lead?.nom && <> · pilotage : {p.lead.nom}</>}</p>
+        </fieldset>
+      ))}
+      <div class="barre-actions"><button type="submit">Valider les projets cochés</button></div>
+    </form>
+  )}
+</Base>
+
+<style>
+  .brouillons { display: grid; gap: 16px; }
+  .barre-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  .brouillon-projet { display: grid; gap: 6px; border: 1px solid var(--trait); border-radius: 10px; background: var(--surface); padding: 14px 16px; margin: 0; min-width: 0; }
+  .brouillon-projet legend { padding: 0 6px; overflow-wrap: anywhere; }
+  .brouillon-projet textarea { width: 100%; }
+  .petit { font-size: .88rem; margin: 0; }
+</style>
+
+<script>
+  const tout = document.getElementById("tout") as HTMLInputElement | null;
+  tout?.addEventListener("change", () => document.querySelectorAll<HTMLInputElement>("input.case").forEach((c) => (c.checked = tout.checked)));
+</script>
