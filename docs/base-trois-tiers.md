@@ -217,6 +217,14 @@ Gradient de diffusion (étude sur 10 missions, décisions du 26/11 : 1A, 2A, 3A,
 - La synchronisation garde l'étape choisie sur le site ; seuls « en veille » et « clôturée » viennent de l'artefact.
 - Réglages de l'échantillon et des missions existantes : fichier privé `pilote-33-gradient.sql`, fourni à part.
 
+Page publique Projets (décisions du 27/11 ; migration `20261127090000_resume_public.sql`) : la section « Missions et
+groupes de travail en cours » lit la base, regroupée par famille (coordination, groupes de travail ; jamais le socle).
+Elle suit le gradient : le public voit ce qui est visible en N0, une personne connectée voit aussi ce qui est réservé aux
+membres, avec un lien vers la fiche dans l'espace membres. Chaque projet porte un **résumé public** (1 à 2 phrases, sans
+noms ni montants) : rédigé à la main en attendant l'agent (2A), il ne s'affiche hors équipe qu'une fois validé par la
+coordination ou un gestionnaire de la diffusion, depuis la fiche du projet (bloc « Résumé public », `regler_resume`).
+Brouillons du Pilote 3/3 : fichier privé `pilote-33-resumes.sql`, fourni à part.
+
 Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
 claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
 

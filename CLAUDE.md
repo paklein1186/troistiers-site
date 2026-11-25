@@ -214,12 +214,15 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   admin, finances, instruments, **volet animation**), coordination (marché public wallon), groupes de travail (SDC, AMO et
   réseau d'accompagnants, réseaux européens, tiers-lieux en maison de retraite, **réseau territoires**, **institut
   recherche et données**, **pistes à dispatcher** par la coordination) ; classement propre au site, corrigeable dans le
-  Pilote (migration `20261126100000_lot3_pilote_familles.sql`). Mission ASPA (FRB) : rangée en AMO, maison de retraite ?
-  à confirmer. **Gradient** (26/11, étude sur 10 missions, artefact https://claude.ai/artifact/ATKxBTUwMEu9jjb3UMhrjv) :
+  Pilote (migration `20261126100000_lot3_pilote_familles.sql`). « Mission ASPA » (FRB) = la mission à Spa menée
+  par Aurélie Portois (bruit de transcription), groupe AMO ; à renommer dans l'artefact. **Gradient** (26/11, étude sur 10 missions, artefact https://claude.ai/artifact/ATKxBTUwMEu9jjb3UMhrjv) :
   1A budget aux N3 dès la négociation ; 2A versions sous N4 proposées par un agent, relues par le référent (à faire,
   étape 2) ; 3A équipe salariée membre d'équipe du Pilote 3/3 et référente de ses missions, automatiquement à la liaison ;
   4 défaut par famille (socle sensible, coordination semi-sensible + validation du lieu, GT semi-sensible) ; migration
-  `20261126110000_lot3_gradient_decisions.sql`, réglages de l'échantillon dans un fichier privé. Tests : 178 vérifications.
+  `20261126110000_lot3_gradient_decisions.sql`, réglages de l'échantillon dans un fichier privé. **Page publique Projets**
+  (27/11) : missions et groupes de travail lus dans la base par famille, selon le gradient (public = N0 ; connecté = aussi
+  les projets réservés aux membres, avec lien vers la fiche) ; **résumé public** rédigé par Claude, validé d'un clic sur
+  la fiche (migration `20261127090000_resume_public.sql`). Tests : 184 vérifications.
 
 ## Avant d'ouvrir les paiements réels
 
