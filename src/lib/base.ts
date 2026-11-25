@@ -129,6 +129,7 @@ export interface ProjetVu {
   elements: ElementVu[]; documents: DocumentVu[];
   resume?: string | null; resume_valide?: boolean | null;
   enjeux?: string | null; enjeux_valide?: boolean | null;
+  lead?: { nom: string | null; email: string | null } | null; contact_email?: string | null;
   famille?: { code: string; famille: "socle" | "coordination" | "groupe"; libelle: string; ordre: number } | null;
 }
 export interface Droits {
@@ -327,3 +328,6 @@ export const reglerResume = (acteur: string, projet: string, texte: string, vali
 /** Enjeux d'un projet (ce qui se joue, opportunité, besoin repéré) : brouillon, ou écrire et valider. */
 export const reglerEnjeux = (acteur: string, projet: string, texte: string, valider: boolean) =>
   rpc<null>("regler_enjeux", { p_projet: projet, p_texte: texte, p_valider: valider, p_acteur: acteur });
+/** E-mail de contact d'un projet (vide : celui du référent). */
+export const reglerContact = (acteur: string, projet: string, email: string) =>
+  rpc<null>("regler_contact", { p_projet: projet, p_email: email, p_acteur: acteur });

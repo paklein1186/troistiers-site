@@ -43,7 +43,8 @@ if (baseConfiguree()) {
   }
 }
 const nbEnCours = enCours.reduce((n, g) => n + g.projets.length, 0);
-const resumeDe = (p: ProjetVu) => p.resume || "Présentation à venir.";
+const resumeDe = (p: ProjetVu) => [p.resume, p.enjeux].filter(Boolean).join(" ");
+const piedDe = (p: ProjetVu) => (p.lead?.email ? `Contact : ${p.lead.nom ? p.lead.nom + " · " : ""}${p.lead.email}` : undefined);
 ---
 <Base titre="Projets">
   <section class="hero">
@@ -82,6 +83,8 @@ const resumeDe = (p: ProjetVu) => p.resume || "Présentation à venir.";
               texte: resumeDe(p),
               etat: p.etape ? libelles[p.etape] ?? p.etape : undefined,
               lien: acteur ? `/membre/projets/${p.id}` : undefined,
+              facultatif: true,
+              pied: piedDe(p),
             }))} />
           </div>
         ))
