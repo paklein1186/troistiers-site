@@ -4,7 +4,7 @@ import { acteurConnecte, actionTache, messageBase } from "../../../lib/acteur";
 import ListeTaches from "../../../components/ListeTaches.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerResume, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache,
 } from "../../../lib/base";
 
@@ -40,6 +40,8 @@ if (Astro.request.method === "POST" && acteur) {
         validateur: String(f.get("validateur") ?? "").slice(0, 200),
         besoins_publics: f.get("besoins_publics") === "on",
       });
+    } else if (action === "resume" || action === "resume_valider" || action === "resume_retirer") {
+      await reglerResume(acteur, id, String(f.get("resume") ?? "").slice(0, 600), action === "resume_valider");
     } else if (action === "valider" || action === "refuser") {
       await validerDiffusion(acteur, id, action === "valider");
     }
@@ -83,6 +85,9 @@ const FAITS: Record<string, string> = {
   deverrouiller: "Étape déverrouillée.",
   diffusion: "Diffusion réglée.",
   valider: "Diffusion hors équipe validée.",
+  resume: "Résumé enregistré comme brouillon : il ne s'affiche pas encore hors de l'équipe.",
+  resume_valider: "Résumé validé : il s'affiche sur la page Projets là où le titre est visible.",
+  resume_retirer: "Validation retirée : le résumé n'est plus affiché hors de l'équipe.",
   refuser: "Diffusion hors équipe refusée.",
 };
 const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre actif", "N4 équipe", "N5 coordination"];
@@ -102,6 +107,7 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
           {p.etape && <> · <strong>{libEtape(p.etape)}</strong>{p.etape_verrouillee && <span class="etiquette">verrouillée</span>}</>}
         </p>
         {p.phrase && <p>{p.phrase}</p>}
+        {p.resume && (p.niveau < 4 || p.resume_valide) && <p>{p.resume}</p>}
         <p class="doux" style="font-size:.9rem">Vous voyez ce projet au niveau {NIVEAUX[p.niveau] ?? p.niveau}.</p>
       </section>
 
@@ -167,6 +173,21 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
           <div class="rangee">
             <button type="submit">Changer l'étape</button>
             {p.etape_verrouillee && <button type="submit" name="action" value="deverrouiller" class="bouton creux" formnovalidate>Rendre la main aux agents</button>}
+          </div>
+        </form>
+      )}
+
+      {droits?.fixer_sensibilite && (
+        <form method="post" class="panneau bloc formulaire" id="resume">
+          <h2>Résumé public</h2>
+          <p class="doux">Une ou deux phrases, sans noms de personnes ni montants. Une fois validé, il s'affiche sur la page Projets du site, pour les niveaux qui voient le titre de ce projet.
+            {p.resume ? <> État : <strong>{p.resume_valide ? "validé" : "brouillon à valider"}</strong>.</> : null}</p>
+          <label for="resume-texte">Résumé</label>
+          <textarea id="resume-texte" name="resume" rows="3" maxlength="600">{p.resume ?? ""}</textarea>
+          <div class="rangee">
+            <button type="submit" name="action" value="resume_valider">Enregistrer et valider</button>
+            <button type="submit" name="action" value="resume" class="bouton creux">Enregistrer comme brouillon</button>
+            {p.resume_valide && <button type="submit" name="action" value="resume_retirer" class="bouton creux">Retirer la validation</button>}
           </div>
         </form>
       )}

@@ -190,3 +190,20 @@ SELECT pg_temp.ok('3A : et référente de ses missions', (SELECT string_agg(p.ti
   WHERE b.personne_id = '00000000-0000-0000-0000-0000000000c1' AND b.badge_code = 'referent_mission'), 'Lieu A (Namur), Lieu C');
 SELECT pg_temp.ok('3A : elle voit maintenant le Pilote', pg_temp.en('service_role', NULL,
   $q$SELECT jsonb_array_length(public.tableau_pilote('pilote-m', '00000000-0000-0000-0000-0000000000c1')->'missions')::text$q$), '4');
+
+-- Résumé public (27/11).
+UPDATE projets SET sensibilite = 'transparent', validateur_externe = NULL WHERE ref_externe = 'pilote-m:mission:lieu-b';
+SELECT pg_temp.ok('un allié n''écrit pas de résumé', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a9',
+  $q$SELECT public.regler_resume((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'), 'x', true)::text$q$), 'refusé');
+SELECT pg_temp.ok('brouillon écrit par le serveur', pg_temp.en('service_role', NULL,
+  $q$SELECT public.regler_resume((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'), 'Un lieu en transition.', false)::text$q$), '∅');
+SELECT pg_temp.ok('brouillon : invisible du public, visible de l''équipe', pg_temp.en('service_role', NULL,
+  $q$SELECT COALESCE(public.vue_projet(id, 0)->>'resume', '—') || ' / ' || (public.vue_projet(id, 4)->>'resume') || ' / ' || (public.vue_projet(id, 4)->>'resume_valide')
+     FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '— / Un lieu en transition. / false');
+SELECT pg_temp.ok('la coordination valide', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.regler_resume((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'), 'Un lieu en transition.', true)::text$q$), '∅');
+SELECT pg_temp.ok('validé : public, avec sa famille', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.vue_projet(id, 0)->>'resume') || ' / ' || (public.vue_projet(id, 0)->'famille'->>'libelle') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$),
+  'Un lieu en transition. / SDC (schémas de développement communal)');
+SELECT pg_temp.ok('le gradient tient : résumé d''un projet sensible invisible du public', pg_temp.en('service_role', NULL,
+  $q$SELECT COALESCE((public.vue_projet(id, 0))::text, 'rien') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'rien');

@@ -127,6 +127,8 @@ export interface ProjetVu {
   id: string; niveau: number; nature: string; titre: string; phrase: string | null; theme: string | null;
   territoire: string | null; etape: string | null; sensibilite: string | null; etape_verrouillee: boolean | null;
   elements: ElementVu[]; documents: DocumentVu[];
+  resume?: string | null; resume_valide?: boolean | null;
+  famille?: { code: string; famille: "socle" | "coordination" | "groupe"; libelle: string; ordre: number } | null;
 }
 export interface Droits {
   niveau: number; gerer: boolean; accorder: boolean; fixer_sensibilite: boolean; valider_diffusion: boolean;
@@ -317,3 +319,7 @@ export function famillesDuTableau(t: TableauPilote) {
     missions: t.missions.map((m) => ({ id: codeMission(m), famille: m.famille ?? null, choisie: !!m.famille_choisie })),
   };
 }
+
+/** Résumé public d'un projet : écrire (brouillon) ou écrire et valider. */
+export const reglerResume = (acteur: string, projet: string, texte: string, valider: boolean) =>
+  rpc<null>("regler_resume", { p_projet: projet, p_texte: texte, p_valider: valider, p_acteur: acteur });

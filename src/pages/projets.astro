@@ -5,6 +5,8 @@ import { chargerCommunaute } from "../lib/config";
 import { niveauAcces } from "../lib/acces";
 import { chargerContenu } from "../lib/contenu";
 import missions from "../../data/missions.exemple.json";
+import { acteurConnecte } from "../lib/acteur";
+import { baseConfiguree, etapes, projetsVisibles, type ProjetVu } from "../lib/base";
 
 const k = chargerContenu();
 const c = chargerCommunaute();
@@ -15,6 +17,33 @@ const NATURES: Record<string, string> = { tous: "Tous", encours: "Projet en cour
 const filtre = NATURES[Astro.url.searchParams.get("nature") ?? ""] ? Astro.url.searchParams.get("nature")! : "tous";
 const projets = k.projets.filter((p) => filtre === "tous" || p.nature === filtre);
 const compte = (n: string) => k.projets.filter((p) => p.nature === n).length;
+
+// Missions et groupes de travail de la base Trois-Tiers, selon le gradient : le public voit les projets transparents ;
+// une personne connectée voit aussi ceux réservés aux membres. Le socle (administration, finances) n'est jamais montré.
+const u = Astro.locals.utilisateur;
+let enCours: { groupe: string; ordre: number; projets: ProjetVu[] }[] = [];
+let libelles: Record<string, string> = {};
+let acteur: string | null = null;
+if (baseConfiguree()) {
+  try {
+    acteur = u ? await acteurConnecte(Astro.cookies) : null;
+    const [liste, l] = await Promise.all([projetsVisibles(acteur), etapes()]);
+    libelles = Object.fromEntries(l.map((e) => [e.code, e.libelle]));
+    const GROUPES: Record<string, string> = { coordination: "Coordination", groupe: "Groupes de travail" };
+    const parGroupe = new Map<string, { groupe: string; ordre: number; projets: ProjetVu[] }>();
+    for (const p of liste) {
+      if (!p.famille || p.famille.famille === "socle") continue;
+      const cle = `${GROUPES[p.famille.famille] ?? ""} · ${p.famille.libelle}`;
+      if (!parGroupe.has(cle)) parGroupe.set(cle, { groupe: cle, ordre: p.famille.ordre, projets: [] });
+      parGroupe.get(cle)!.projets.push(p);
+    }
+    enCours = [...parGroupe.values()].sort((a, b) => a.ordre - b.ordre);
+  } catch (e) {
+    console.error("Projets (base) :", e);
+  }
+}
+const nbEnCours = enCours.reduce((n, g) => n + g.projets.length, 0);
+const resumeDe = (p: ProjetVu) => p.resume || "Présentation à venir.";
 ---
 <Base titre="Projets">
   <section class="hero">
@@ -33,6 +62,34 @@ const compte = (n: string) => k.projets.filter((p) => p.nature === n).length;
     <p class="doux">Liste d'exemple, tenue à la main pour l'instant. Elle sera lue depuis les quêtes de la guilde Trois-Tiers sur ChangeTheGame.</p>
   </section>
 
+  {baseConfiguree() && (
+    <section class="bloc" id="en-cours">
+      <h2>Missions et groupes de travail en cours</h2>
+      <p class="doux">
+        {acteur
+          ? "Vous voyez aussi les projets réservés aux membres. Chaque titre ouvre sa fiche dans l'espace membres."
+          : <>Ce que le réseau peut montrer publiquement. <a href={`/connexion?suite=${encodeURIComponent("/projets#en-cours")}`}>Connectez-vous</a> pour voir aussi les projets réservés aux membres.</>}
+      </p>
+      {nbEnCours === 0 ? (
+        <p class="doux">Aucun projet à montrer pour l'instant.</p>
+      ) : (
+        enCours.map((g) => (
+          <div class="groupe-projets">
+            <h3 class="groupe-titre">{g.groupe}</h3>
+            <Liste elements={g.projets.map((p) => ({
+              cle: p.territoire ?? "",
+              titre: p.titre,
+              texte: resumeDe(p),
+              etat: p.etape ? libelles[p.etape] ?? p.etape : undefined,
+              lien: acteur ? `/membre/projets/${p.id}` : undefined,
+            }))} />
+          </div>
+        ))
+      )}
+    </section>
+  )}
+
+  {!baseConfiguree() && (
   <section class="bloc" id="missions">
     <h2>Missions d'accompagnement en cours</h2>
     <p class="doux">Quelques missions actuelles. {voitDetail ? "Vous voyez leur détail en tant que membre." : "Le détail de chaque mission est réservé aux membres."}</p>
@@ -47,6 +104,7 @@ const compte = (n: string) => k.projets.filter((p) => p.nature === n).length;
       ))}
     </div>
   </section>
+  )}
 
   <section class="bloc">
     <h2>Proposer un projet</h2>
@@ -59,6 +117,8 @@ const compte = (n: string) => k.projets.filter((p) => p.nature === n).length;
 </Base>
 
 <style>
+  .groupe-projets { display: grid; gap: 4px; margin-top: 8px; }
+  .groupe-titre { font: 500 .8rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 18px 0 0; }
   .filtres { display: flex; flex-wrap: wrap; gap: 8px; }
   .filtres a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--trait); background: var(--surface); color: var(--encre); font-weight: 600; text-decoration: none; }
   .filtres a[aria-current="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
