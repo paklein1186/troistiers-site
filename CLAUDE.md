@@ -222,7 +222,8 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   `20261126110000_lot3_gradient_decisions.sql`, réglages de l'échantillon dans un fichier privé. **Page publique Projets**
   (27/11) : missions et groupes de travail lus dans la base par famille, selon le gradient (public = N0 ; connecté = aussi
   les projets réservés aux membres, avec lien vers la fiche) ; **résumé public** rédigé par Claude, validé d'un clic sur
-  la fiche (migration `20261127090000_resume_public.sql`). Tests : 184 vérifications.
+  la fiche (migration `20261127090000_resume_public.sql`) ; **enjeux** (2-3 phrases, gradient des besoins, migration
+  `20261127100000_enjeux.sql`) ; `/membre/projets` en vignettes ou liste, filtres famille et groupe. Tests : 189 vérifications.
 
 ## Avant d'ouvrir les paiements réels
 

@@ -207,3 +207,17 @@ SELECT pg_temp.ok('validé : public, avec sa famille', pg_temp.en('service_role'
   'Un lieu en transition. / SDC (schémas de développement communal)');
 SELECT pg_temp.ok('le gradient tient : résumé d''un projet sensible invisible du public', pg_temp.en('service_role', NULL,
   $q$SELECT COALESCE((public.vue_projet(id, 0))::text, 'rien') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'rien');
+
+-- Enjeux (27/11) : gradient des besoins.
+SELECT pg_temp.ok('enjeux validés', pg_temp.en('service_role', NULL,
+  $q$SELECT public.regler_enjeux((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'), 'Ce qui se joue.', true)::text$q$), '∅');
+SELECT pg_temp.ok('enjeux : pas pour un membre (N2) pendant le projet, oui pour un actif (N3)', pg_temp.en('service_role', NULL,
+  $q$SELECT COALESCE(public.vue_projet(id, 2)->>'enjeux', '—') || ' / ' || (public.vue_projet(id, 3)->>'enjeux')
+     FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '— / Ce qui se joue.');
+UPDATE projets SET besoins_publics = true WHERE ref_externe = 'pilote-m:mission:lieu-b';
+SELECT pg_temp.ok('enjeux publics si les besoins le sont', pg_temp.en('service_role', NULL,
+  $q$SELECT public.vue_projet(id, 0)->>'enjeux' FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), 'Ce qui se joue.');
+SELECT pg_temp.ok('enjeux remis en brouillon', pg_temp.en('service_role', NULL,
+  $q$SELECT public.regler_enjeux(id, 'Brouillon.', false)::text FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '∅');
+SELECT pg_temp.ok('enjeux en brouillon : seulement l''équipe', pg_temp.en('service_role', NULL,
+  $q$SELECT COALESCE(public.vue_projet(id, 3)->>'enjeux', '—') || ' / ' || (public.vue_projet(id, 4)->>'enjeux') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '— / Brouillon.');
