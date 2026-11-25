@@ -195,3 +195,69 @@ export const modifierTache = (acteur: string, tache: string, champs: Record<stri
   rpc<Tache>("modifier_tache", { p_tache: tache, p_champs: champs, p_acteur: acteur });
 export const cocherSousTache = (acteur: string, tache: string, sousTache: string, fait: boolean) =>
   rpc<string>("ecrire_sous_tache", { p_tache: tache, p_sous_tache: sousTache, p_texte: null, p_fait: fait, p_acteur: acteur });
+
+// ---------------------------------------------------------------------------
+// Pilote natif : tout ce qu'affiche le Pilote d'un projet, et ses actions.
+// ---------------------------------------------------------------------------
+export interface PersonnePilote { cle: string; nom: string; a_relier?: boolean }
+export interface EtatPilote {
+  projet: { id: string; titre: string; etape: string; theme: string | null; ref: string | null };
+  peut_editer: boolean; moi: string; couloirs: { nom: string; porteur?: string }[];
+  personnes: PersonnePilote[]; taches: Tache[];
+}
+export const etatPilote = (projet: string, acteur: string) => rpc<EtatPilote | null>("pilote_projet", { p_projet: projet, p_acteur: acteur });
+
+const UUID = /^[0-9a-f-]{36}$/i;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** Champs de tâche acceptés depuis le navigateur (la base revérifie tout). */
+export function champsTache(c: Record<string, unknown>): Record<string, unknown> {
+  const r: Record<string, unknown> = {};
+  if (typeof c.titre === "string") r.titre = c.titre.slice(0, 300);
+  if (typeof c.statut === "string" && STATUTS_TACHE[c.statut]) r.statut = c.statut;
+  if (typeof c.debut === "string" && DATE.test(c.debut)) r.debut = c.debut;
+  if (typeof c.echeance === "string" && DATE.test(c.echeance)) r.echeance = c.echeance;
+  if (typeof c.couloir === "string") r.couloir = c.couloir.slice(0, 200);
+  if (typeof c.jalon === "boolean") r.jalon = c.jalon;
+  if (typeof c.notes === "string") r.notes = c.notes.slice(0, 5000);
+  if (Array.isArray(c.responsables)) r.responsables = c.responsables.filter((x) => typeof x === "string" && UUID.test(x)).slice(0, 30);
+  if (Array.isArray(c.responsables_alias)) r.responsables_alias = c.responsables_alias.filter((x) => typeof x === "string" && /^[a-z0-9_-]{1,40}$/i.test(x)).slice(0, 30);
+  return r;
+}
+
+/** Une action du Pilote (envoyée en JSON par la page). Renvoie l'état à jour du Pilote. */
+export async function actionPilote(acteur: string, projet: string, a: Record<string, unknown>): Promise<EtatPilote | null> {
+  const tache = typeof a.tache === "string" && UUID.test(a.tache) ? a.tache : null;
+  const sous = typeof a.sous_tache === "string" && UUID.test(a.sous_tache) ? a.sous_tache : null;
+  switch (a.action) {
+    case "modifier":
+      if (!tache) break;
+      await modifierTache(acteur, tache, champsTache((a.champs ?? {}) as Record<string, unknown>));
+      break;
+    case "creer": {
+      const couloir = typeof a.couloir === "string" ? a.couloir.slice(0, 200) : null;
+      const porteur = typeof a.porteur === "string" ? a.porteur : "";
+      const jour = new Date().toISOString().slice(0, 10);
+      const fin = new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10);
+      const id = await rpc<string>("creer_tache", {
+        p_projet: projet, p_titre: "Nouvelle tâche", p_debut: jour, p_echeance: fin,
+        p_responsables: UUID.test(porteur) ? [porteur] : [], p_couloir: couloir, p_jalon: false, p_acteur: acteur,
+      });
+      if (porteur.startsWith("alias:")) await modifierTache(acteur, id, { responsables_alias: [porteur.slice(6)] });
+      break;
+    }
+    case "supprimer":
+      if (tache) await rpc("supprimer_tache", { p_tache: tache, p_acteur: acteur });
+      break;
+    case "sous_ajouter":
+      if (tache && typeof a.texte === "string" && a.texte.trim())
+        await rpc("ecrire_sous_tache", { p_tache: tache, p_sous_tache: null, p_texte: a.texte.trim().slice(0, 300), p_fait: false, p_acteur: acteur });
+      break;
+    case "sous_cocher":
+      if (tache && sous) await cocherSousTache(acteur, tache, sous, a.fait === true);
+      break;
+    case "sous_supprimer":
+      if (tache && sous) await rpc("supprimer_sous_tache", { p_tache: tache, p_sous_tache: sous, p_acteur: acteur });
+      break;
+  }
+  return etatPilote(projet, acteur);
+}

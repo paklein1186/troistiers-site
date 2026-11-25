@@ -39,6 +39,8 @@ for (const [id, o] of Object.entries(overlay)) {
 }
 const donnees = {
   projet: { ref: "pilote-pivot", nature: "projet", titre: "Pivot stratégique Trois-Tiers", theme: "Pilotage de l'ASBL", sensibilite: "sensible", proprietaire: "pa" },
+  // Couloirs dans l'ordre de l'artefact, avec le code de la personne qui porte chacun (sa couleur).
+  couloirs: LANES.map((l) => ({ nom: l.title, porteur: l.lead })),
   taches,
 };
 writeFileSync(sortie, JSON.stringify(donnees, null, 1));

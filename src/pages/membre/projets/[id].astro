@@ -120,6 +120,10 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
         </section>
       )}
 
+      {droits && droits.niveau >= 4 && (
+        <p class="rangee"><a class="bouton" href={`/membre/projets/${encodeURIComponent(id)}/pilote`}>Ouvrir le Pilote</a> <span class="doux">tableau par couloirs et planning, comme l'artefact</span></p>
+      )}
+
       {taches.length > 0 && (
         <section class="bloc" id="taches">
           <h2>Tâches <span class="doux" style="font-size:1rem">({taches.filter((t) => t.statut === "fait").length}/{taches.filter((t) => !t.absence).length} faites)</span></h2>

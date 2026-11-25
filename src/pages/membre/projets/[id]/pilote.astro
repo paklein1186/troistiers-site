@@ -1,0 +1,416 @@
+---
+import "@fontsource/fraunces/400.css";
+import "@fontsource/fraunces/600.css";
+import "@fontsource/fraunces/900.css";
+import "@fontsource/public-sans/400.css";
+import "@fontsource/public-sans/500.css";
+import "@fontsource/public-sans/600.css";
+import "@fontsource/public-sans/700.css";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parse } from "yaml";
+import Base from "../../../../layouts/Base.astro";
+import { acteurConnecte } from "../../../../lib/acteur";
+import { baseConfiguree, etatPilote, type EtatPilote } from "../../../../lib/base";
+
+// Le Pilote d'un projet, natif sur troistiers.space : même design et mêmes actions que l'artefact « Pilote »
+// (tableau par couloirs, responsables, statuts, sous-tâches, édition, planning hebdomadaire avec congés
+// scolaires), mais enregistré dans la base Trois-Tiers, avec ses droits. Réservé à l'équipe du projet.
+const u = Astro.locals.utilisateur;
+const id = Astro.params.id ?? "";
+const ici = `/membre/projets/${encodeURIComponent(id)}/pilote`;
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree() || !/^[0-9a-f-]{36}$/i.test(id)) return Astro.redirect("/membre/projets");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+
+let etat: EtatPilote | null = null;
+let erreur = "";
+try {
+  etat = await etatPilote(id, acteur);
+} catch (e) {
+  console.error("Pilote :", e);
+  erreur = "Le Pilote n'a pas pu être chargé. Réessayez dans un instant.";
+}
+if (!etat && !erreur) return Astro.redirect(`/membre/projets/${encodeURIComponent(id)}`);
+const conges = parse(readFileSync(resolve(process.cwd(), "data/conges.yaml"), "utf8"));
+const donnees = JSON.stringify({ etat, conges, url: `${ici}/etat` }).replace(/</g, "\\u003c");
+---
+<Base titre={etat ? `Pilote · ${etat.projet.titre}` : "Pilote"}>
+  <div class="pilote">
+    <p class="eyebrow"><a href="/membre/projets">Projets</a> · <a href={`/membre/projets/${encodeURIComponent(id)}`}>{etat?.projet.titre ?? "Projet"}</a> · Pilote</p>
+    <h1 class="p-h1">{etat?.projet.titre ?? "Pilote"}</h1>
+    <p class="sub">Tableau éditable (tâches, dates, responsables, statut, sous-tâches) et planning hebdomadaire avec les congés scolaires de Belgique et de l'Yonne. Tout est enregistré dans la base Trois-Tiers et partagé avec l'équipe du projet.</p>
+    <p class="status-line" id="statusline">{erreur || "Chargement…"}</p>
+
+    <div class="toolbar">
+      <div class="tabs" role="tablist">
+        <button class="tab on" data-view="tableau" role="tab" aria-selected="true">Tableau</button>
+        <button class="tab" data-view="planning" role="tab" aria-selected="false">Planning</button>
+      </div>
+      <div class="filters" id="filtres"></div>
+    </div>
+
+    <div class="summary" id="summary"></div>
+    <div id="view-tableau"><div class="board" id="tableau"></div></div>
+    <div id="view-planning" hidden>
+      <div class="board"><div class="pscroll"><div class="pchart" id="pchart"></div></div></div>
+      <div class="legend" id="plegend"></div>
+    </div>
+    <p class="foot"><b>Congés scolaires</b> : calendriers officiels FWB (Belgique) et académie de Dijon / zone A (Yonne). Bandes bleues = Belgique, roses = Yonne ; colonne grisée = congé des deux côtés. <b>Édition</b> : « ✎ éditer » ouvre le titre, les dates, le jalon et le couloir ; « + Ajouter une tâche » en bas de chaque couloir. Les personnes marquées « à relier » ne se sont pas encore connectées au site.</p>
+  </div>
+  <script type="application/json" id="pilote-donnees" set:html={donnees} />
+</Base>
+
+<style is:global>
+  .pilote{
+    --paper:#FAF7F1;--panel:#FFFFFF;--panel-2:#F3EEE4;--band:#F6F2E9;--ink:#24211B;--ink-soft:#5C574C;--ink-faint:#8C877A;
+    --line:#E4DDCF;--line-soft:#EFE9DC;--shadow:0 1px 2px rgba(40,34,20,.05),0 8px 24px rgba(40,34,20,.06);--accent:#B4472E;
+    --c0:#D9772A;--c0s:#FBEEDE;--c1:#1F9A62;--c1s:#E4F3EB;--c2:#6B4FCF;--c2s:#EEE9FB;--c3:#33405F;--c3s:#E7EAF1;--c4:#B4472E;--c4s:#F8E2DC;--c5:#3B7DD8;--c5s:#E4EEFB;
+    --st-todo:#9A9384;--st-todo-bg:#EDE8DE;--st-doing:#C98A1E;--st-doing-bg:#FBF0D8;--st-block:#C4462E;--st-block-bg:#F8E2DC;--st-done:#1F9A62;--st-done-bg:#E1F1E8;
+    --be:#3B7DD8;--be-bg:#E4EEFB;--fr:#C65D9B;--fr-bg:#F8E6F1;--vac:#F0E7D6;
+    font-family:"Public Sans",system-ui,sans-serif;color:var(--ink);line-height:1.5;background:var(--paper);
+    margin:-28px calc(-1 * max(16px, env(safe-area-inset-left, 0px))) -64px;padding:28px max(16px, env(safe-area-inset-left, 0px)) 60px;
+  }
+  @media (prefers-color-scheme:dark){.pilote{
+    --paper:#141519;--panel:#1C1E24;--panel-2:#23262E;--band:#1A1C22;--ink:#EDE9E0;--ink-soft:#B4AFA3;--ink-faint:#847F73;--line:#2E323C;--line-soft:#262A32;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);--accent:#E4795C;
+    --c0:#ED9A56;--c0s:#3A2A17;--c1:#54C58E;--c1s:#173428;--c2:#A38EF0;--c2s:#2A2547;--c3:#8FA0C8;--c3s:#232A3A;--c4:#E4795C;--c4s:#3A211A;--c5:#6FA5E8;--c5s:#1B2740;
+    --st-todo:#8B8477;--st-todo-bg:#2A2C33;--st-doing:#E0A93C;--st-doing-bg:#3A2F16;--st-block:#E4795C;--st-block-bg:#3A211A;--st-done:#54C58E;--st-done-bg:#173428;
+    --be:#6FA5E8;--be-bg:#1B2740;--fr:#DB8BBE;--fr-bg:#331F2C;--vac:#26242A;
+  }}
+  .pilote *{box-sizing:border-box}
+  .pilote .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 8px}
+  .pilote .eyebrow a{color:inherit}
+  .pilote .p-h1{font-family:"Fraunces",Georgia,serif;font-weight:900;font-size:clamp(26px,4.4vw,42px);line-height:1.04;margin:0;letter-spacing:-.01em;text-wrap:balance}
+  .pilote .sub{margin:10px 0 0;max-width:66ch;color:var(--ink-soft);font-size:14.5px}
+  .pilote .status-line{margin-top:8px;font-size:12.5px;color:var(--ink-faint)}
+  .pilote .status-line.warn{color:var(--st-block)}
+  .pilote .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
+  .pilote .tabs{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .pilote .tab{border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:7px 15px;border-radius:8px;cursor:pointer;min-height:auto}
+  .pilote .tab.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+  .pilote .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+  .pilote .flabel{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+  .pilote .fchip{border:1px solid var(--line);background:var(--panel);font:inherit;font-size:12.5px;color:var(--ink-soft);padding:5px 11px;border-radius:999px;cursor:pointer;min-height:auto}
+  .pilote .fchip.on{color:#fff;border-color:transparent;background:var(--c,var(--ink))}
+  .pilote .summary{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .pilote .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 15px;box-shadow:var(--shadow);min-width:104px}
+  .pilote .kpi .n{font-family:"Fraunces",serif;font-weight:900;font-size:22px;line-height:1;font-variant-numeric:tabular-nums}
+  .pilote .kpi .l{font-size:11px;color:var(--ink-faint);margin-top:3px;font-weight:600}
+  .pilote .kpi.done .n{color:var(--st-done)} .pilote .kpi.doing .n{color:var(--st-doing)} .pilote .kpi.block .n{color:var(--st-block)} .pilote .kpi.todo .n{color:var(--st-todo)}
+  .pilote .board{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .pilote .lane-h{display:flex;align-items:center;gap:9px;padding:10px 16px;border-top:1px solid var(--line);background:var(--cs)}
+  .pilote .lane-h .ld{width:10px;height:10px;border-radius:3px;background:var(--c)}
+  .pilote .lane-h .lt{font-family:"Fraunces",serif;font-weight:600;font-size:14px;color:var(--ink)}
+  .pilote .trow,.pilote .colhead{display:grid;grid-template-columns:minmax(200px,1fr) 190px 128px 150px}
+  .pilote .trow{border-top:1px solid var(--line-soft)}
+  .pilote .tcell{padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0}
+  .pilote .tt{font-size:13px;color:var(--ink);line-height:1.3;font-weight:500;overflow-wrap:anywhere}
+  .pilote .tmeta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .pilote .editlink{border:0;background:transparent;color:var(--accent);cursor:pointer;font:inherit;font-size:11px;font-weight:700;padding:0;min-height:auto}
+  .pilote .colhead{background:var(--panel-2);border-top:1px solid var(--line);position:sticky;top:0;z-index:3}
+  .pilote .colhead span{padding:8px 12px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+  .pilote .resp{display:flex;flex-wrap:wrap;gap:4px}
+  .pilote .rchip{font:inherit;font-size:11px;font-weight:700;border-radius:7px;padding:3px 7px;cursor:pointer;border:1px solid transparent;user-select:none;line-height:1.2;color:var(--c);background:transparent;min-height:auto}
+  .pilote .rchip.off{color:var(--ink-faint);opacity:.5;background:var(--panel-2);border-color:var(--line-soft)}
+  .pilote .rchip.on{background:var(--cs);border-color:var(--c)}
+  .pilote .rchip[disabled]{cursor:default;opacity:1} .pilote .rchip.off[disabled]{display:none}
+  .pilote .rchip.relier{font-style:italic}
+  .pilote .stsel{font:inherit;font-size:12px;font-weight:700;border-radius:8px;padding:6px 8px;border:1px solid var(--line);cursor:pointer;width:100%;-webkit-appearance:none;appearance:none;min-height:auto}
+  .pilote .stsel[data-s="a_faire"]{background-color:var(--st-todo-bg);color:var(--st-todo)}
+  .pilote .stsel[data-s="en_cours"]{background-color:var(--st-doing-bg);color:var(--st-doing)}
+  .pilote .stsel[data-s="bloque"]{background-color:var(--st-block-bg);color:var(--st-block)}
+  .pilote .stsel[data-s="fait"]{background-color:var(--st-done-bg);color:var(--st-done)}
+  .pilote .stsel:disabled{cursor:default;opacity:.85}
+  .pilote .subbtn{display:flex;align-items:center;gap:8px;background:transparent;border:0;font:inherit;cursor:pointer;padding:0;text-align:left;width:100%;color:inherit;min-height:auto}
+  .pilote .subprog{flex:1;height:6px;border-radius:99px;background:var(--panel-2);overflow:hidden;min-width:34px}
+  .pilote .subprog i{display:block;height:100%;background:var(--st-done);border-radius:99px}
+  .pilote .subcount{font-size:11px;font-weight:700;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pilote .caret{color:var(--ink-faint);transition:transform .15s;font-size:10px}.pilote .caret.open{transform:rotate(90deg)}
+  .pilote .sublist{display:flex;flex-direction:column;gap:3px;margin-top:5px}
+  .pilote .subitem{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-soft)}
+  .pilote .subitem input[type=checkbox]{accent-color:var(--st-done);width:14px;height:14px;flex:none;cursor:pointer}
+  .pilote .subitem.done span{text-decoration:line-through;color:var(--ink-faint)}
+  .pilote .subitem span{flex:1;line-height:1.25}
+  .pilote .subdel{border:0;background:transparent;color:var(--ink-faint);cursor:pointer;font-size:14px;line-height:1;opacity:.5;padding:0 4px;min-height:auto}
+  .pilote .subdel:hover{opacity:1;color:var(--st-block)}
+  .pilote .subadd{display:flex;gap:6px;margin-top:3px}
+  .pilote .subadd input{flex:1;font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:4px 7px;background:var(--panel);color:var(--ink);min-width:0}
+  .pilote .subadd button{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;font:inherit;font-size:12px;cursor:pointer;color:var(--ink-soft);padding:4px 9px;min-height:auto}
+  .pilote .editpanel{grid-column:1/-1;background:var(--band);border-top:1px dashed var(--line);padding:12px 14px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .pilote .field{display:flex;flex-direction:column;gap:4px}
+  .pilote .field label{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint)}
+  .pilote .field input[type=text],.pilote .field input[type=date],.pilote .field select{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--panel);color:var(--ink)}
+  .pilote .field.wide{flex:1;min-width:180px}.pilote .field.wide input{width:100%}
+  .pilote .field.ck{flex-direction:row;align-items:center;gap:6px}
+  .pilote .delbtn{border:1px solid var(--st-block);background:transparent;color:var(--st-block);border-radius:7px;font:inherit;font-size:12px;font-weight:700;padding:7px 11px;cursor:pointer;min-height:auto}
+  .pilote .addrow{padding:8px 14px;border-top:1px dashed var(--line-soft)}
+  .pilote .addbtn{border:1px dashed var(--line);background:transparent;color:var(--ink-soft);border-radius:8px;font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;cursor:pointer;min-height:auto}
+  .pilote .addbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .pilote .pscroll{overflow-x:auto}.pilote .pchart{position:relative}
+  .pilote .pshade{position:absolute;top:0;bottom:0;z-index:0;pointer-events:none}
+  .pilote .vac{position:absolute;top:0;bottom:0;background:var(--vac)}
+  .pilote .gl{position:absolute;top:0;bottom:0;width:1px;background:var(--line-soft)}.pilote .gl.m{background:var(--line)}
+  .pilote .prows{position:relative;z-index:1}.pilote .prow{display:flex;align-items:stretch}
+  .pilote .pleft{flex:none;position:sticky;left:0;z-index:2;background:var(--panel);border-right:1px solid var(--line);display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:var(--ink)}
+  .pilote .ptrack{position:relative;flex:none}
+  .pilote .phead{position:sticky;top:0;z-index:3}.pilote .phead .pleft,.pilote .phead .ptrack{background:var(--panel-2)}
+  .pilote .mband{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:var(--ink-soft);border-left:1px solid var(--line)}
+  .pilote .wk{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:8.5px;color:var(--ink-faint);border-left:1px solid var(--line-soft);font-variant-numeric:tabular-nums}
+  .pilote .hol{position:absolute;top:2px;bottom:2px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;overflow:hidden;white-space:nowrap}
+  .pilote .hol.be{background:var(--be-bg);color:var(--be)} .pilote .hol.fr{background:var(--fr-bg);color:var(--fr)}
+  .pilote .plane{display:flex;align-items:center;gap:8px;padding:7px 12px;border-top:1px solid var(--line);background:var(--cs);position:sticky;left:0}
+  .pilote .plane .ld{width:9px;height:9px;border-radius:3px;background:var(--c)}.pilote .plane .lt{font-family:"Fraunces",serif;font-weight:600;font-size:12.5px;color:var(--ink)}
+  .pilote .prow.task{border-top:1px solid var(--line-soft)}
+  .pilote .prow.task .pleft{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;line-height:34px}
+  .pilote .bar{position:absolute;top:50%;transform:translateY(-50%);height:19px;border-radius:6px;display:flex;align-items:center;gap:4px;padding:0 6px;font-size:9.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.2);background:var(--c)}
+  .pilote .bar.s-a_faire{opacity:.45} .pilote .bar.s-en_cours{box-shadow:0 0 0 2px var(--st-doing) inset}
+  .pilote .bar.s-fait::before{content:"✓";font-size:10px} .pilote .bar.s-bloque{background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.22) 4px,rgba(0,0,0,.22) 7px)}
+  .pilote .bar.absence{background:repeating-linear-gradient(45deg,var(--c),var(--c) 6px,var(--cs) 6px,var(--cs) 12px);color:var(--ink);opacity:.9}
+  .pilote .ms{position:absolute;top:50%;transform:translate(-50%,-50%) rotate(45deg);width:13px;height:13px;border-radius:3px;border:2px solid var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.3);background:var(--c)}
+  .pilote .today{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:2}
+  .pilote .today b{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:4px;white-space:nowrap}
+  .pilote .legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:14px;font-size:12px;color:var(--ink-soft);align-items:center}
+  .pilote .lg{display:inline-flex;align-items:center;gap:6px}.pilote .lg .sw{width:14px;height:10px;border-radius:3px}
+  .pilote .foot{margin-top:22px;font-size:12px;color:var(--ink-faint);max-width:78ch}.pilote .foot b{color:var(--ink-soft)}
+  @media (max-width:720px){
+    .pilote .trow,.pilote .colhead{grid-template-columns:1fr 116px}
+    .pilote .colhead span:nth-child(3),.pilote .colhead span:nth-child(4){display:none}
+    .pilote .tcell.st{grid-column:2;grid-row:1} .pilote .tcell.resp-c,.pilote .tcell.sub{grid-column:1/-1;border-top:1px dashed var(--line-soft)}
+  }
+</style>
+
+<script>
+  // Pilote natif : rendu et actions, repris de l'artefact « Pilote du pivot », branché sur la base Trois-Tiers.
+  type Tache = {
+    id: string; titre: string; couloir: string | null; debut: string | null; echeance: string | null; jalon: boolean; absence: boolean;
+    statut: string; responsables: { id: string; nom: string }[]; responsables_alias: string[];
+    sous_taches: { id: string; texte: string; fait: boolean }[]; modifiable: boolean;
+  };
+  type Etat = {
+    projet: { id: string; titre: string }; peut_editer: boolean; moi: string;
+    couloirs: { nom: string; porteur?: string }[]; personnes: { cle: string; nom: string; a_relier?: boolean; codes?: string[] }[]; taches: Tache[];
+  };
+  type Conge = { nom: string; debut: string; fin: string };
+  const brut = JSON.parse(document.getElementById("pilote-donnees")!.textContent || "{}");
+  let etat: Etat | null = brut.etat;
+  const URL_ETAT: string = brut.url;
+  const HOL_BE: Conge[] = brut.conges?.belgique?.periodes ?? [];
+  const HOL_FR: Conge[] = brut.conges?.france?.periodes ?? [];
+  const STATUTS: [string, string][] = [["a_faire", "À faire"], ["en_cours", "En cours"], ["bloque", "Bloqué"], ["fait", "Fait"]];
+
+  let filtre = "all", vue = "tableau";
+  const ouverts = new Set<string>(), edition = new Set<string>();
+  const $ = (id: string) => document.getElementById(id)!;
+  const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  const D = (s: string) => new Date(s + "T00:00:00");
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const fmt = (s: string | null) => { if (!s) return "—"; const d = D(s); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`; };
+  function statut(m: string, warn = false) { const el = $("statusline"); el.textContent = m; el.classList.toggle("warn", warn); }
+
+  // Couleurs : une par personne, dans l'ordre des couloirs qu'elles portent (comme dans l'artefact :
+  // le premier porteur en orange, puis vert, violet…) ; le couloir prend la couleur de son porteur.
+  // Un porteur est désigné par son code de Pilote (« pa ») ou par l'identifiant de la personne.
+  const personneDuPorteur = (porteur: string | undefined) =>
+    porteur ? etat!.personnes.find((p) => p.cle === porteur || p.cle === "alias:" + porteur || (p.codes ?? []).includes(porteur)) : undefined;
+  function ordonnerPersonnes() {
+    if (!etat) return;
+    const rang = (cle: string) => { const i = etat!.couloirs.findIndex((c) => personneDuPorteur(c.porteur)?.cle === cle); return i < 0 ? 999 : i; };
+    etat.personnes.sort((a, b) => rang(a.cle) - rang(b.cle) || a.nom.localeCompare(b.nom));
+  }
+  const couleurDe = (cle: string | undefined) => {
+    const i = etat && cle ? etat.personnes.findIndex((p) => p.cle === cle) : -1;
+    return i < 0 ? null : i % 6;
+  };
+  const couleurCouloir = (porteur: string | undefined) => couleurDe(personneDuPorteur(porteur)?.cle);
+  const varsCouleur = (i: number | null) => (i === null ? "--c:var(--ink-soft);--cs:var(--panel-2)" : `--c:var(--c${i});--cs:var(--c${i}s)`);
+  const clesResp = (t: Tache) => [...t.responsables.map((r) => r.id), ...t.responsables_alias.map((a) => "alias:" + a)];
+  const couleurTache = (t: Tache) => {
+    const lane = etat!.couloirs.find((c) => c.nom === t.couloir);
+    return couleurCouloir(lane?.porteur) ?? couleurDe(clesResp(t)[0]);
+  };
+  const initiales = (nom: string) => nom.split(/[\s-]+/).map((x) => x[0]?.toUpperCase() ?? "").join("").slice(0, 3);
+
+  function tachesDuCouloir(nom: string) {
+    return etat!.taches.filter((t) => (t.couloir ?? "Sans couloir") === nom)
+      .sort((a, b) => (a.debut ?? "9").localeCompare(b.debut ?? "9") || a.titre.localeCompare(b.titre));
+  }
+  const visible = (t: Tache) => filtre === "all" || clesResp(t).includes(filtre);
+  const couloirs = () => {
+    const l = etat!.couloirs.map((c) => c.nom);
+    if (etat!.taches.some((t) => !t.couloir)) l.push("Sans couloir");
+    return l;
+  };
+
+  function rendreFiltres() {
+    $("filtres").innerHTML = `<span class="flabel">Responsable</span><button class="fchip ${filtre === "all" ? "on" : ""}" data-f="all">Tous</button>` +
+      etat!.personnes.map((p) => `<button class="fchip ${filtre === p.cle ? "on" : ""}" style="${varsCouleur(couleurDe(p.cle))}" data-f="${esc(p.cle)}">${esc(p.nom)}</button>`).join("");
+  }
+  function rendreResume() {
+    const c: Record<string, number> = { a_faire: 0, en_cours: 0, bloque: 0, fait: 0 }; let n = 0;
+    etat!.taches.forEach((t) => { if (!visible(t) || t.absence) return; c[t.statut]++; n++; });
+    $("summary").innerHTML = `<div class="kpi"><div class="n">${n}</div><div class="l">tâches</div></div>` +
+      `<div class="kpi done"><div class="n">${c.fait}</div><div class="l">faites</div></div>` +
+      `<div class="kpi doing"><div class="n">${c.en_cours}</div><div class="l">en cours</div></div>` +
+      `<div class="kpi block"><div class="n">${c.bloque}</div><div class="l">bloquées</div></div>` +
+      `<div class="kpi todo"><div class="n">${c.a_faire}</div><div class="l">à faire</div></div>`;
+  }
+  function panneauEdition(t: Tache) {
+    const opts = couloirs().filter((c) => c !== "Sans couloir").map((c) => `<option ${c === t.couloir ? "selected" : ""}>${esc(c)}</option>`).join("");
+    return `<div class="editpanel">
+      <div class="field wide"><label>Titre</label><input type="text" data-edit="titre" data-id="${t.id}" value="${esc(t.titre)}"></div>
+      <div class="field ck"><input type="checkbox" id="ms-${t.id}" data-edit="jalon" data-id="${t.id}" ${t.jalon ? "checked" : ""}><label for="ms-${t.id}">Jalon</label></div>
+      <div class="field"><label>Début</label><input type="date" data-edit="debut" data-id="${t.id}" value="${t.debut ?? ""}"></div>
+      <div class="field"><label>Fin</label><input type="date" data-edit="echeance" data-id="${t.id}" value="${t.echeance ?? ""}" ${t.jalon ? "disabled" : ""}></div>
+      <div class="field"><label>Couloir</label><select data-edit="couloir" data-id="${t.id}">${opts}</select></div>
+      <button class="delbtn" data-act="supprimer" data-id="${t.id}">Supprimer</button></div>`;
+  }
+  function rendreTableau() {
+    const ed = etat!.peut_editer;
+    let h = `<div class="colhead"><span>Tâche</span><span>Responsables</span><span>Statut</span><span>Sous-tâches</span></div>`;
+    couloirs().forEach((nom) => {
+      const lane = etat!.couloirs.find((c) => c.nom === nom);
+      h += `<div class="lane-h" style="${varsCouleur(couleurCouloir(lane?.porteur))}"><span class="ld"></span><span class="lt">${esc(nom)}</span></div>`;
+      tachesDuCouloir(nom).filter(visible).forEach((t) => {
+        const fait = t.sous_taches.filter((s) => s.fait).length, tot = t.sous_taches.length, pct = tot ? Math.round(fait / tot * 100) : 0;
+        const dates = t.jalon ? "◆ " + fmt(t.debut) : fmt(t.debut) + " → " + fmt(t.echeance);
+        const resp = clesResp(t);
+        const chips = etat!.personnes.map((p) => `<button class="rchip ${resp.includes(p.cle) ? "on" : "off"} ${p.a_relier ? "relier" : ""}" style="${varsCouleur(couleurDe(p.cle))}" data-act="resp" data-id="${t.id}" data-cle="${esc(p.cle)}" ${ed ? "" : "disabled"} title="${p.a_relier ? "Pas encore connecté au site" : ""}">${esc(p.nom)}</button>`).join("");
+        const ouvert = ouverts.has(t.id);
+        let liste = "";
+        if (ouvert) {
+          liste = `<div class="sublist">` + t.sous_taches.map((s) =>
+            `<label class="subitem ${s.fait ? "done" : ""}"><input type="checkbox" data-act="sous_cocher" data-id="${t.id}" data-sid="${s.id}" ${s.fait ? "checked" : ""} ${t.modifiable ? "" : "disabled"}><span>${esc(s.texte)}</span>${t.modifiable ? `<button class="subdel" data-act="sous_supprimer" data-id="${t.id}" data-sid="${s.id}" aria-label="Supprimer la sous-tâche">×</button>` : ""}</label>`).join("") +
+            (t.modifiable ? `<div class="subadd"><input type="text" placeholder="Ajouter une sous-tâche…" data-add="${t.id}"><button data-act="sous_ajouter" data-id="${t.id}">+</button></div>` : "") + `</div>`;
+        }
+        h += `<div class="trow">
+          <div class="tcell name"><div class="tt">${esc(t.titre)}${t.absence ? " · indispo" : ""}</div><div class="tmeta"><span>${dates}</span>${ed ? `<button class="editlink" data-act="editer" data-id="${t.id}">✎ éditer</button>` : ""}</div></div>
+          <div class="tcell resp-c"><div class="resp">${chips}</div></div>
+          <div class="tcell st"><select class="stsel" data-act="statut" data-id="${t.id}" data-s="${t.statut}" ${t.modifiable ? "" : "disabled"} aria-label="Statut">${STATUTS.map(([k, l]) => `<option value="${k}" ${k === t.statut ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+          <div class="tcell sub"><button class="subbtn" data-act="deplier" data-id="${t.id}"><span class="caret ${ouvert ? "open" : ""}">▶</span><span class="subprog"><i style="width:${pct}%"></i></span><span class="subcount">${fait}/${tot}</span></button>${liste}</div>
+          ${edition.has(t.id) && ed ? panneauEdition(t) : ""}
+        </div>`;
+      });
+      if (ed && nom !== "Sans couloir") h += `<div class="addrow"><button class="addbtn" data-act="creer" data-couloir="${esc(nom)}" data-porteur="${esc(personneDuPorteur(lane?.porteur)?.cle ?? "")}">+ Ajouter une tâche</button></div>`;
+    });
+    $("tableau").innerHTML = h;
+  }
+
+  const W = 30, GAUCHE = 232, SEMAINE = 7 * 864e5;
+  const lundi = (d: Date) => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); x.setHours(0, 0, 0, 0); return x; };
+  const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+  function rendrePlanning() {
+    const dates = etat!.taches.flatMap((t) => [t.debut, t.echeance]).filter(Boolean) as string[];
+    const min = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : iso(new Date());
+    const max = dates.length ? dates.reduce((a, b) => (a > b ? a : b)) : iso(new Date());
+    const PREMIER = lundi(new Date(D(min).getTime() - 14 * 864e5)), DERNIER = new Date(D(max).getTime() + 14 * 864e5);
+    const SEM: Date[] = []; for (let t = new Date(PREMIER); t <= DERNIER; t.setDate(t.getDate() + 7)) SEM.push(new Date(t));
+    const NW = SEM.length, piste = NW * W, total = GAUCHE + piste;
+    const idx = (s: string) => Math.max(0, Math.min(NW - 1, Math.floor((D(s).getTime() - PREMIER.getTime()) / SEMAINE)));
+    const chevauche = (i: number, h: Conge) => { const a = SEM[i], b = new Date(a); b.setDate(b.getDate() + 6); return a <= D(h.fin) && b >= D(h.debut); };
+    let fond = `<div class="pshade" style="left:${GAUCHE}px;width:${piste}px">`;
+    for (let i = 0; i < NW; i++) {
+      if (HOL_BE.some((h) => chevauche(i, h)) && HOL_FR.some((h) => chevauche(i, h))) fond += `<div class="vac" style="left:${i * W}px;width:${W}px"></div>`;
+      fond += `<div class="gl ${SEM[i].getDate() <= 7 ? "m" : ""}" style="left:${i * W}px"></div>`;
+    }
+    const auj = new Date(); if (auj >= PREMIER && auj <= DERNIER) fond += `<div class="today" style="left:${Math.floor((lundi(auj).getTime() - PREMIER.getTime()) / SEMAINE) * W + W / 2}px"><b>auj.</b></div>`;
+    fond += `</div>`;
+    let mois = ""; { let i = 0; while (i < NW) { const m = SEM[i].getMonth(), y = SEM[i].getFullYear(); let j = i; while (j < NW && SEM[j].getMonth() === m && SEM[j].getFullYear() === y) j++; mois += `<div class="mband" style="left:${i * W}px;width:${(j - i) * W}px">${MOIS[m]} ${String(y).slice(2)}</div>`; i = j; } }
+    let sem = ""; for (let i = 0; i < NW; i++) sem += `<div class="wk" style="left:${i * W}px;width:${W}px">${String(SEM[i].getDate()).padStart(2, "0")}/${String(SEM[i].getMonth() + 1).padStart(2, "0")}</div>`;
+    const ruban = (l: Conge[], cls: string) => l.map((h) => { const a = idx(h.debut), b = idx(h.fin); return D(h.fin) < PREMIER || D(h.debut) > DERNIER ? "" : `<div class="hol ${cls}" style="left:${a * W + 1}px;width:${(b - a + 1) * W - 2}px">${esc(h.nom)}</div>`; }).join("");
+    let tete = `<div class="prows"><div class="phead">
+      <div class="prow"><div class="pleft" style="width:${GAUCHE}px">${SEM[0].getFullYear()} → ${SEM[NW - 1].getFullYear()}</div><div class="ptrack" style="width:${piste}px;height:26px">${mois}</div></div>
+      <div class="prow"><div class="pleft" style="width:${GAUCHE}px;font-weight:700">Semaine (lundi)</div><div class="ptrack" style="width:${piste}px;height:22px">${sem}</div></div>
+      <div class="prow"><div class="pleft" style="width:${GAUCHE}px;color:var(--be);font-weight:700">Belgique (FWB)</div><div class="ptrack" style="width:${piste}px;height:20px">${ruban(HOL_BE, "be")}</div></div>
+      <div class="prow"><div class="pleft" style="width:${GAUCHE}px;color:var(--fr);font-weight:700">Yonne (zone A)</div><div class="ptrack" style="width:${piste}px;height:20px">${ruban(HOL_FR, "fr")}</div></div></div>`;
+    let corps = "";
+    couloirs().forEach((nom) => {
+      const lane = etat!.couloirs.find((c) => c.nom === nom);
+      corps += `<div class="prow"><div class="plane" style="width:${total}px;${varsCouleur(couleurCouloir(lane?.porteur))}"><span class="ld"></span><span class="lt">${esc(nom)}</span></div></div>`;
+      tachesDuCouloir(nom).filter(visible).forEach((t) => {
+        const st = varsCouleur(couleurTache(t));
+        const noms = clesResp(t).map((k) => initiales(etat!.personnes.find((p) => p.cle === k)?.nom ?? "?")).join("·");
+        let barre = "";
+        if (t.debut && (t.jalon || !t.echeance)) barre = `<div class="ms" style="${st};left:${(idx(t.debut) + 0.5) * W}px" title="${esc(t.titre)} — ${fmt(t.debut)}"></div>`;
+        else if (t.debut && t.echeance) { const a = idx(t.debut), b = idx(t.echeance); barre = `<div class="bar ${t.absence ? "absence" : "s-" + t.statut}" style="${st};left:${a * W + 2}px;width:${(b - a + 1) * W - 4}px" title="${esc(t.titre)}">${t.absence ? "indispo" : esc(noms)}</div>`; }
+        corps += `<div class="prow task"><div class="pleft" style="width:${GAUCHE}px" title="${esc(t.titre)}">${esc(t.titre)}</div><div class="ptrack" style="width:${piste}px;height:34px">${barre}</div></div>`;
+      });
+    });
+    const graph = $("pchart"); const avant = graph.parentElement!.scrollLeft;
+    graph.style.width = total + "px"; graph.innerHTML = fond + tete + corps + `</div>`; graph.parentElement!.scrollLeft = avant;
+    $("plegend").innerHTML = etat!.personnes.map((p) => `<span class="lg"><span class="sw" style="background:var(--c${couleurDe(p.cle)})"></span>${esc(p.nom)}</span>`).join("") +
+      `<span class="lg"><span class="sw" style="background:var(--be-bg);border:1px solid var(--be)"></span>Congés Belgique</span><span class="lg"><span class="sw" style="background:var(--fr-bg);border:1px solid var(--fr)"></span>Congés Yonne</span><span class="lg">Barres : plein = fait ✓ · rayé = bloqué · pâle = à faire</span>`;
+  }
+  function tout() { if (!etat) return; ordonnerPersonnes(); rendreFiltres(); rendreResume(); vue === "tableau" ? rendreTableau() : rendrePlanning(); }
+
+  // Enregistrement : modification immédiate à l'écran, puis état relu dans la base.
+  let enCours = 0;
+  async function envoyer(action: Record<string, unknown>) {
+    enCours++; statut("Enregistrement…");
+    try {
+      const r = await fetch(URL_ETAT, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(action) });
+      const corps = await r.json().catch(() => ({}));
+      if (!r.ok) { if (corps.etat) etat = corps.etat; statut(corps.erreur ?? "Modification non enregistrée.", true); }
+      else { etat = corps; statut("Enregistré dans la base Trois-Tiers · " + new Date().toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })); }
+    } catch { statut("Connexion perdue : la modification n'a pas été enregistrée.", true); }
+    finally { enCours--; tout(); }
+  }
+  const tache = (id: string) => etat!.taches.find((t) => t.id === id)!;
+  function modifier(id: string, champs: Record<string, unknown>) {
+    Object.assign(tache(id), champs); tout(); envoyer({ action: "modifier", tache: id, champs });
+  }
+
+  document.addEventListener("click", (e) => {
+    const cible = e.target as HTMLElement;
+    const onglet = cible.closest<HTMLElement>(".pilote .tab"), f = cible.closest<HTMLElement>(".pilote [data-f]"), el = cible.closest<HTMLElement>(".pilote [data-act]");
+    if (onglet) {
+      vue = onglet.dataset.view!; document.querySelectorAll(".pilote .tab").forEach((x) => { x.classList.toggle("on", x === onglet); x.setAttribute("aria-selected", String(x === onglet)); });
+      $("view-tableau").hidden = vue !== "tableau"; $("view-planning").hidden = vue !== "planning"; tout(); return;
+    }
+    if (f) { filtre = f.dataset.f!; tout(); return; }
+    if (!el || !etat) return;
+    const id = el.dataset.id!, act = el.dataset.act;
+    if (act === "deplier") { ouverts.has(id) ? ouverts.delete(id) : ouverts.add(id); rendreTableau(); }
+    else if (act === "editer") { edition.has(id) ? edition.delete(id) : edition.add(id); rendreTableau(); }
+    else if (act === "resp") {
+      const t = tache(id), cle = el.dataset.cle!;
+      const cles = clesResp(t), i = cles.indexOf(cle); i >= 0 ? cles.splice(i, 1) : cles.push(cle);
+      const responsables = cles.filter((k) => !k.startsWith("alias:")), alias = cles.filter((k) => k.startsWith("alias:")).map((k) => k.slice(6));
+      t.responsables = responsables.map((r) => ({ id: r, nom: etat!.personnes.find((p) => p.cle === r)?.nom ?? "" })); t.responsables_alias = alias;
+      tout(); envoyer({ action: "modifier", tache: id, champs: { responsables, responsables_alias: alias } });
+    }
+    else if (act === "supprimer") { if (confirm("Supprimer cette tâche ?")) { etat.taches = etat.taches.filter((t) => t.id !== id); edition.delete(id); tout(); envoyer({ action: "supprimer", tache: id }); } }
+    else if (act === "creer") { envoyer({ action: "creer", couloir: el.dataset.couloir, porteur: el.dataset.porteur }); }
+    else if (act === "sous_supprimer") { e.preventDefault(); const t = tache(id); t.sous_taches = t.sous_taches.filter((s) => s.id !== el.dataset.sid); tout(); envoyer({ action: "sous_supprimer", tache: id, sous_tache: el.dataset.sid }); }
+    else if (act === "sous_ajouter") { ajouterSous(id); }
+  });
+  function ajouterSous(id: string) {
+    const inp = document.querySelector<HTMLInputElement>(`.pilote input[data-add='${id}']`); const v = (inp?.value ?? "").trim();
+    if (!v) return; tache(id).sous_taches.push({ id: "tmp" + Date.now(), texte: v, fait: false }); tout();
+    envoyer({ action: "sous_ajouter", tache: id, texte: v });
+  }
+  document.addEventListener("change", (e) => {
+    const el = e.target as HTMLInputElement;
+    if (!etat || !el.closest(".pilote")) return;
+    if (el.dataset.act === "statut") { el.dataset.s = el.value; modifier(el.dataset.id!, { statut: el.value }); return; }
+    if (el.dataset.act === "sous_cocher") { const t = tache(el.dataset.id!), s = t.sous_taches.find((x) => x.id === el.dataset.sid)!; s.fait = el.checked; tout(); envoyer({ action: "sous_cocher", tache: t.id, sous_tache: s.id, fait: el.checked }); return; }
+    const k = el.dataset.edit; if (!k) return; const id = el.dataset.id!;
+    if (k === "titre") modifier(id, { titre: el.value });
+    else if (k === "debut") modifier(id, { debut: el.value });
+    else if (k === "echeance") modifier(id, { echeance: el.value });
+    else if (k === "jalon") modifier(id, { jalon: el.checked });
+    else if (k === "couloir") modifier(id, { couloir: el.value });
+  });
+  document.addEventListener("keydown", (e) => {
+    const inp = (e.target as HTMLElement).closest<HTMLInputElement>(".pilote input[data-add]");
+    if (e.key === "Enter" && inp) { e.preventDefault(); ajouterSous(inp.dataset.add!); }
+  });
+  // Partagé avec l'équipe : l'état est relu toutes les 30 secondes (sauf pendant une saisie).
+  setInterval(async () => {
+    if (enCours || document.hidden || document.activeElement?.closest(".pilote .editpanel, .pilote .subadd")) return;
+    try { const r = await fetch(URL_ETAT, { cache: "no-store" }); if (r.ok) { etat = await r.json(); tout(); } } catch { /* nouvelle tentative au prochain tour */ }
+  }, 30_000);
+
+  if (etat) { statut(etat.peut_editer ? "Connecté à la base Trois-Tiers — vos modifications sont partagées avec l'équipe du projet." : "Lecture : vous pouvez mettre à jour les tâches dont vous êtes responsable."); tout(); }
+</script>

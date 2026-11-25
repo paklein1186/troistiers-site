@@ -1,0 +1,29 @@
+# Congés scolaires affichés dans le planning du Pilote (repris de l'artefact « Pilote du pivot »).
+# Belgique : calendrier officiel de la Fédération Wallonie-Bruxelles. France : académie de Dijon (zone A, Yonne).
+# Modifiable sans toucher au code ; dates au format AAAA-MM-JJ.
+belgique:
+  libelle: Belgique (FWB)
+  periodes:
+    - { nom: Automne, debut: 2026-10-19, fin: 2026-10-30 }
+    - { nom: Noël, debut: 2026-12-21, fin: 2027-01-01 }
+    - { nom: Détente, debut: 2027-02-22, fin: 2027-03-05 }
+    - { nom: Printemps, debut: 2027-04-26, fin: 2027-05-07 }
+    - { nom: Été, debut: 2027-07-05, fin: 2027-08-28 }
+    - { nom: Automne, debut: 2027-10-25, fin: 2027-11-07 }
+    - { nom: Noël, debut: 2027-12-27, fin: 2028-01-09 }
+    - { nom: Détente, debut: 2028-02-28, fin: 2028-03-12 }
+    - { nom: Printemps, debut: 2028-05-01, fin: 2028-05-14 }
+    - { nom: Été, debut: 2028-07-08, fin: 2028-08-27 }
+france:
+  libelle: Yonne (zone A)
+  periodes:
+    - { nom: Toussaint, debut: 2026-10-17, fin: 2026-11-02 }
+    - { nom: Noël, debut: 2026-12-19, fin: 2027-01-04 }
+    - { nom: Hiver, debut: 2027-02-13, fin: 2027-03-01 }
+    - { nom: Printemps, debut: 2027-04-10, fin: 2027-04-26 }
+    - { nom: Été, debut: 2027-07-03, fin: 2027-08-31 }
+    - { nom: Toussaint, debut: 2027-10-23, fin: 2027-11-08 }
+    - { nom: Noël, debut: 2027-12-18, fin: 2028-01-03 }
+    - { nom: Hiver, debut: 2028-02-19, fin: 2028-03-06 }
+    - { nom: Printemps, debut: 2028-04-22, fin: 2028-05-09 }
+    - { nom: Été, debut: 2028-07-04, fin: 2028-08-31 }
