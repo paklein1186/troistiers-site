@@ -187,6 +187,8 @@ export interface Tache {
   id: string; projet_id: string; projet?: string; titre: string; couloir: string | null; debut: string | null; echeance: string | null;
   jalon: boolean; absence: boolean; statut: "a_faire" | "en_cours" | "bloque" | "fait"; notes: string | null;
   responsables: { id: string; nom: string }[]; responsables_alias: string[]; sous_taches: SousTache[]; modifiable?: boolean;
+  ref?: string | null; porteur?: string | null; dependances?: string[]; estimation_h?: number | null; source?: { label?: string; url?: string } | null;
+  mission?: boolean;
 }
 export const STATUTS_TACHE: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", bloque: "Bloqué", fait: "Fait" };
 export const tachesProjet = (projet: string, acteur: string) => rpc<Tache[]>("taches_projet", { p_projet: projet, p_acteur: acteur });
@@ -201,7 +203,10 @@ export const cocherSousTache = (acteur: string, tache: string, sousTache: string
 // ---------------------------------------------------------------------------
 export interface PersonnePilote { cle: string; nom: string; a_relier?: boolean }
 export interface EtatPilote {
-  projet: { id: string; titre: string; etape: string; theme: string | null; ref: string | null };
+  projet: {
+    id: string; titre: string; etape: string; theme: string | null; ref: string | null;
+    synchro?: boolean; synchro_le?: string | null; parent?: string | null; artefact?: string | null;
+  };
   peut_editer: boolean; moi: string; couloirs: { nom: string; porteur?: string }[];
   personnes: PersonnePilote[]; taches: Tache[];
 }
@@ -261,3 +266,40 @@ export async function actionPilote(acteur: string, projet: string, a: Record<str
   }
   return etatPilote(projet, acteur);
 }
+
+// ---------------------------------------------------------------------------
+// Pilote à missions (Pilote 3/3) : copie synchronisée de l'artefact, tableau de bord.
+// ---------------------------------------------------------------------------
+export interface FicheMission {
+  type?: string; statut?: string; lieu?: string; referent?: string; alias?: string[]; contexte?: string; demandes?: string;
+  prochaines_actions?: string[]; sources?: { date?: string; kind?: string; label?: string; url?: string }[];
+  derniere_activite?: string; maj_le?: string;
+}
+export interface MissionVue {
+  id: string; ref: string; titre: string; territoire: string | null; etape: string; fiche: FicheMission;
+  taches: number; faites: number; en_cours: number; bloquees: number;
+}
+export interface TableauPilote {
+  racine: { id: string; titre: string; synchro: boolean; synchro_le: string | null; artefact: string | null; source: string };
+  peut_importer: boolean;
+  chantiers: { nom: string; code?: string }[];
+  personnes: { code: string; nom: string; relie: boolean; id: string | null }[];
+  missions: MissionVue[];
+  taches: Tache[];
+}
+export interface EntreeHistorique {
+  ref: string; quand: string | null; genre: "journal" | "proposition"; type: string | null; qui: string | null; resume: string | null;
+  tache: string | null; statut: string | null; projet: string; projet_id: string; source?: { label?: string; url?: string } | null;
+}
+export interface PiloteVisible { source: string; titre: string; id: string; synchro_le: string | null; missions: number }
+export interface BilanImport {
+  racine: string; cree: boolean; missions: number; taches: number; sous_taches: number; absences: number; retirees: number;
+  historique: number; alias_non_relies: string[];
+}
+export const SOURCE_PILOTE = /^[a-z0-9-]{3,40}$/;
+export const pilotesVisibles = (acteur: string) => rpc<PiloteVisible[]>("pilotes_visibles", { p_acteur: acteur });
+export const tableauPilote = (source: string, acteur: string) => rpc<TableauPilote | null>("tableau_pilote", { p_source: source, p_acteur: acteur });
+export const historiquePilote = (projet: string, acteur: string, limite = 300) =>
+  rpc<EntreeHistorique[]>("historique_pilote", { p_projet: projet, p_acteur: acteur, p_limite: limite });
+export const importerPiloteMissions = (source: string, exportJson: unknown, acteur: string) =>
+  rpc<BilanImport>("importer_pilote_missions", { p_source: source, p_export: exportJson, p_acteur: acteur });
