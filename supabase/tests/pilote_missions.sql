@@ -232,3 +232,9 @@ SELECT pg_temp.ok('lead : aucun e-mail diffusé', pg_temp.en('service_role', NUL
   $q$SELECT (public.vue_projet(id, 2)->'lead' ? 'email')::text FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'false');
 SELECT pg_temp.ok('lead : jamais pour le public', pg_temp.en('service_role', NULL,
   $q$SELECT COALESCE(public.vue_projet(id, 0)->>'lead', '—') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '—');
+
+-- Brouillons à valider en une lecture (28/11).
+SELECT pg_temp.ok('brouillons : la coordination les voit', pg_temp.en('service_role', NULL,
+  $q$SELECT (jsonb_array_length(public.brouillons_a_valider('00000000-0000-0000-0000-0000000000a1')) > 0)::text$q$), 'true');
+SELECT pg_temp.ok('brouillons : rien pour un membre', pg_temp.en('service_role', NULL,
+  $q$SELECT jsonb_array_length(public.brouillons_a_valider('00000000-0000-0000-0000-0000000000b9'))::text$q$), '0');

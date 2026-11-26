@@ -90,14 +90,28 @@ export class ErreurBase extends Error {
   }
 }
 
+// Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
+const LECTURES = new Set([
+  "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue",
+]);
+const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
+
 export async function rpc<T>(fonction: string, params: Record<string, unknown>, f: typeof fetch = fetch): Promise<T> {
   if (!baseConfiguree()) throw new ErreurBase(503, "", "Base Trois-Tiers non configurée");
-  const r = await f(`${env("TT_BASE_URL")!.replace(/\/$/, "")}/rest/v1/rpc/${fonction}`, {
+  const appel = () => f(`${env("TT_BASE_URL")!.replace(/\/$/, "")}/rest/v1/rpc/${fonction}`, {
     method: "POST",
     headers: enTetes(env("TT_BASE_SERVICE_KEY")!),
     body: JSON.stringify(params),
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(20_000),
   });
+  let r: Response;
+  try {
+    r = await appel();
+  } catch (e) {
+    if (!LECTURES.has(fonction) || !estDelai(e)) throw e;
+    r = await appel();
+  }
   const texte = await r.text();
   if (!r.ok) {
     let e: { code?: string; message?: string } = {};
@@ -116,7 +130,7 @@ async function reglage<T>(table: string, colonnes: string): Promise<T[]> {
   if (!baseConfiguree()) return [];
   const r = await fetch(`${env("TT_BASE_URL")!.replace(/\/$/, "")}/rest/v1/${table}?select=${colonnes}`, {
     headers: enTetes(env("TT_BASE_SERVICE_KEY")!),
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(20_000),
   });
   return r.ok ? ((await r.json()) as T[]) : [];
 }
@@ -333,3 +347,9 @@ export function profilCtg(id: string, lienGuilde: string): string | null {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   try { return `${new URL(lienGuilde).origin}/users/${id}`; } catch { return null; }
 }
+export interface Brouillon {
+  id: string; titre: string; resume: string | null; enjeux: string | null; resume_valide: boolean; enjeux_valide: boolean;
+  famille: string | null; ordre: number | null; lead: { nom: string | null; id: string } | null;
+}
+/** Projets dont la personne gère la diffusion et qui ont un résumé ou des enjeux à valider (une seule lecture). */
+export const brouillonsAValider = (acteur: string) => rpc<Brouillon[]>("brouillons_a_valider", { p_acteur: acteur });

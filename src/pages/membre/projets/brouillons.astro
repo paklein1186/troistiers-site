@@ -1,7 +1,7 @@
 ---
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
-import { baseConfiguree, mesDroits, projetsVisibles, reglerEnjeux, reglerResume, type ProjetVu } from "../../../lib/base";
+import { baseConfiguree, brouillonsAValider, reglerEnjeux, reglerResume, type Brouillon } from "../../../lib/base";
 
 // Relire et valider d'un coup les résumés et enjeux en brouillon des projets que l'on gère (coordination, référents).
 // Chaque texte reste modifiable ; seuls les projets cochés sont validés. La base revérifie le droit, projet par projet.
@@ -35,17 +35,15 @@ if (Astro.request.method === "POST") {
   else if (!echecs.length) return Astro.redirect(`${ici}?valides=${valides}`, 303);
 }
 
-let brouillons: ProjetVu[] = [];
+// Une seule lecture : les projets dont la personne gère la diffusion et qui ont un texte à valider.
+let brouillons: Brouillon[] = [];
 try {
-  const tous = await projetsVisibles(acteur);
-  const candidats = tous.filter((p) => p.niveau >= 4 && ((p.resume && !p.resume_valide) || (p.enjeux && !p.enjeux_valide)));
-  // Seulement les projets dont la personne gère la diffusion (sinon la validation serait refusée).
-  const droits = await Promise.all(candidats.map((p) => mesDroits(p.id, acteur).catch(() => null)));
-  brouillons = candidats.filter((_, i) => droits[i]?.fixer_sensibilite)
-    .sort((a, b) => (a.famille?.ordre ?? 99) - (b.famille?.ordre ?? 99) || a.titre.localeCompare(b.titre, "fr"));
+  brouillons = (await brouillonsAValider(acteur)).sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || a.titre.localeCompare(b.titre, "fr"));
 } catch (e) {
   console.error("Brouillons (liste) :", e);
-  message ||= messageBase(e, "Les brouillons n'ont pas pu être chargés.");
+  message ||= (e as { name?: string })?.name === "TimeoutError"
+    ? "La base Trois-Tiers a mis trop de temps à répondre. Rechargez la page dans un instant."
+    : messageBase(e, "Les brouillons n'ont pas pu être chargés.");
 }
 const valid = Number(Astro.url.searchParams.get("valides") ?? 0);
 ---
@@ -71,7 +69,7 @@ const valid = Number(Astro.url.searchParams.get("valides") ?? 0);
         <fieldset class="brouillon-projet">
           <legend>
             <label class="option"><input type="checkbox" name="valider" value={p.id} checked class="case" /> <strong>{p.titre}</strong></label>
-            {p.famille && <span class="doux"> · {p.famille.libelle}</span>}
+            {p.famille && <span class="doux"> · {p.famille}</span>}
           </legend>
           <input type="hidden" name={`titre-${p.id}`} value={p.titre} />
           <label for={`resume-${p.id}`}>Résumé</label>
