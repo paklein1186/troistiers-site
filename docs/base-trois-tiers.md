@@ -264,6 +264,19 @@ Fiche : https://claude.ai/artifact/QeYwiZKRp7Btcaacvabwr6 ; décisions de PA du 
 - `correspondance_ctg(projet)` : nature, statut, étiquettes (`famille:<code>`, `chantier:<code>`), territoires CTG et
   territoire pas encore relié.
 
+**A3, publication manuelle** (migration `20261126194500_quetes_a3_publication.sql`) :
+- `face_ctg(projet)` : ce qui partirait sur CTG (titre, résumé validé, nature, statut, étiquettes, territoires, besoins
+  si `besoins_publics` et enjeux validés, lien retour) et, sinon, pourquoi ce n'est pas publiable (projet sensible,
+  résumé non validé, validateur externe sans accord, proposition d'agent, nature sans équivalent, quête née sur CTG).
+  Audience : transparent → quête publique ; semi-sensible → quête réservée à la guilde.
+- `proposer_publication_ctg` (référent ou coordination) → entrée `publication_ctg` dans la file de revue ; seule la
+  coordination la décide (`peut_decider`). Acceptée : le projet passe dans `projets_a_publier`.
+- `enregistrer_quete_ctg` (coordination) : l'adresse de la quête créée pose `ctg_quete_id` ; une quête ne se relie qu'à
+  un seul projet (index unique) ; adresse vide = retirer le lien.
+- `reglages_site.adresse_site` (https://troistiers.space) : base du lien retour `…/projets/<id>` (page publique : A4).
+- Site : bloc « ChangeTheGame » sur la fiche (`#ctg`), file de revue, `/membre/quetes/a-publier` (face publique prête à
+  copier, champ « adresse de la quête créée »).
+
 ## Lots suivants
 
 - Lot 3 : le Pilote branché (lecture et écriture via MCP, données migrées hors de l'artefact).

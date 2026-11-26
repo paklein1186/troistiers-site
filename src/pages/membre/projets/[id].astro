@@ -2,9 +2,10 @@
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, actionTache, messageBase } from "../../../lib/acteur";
 import ListeTaches from "../../../components/ListeTaches.astro";
+import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, reglerResume, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
@@ -44,13 +45,17 @@ if (Astro.request.method === "POST" && acteur) {
     } else if (action === "resume" || action === "resume_valider" || action === "resume_retirer") {
       await reglerResume(acteur, id, String(f.get("resume") ?? "").slice(0, 600), action === "resume_valider");
       await reglerEnjeux(acteur, id, String(f.get("enjeux") ?? "").slice(0, 1200), action === "resume_valider");
+    } else if (action === "proposer_ctg") {
+      await proposerPublicationCtg(acteur, id, String(f.get("message") ?? "").slice(0, 1000));
+    } else if (action === "quete_ctg" || action === "retirer_ctg") {
+      await enregistrerQueteCtg(acteur, id, action === "retirer_ctg" ? "" : String(f.get("adresse") ?? "").trim().slice(0, 500));
     } else if (action === "valider" || action === "refuser") {
       await validerDiffusion(acteur, id, action === "valider");
     }
     return Astro.redirect(`${ici}?fait=${encodeURIComponent(action)}`, 303);
   } catch (e) {
     console.error(`Base Trois-Tiers (${action}) :`, e);
-    message = messageBase(e);
+    message = (e as { code?: string })?.code === "23514" && (e as Error).message ? `Refusé : ${(e as Error).message}` : messageBase(e);
   }
 }
 
@@ -60,6 +65,7 @@ let listeEtapes: Etape[] = [];
 let libellesTypes: Record<string, string> = {};
 let apercu: ProjetVu | null = null;
 let taches: Tache[] = [];
+let publication: FaceCtg | null = null;
 const niveauApercu = Astro.url.searchParams.get("en_tant_que");
 try {
   [p, droits, listeEtapes, libellesTypes] = await Promise.all([
@@ -68,7 +74,9 @@ try {
     etapes().then((l) => l.sort((a, b) => a.ordre - b.ordre)),
     typesContenu().then((l) => Object.fromEntries(l.map((t) => [t.code, t.libelle]))),
   ]);
-  if (droits && droits.niveau >= 4 && acteur) taches = await tachesProjet(id, acteur);
+  if (droits && droits.niveau >= 4 && acteur) {
+    [taches, publication] = await Promise.all([tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null)]);
+  }
   // Aperçu en tant que : réservé à l'équipe du projet et à la coordination, jamais au-dessus de son niveau.
   const n = Number(niveauApercu);
   if (droits && droits.niveau >= 4 && niveauApercu !== null && Number.isInteger(n) && n >= 0 && n <= droits.niveau) {
@@ -90,6 +98,9 @@ const FAITS: Record<string, string> = {
   resume: "Résumé et enjeux enregistrés comme brouillons : ils ne s'affichent pas encore hors de l'équipe.",
   resume_valider: "Résumé et enjeux validés : le résumé s'affiche là où le titre est visible, les enjeux là où les besoins le sont.",
   resume_retirer: "Validation retirée : résumé et enjeux ne s'affichent plus hors de l'équipe.",
+  proposer_ctg: "Publication proposée : elle attend la validation de la coordination (file de revue).",
+  quete_ctg: "Lien vers la quête enregistré : le projet est relié à ChangeTheGame.",
+  retirer_ctg: "Lien vers la quête retiré.",
   refuser: "Diffusion hors équipe refusée.",
 };
 const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre actif", "N4 équipe", "N5 coordination"];
@@ -184,6 +195,44 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
             {p.etape_verrouillee && <button type="submit" name="action" value="deverrouiller" class="bouton creux" formnovalidate>Rendre la main aux agents</button>}
           </div>
         </form>
+      )}
+
+      {publication && (
+        <section class="panneau bloc" id="ctg">
+          <h2>ChangeTheGame</h2>
+          {publication.ctg_quete_id ? (
+            <>
+              <p>Publié comme quête{publication.audience === "guilde" ? " réservée à la guilde" : ""} : <a href={adresseQueteCtg(publication.ctg_quete_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">voir sur ChangeTheGame</a>.</p>
+              {publication.coordination && (
+                <form method="post" class="rangee">
+                  <button type="submit" name="action" value="retirer_ctg" class="bouton creux">Retirer le lien</button>
+                </form>
+              )}
+            </>
+          ) : publication.validee_le ? (
+            <>
+              <p>Publication validée par la coordination : la quête reste à créer dans ChangeTheGame.</p>
+              {publication.coordination ? <FaceCtgBloc face={publication} projet={p.id} action={ici} lienGuilde={chargerContenu().liens.changethegame_guilde} /> : <p class="doux">La coordination crée la quête et y colle son lien.</p>}
+            </>
+          ) : publication.proposition_en_attente ? (
+            <p>Publication proposée : elle attend la validation de la coordination dans la <a href="/membre/revue">file de revue</a>.</p>
+          ) : !publication.publiable ? (
+            <>
+              <p>Pas encore publiable sur ChangeTheGame :</p>
+              <ul>{publication.raisons.map((r) => <li>{r}</li>)}</ul>
+            </>
+          ) : publication.peut_proposer ? (
+            <form method="post" class="formulaire">
+              <p>Ce projet peut devenir une quête {publication.audience === "public" ? "publique" : "réservée aux membres de la guilde"} de ChangeTheGame. Seuls le titre, le résumé validé, la nature, le territoire et les étiquettes y partent ; le détail reste ici.</p>
+              <input type="hidden" name="action" value="proposer_ctg" />
+              <label for="message-ctg">Pourquoi la publier <span class="doux">(facultatif)</span></label>
+              <input id="message-ctg" name="message" maxlength="1000" placeholder="Ex. : trouver des partenaires sur le territoire" />
+              <div><button type="submit">Proposer la publication</button></div>
+            </form>
+          ) : (
+            <p class="doux">Publiable : le référent du projet peut proposer sa publication.</p>
+          )}
+        </section>
       )}
 
       {droits?.fixer_sensibilite && (

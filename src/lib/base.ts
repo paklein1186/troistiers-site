@@ -369,3 +369,23 @@ export const ouvrirContribution = (acteur: string, tache: string, ouverte: boole
   rpc<null>("ouvrir_contribution", { p_tache: tache, p_ouverte: ouverte, p_acteur: acteur });
 export const validerProposition = (acteur: string, type: "projet" | "tache", id: string) =>
   rpc<null>("valider_proposition", { p_type: type, p_id: id, p_acteur: acteur });
+
+// Projets ↔ quêtes CTG, A3 : publication manuelle (le référent propose, la coordination valide et crée la quête).
+export interface FaceCtg {
+  publiable: boolean; raisons: string[]; audience: "public" | "guilde" | null; titre: string; resume: string | null;
+  besoins: string | null; nature: string | null; statut: string | null; etiquettes: string[]; territoires: string[];
+  territoire: string | null; territoire_non_relie: string | null; lien_retour: string; ctg_quete_id: string | null;
+  publie_le: string | null; validee_le: string | null; proposition_en_attente: boolean;
+  peut_proposer?: boolean; coordination?: boolean; id?: string;
+}
+export const publicationCtg = (projet: string, acteur: string) => rpc<FaceCtg | null>("publication_ctg", { p_projet: projet, p_acteur: acteur });
+export const proposerPublicationCtg = (acteur: string, projet: string, message: string) =>
+  rpc<string>("proposer_publication_ctg", { p_projet: projet, p_message: message, p_acteur: acteur });
+export const enregistrerQueteCtg = (acteur: string, projet: string, adresse: string) =>
+  rpc<string | null>("enregistrer_quete_ctg", { p_projet: projet, p_adresse: adresse, p_acteur: acteur });
+export const projetsAPublier = (acteur: string) => rpc<FaceCtg[]>("projets_a_publier", { p_acteur: acteur });
+/** Adresse d'une quête sur ChangeTheGame (même origine que le lien de la guilde). */
+export function adresseQueteCtg(id: string, lienGuilde: string): string | null {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  try { return `${new URL(lienGuilde).origin}/quests/${id}`; } catch { return null; }
+}

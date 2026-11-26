@@ -52,6 +52,8 @@ const champs: { libelle: string; valeur: string; aide?: string }[] = [
   .face-ctg .valeur { white-space: pre-wrap; }
   .face-ctg .copier-champ { min-height: 30px; padding: 2px 10px; font-size: .82rem; }
   .face-ctg .aide { flex-basis: 100%; font-size: .86rem; }
+  .face-ctg form { display: grid; gap: 6px; max-width: 640px; }
+  .face-ctg form input[type=url] { width: 100%; }
   @media (max-width: 620px) { .face-ctg dl { grid-template-columns: minmax(0, 1fr); } .face-ctg dd { margin-bottom: 6px; } }
 </style>
 

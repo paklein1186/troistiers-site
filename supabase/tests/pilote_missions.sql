@@ -291,3 +291,45 @@ SELECT pg_temp.ok('A1 : territoire relié par la coordination', pg_temp.en('auth
 SELECT pg_temp.ok('A1 : … et repris dans la correspondance', pg_temp.en('service_role', NULL,
   $q$SELECT (c->'territoires')::text || ' ' || COALESCE(c->>'territoire_non_relie', '—')
      FROM projets p, LATERAL (SELECT public.correspondance_ctg(p) c) x WHERE p.ref_externe = 'pilote-m:mission:lieu-a'$q$), '["11111111-1111-1111-1111-111111111111"] —');
+
+-- Quêtes CTG, étape A3 (26/11) : publication manuelle.
+CREATE TEMP TABLE a3 AS SELECT id::text AS p FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a';
+GRANT SELECT ON a3 TO PUBLIC;
+UPDATE projets SET resume_public = NULL, resume_valide = false WHERE ref_externe = 'pilote-m:mission:lieu-a';
+SELECT pg_temp.ok('A3 : sans résumé validé, pas publiable', pg_temp.en('service_role', NULL,
+  $q$SELECT (f->>'publiable') || ' ' || (f->'raisons'->>0) FROM (SELECT public.publication_ctg((SELECT p FROM a3)::uuid, '00000000-0000-0000-0000-0000000000a1') f) s$q$),
+  'false Le résumé public n''est pas encore validé.');
+SELECT pg_temp.ok('A3 : le référent ne peut pas proposer un projet non publiable', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.proposer_publication_ctg((SELECT p FROM a3)::uuid)::text$q$), 'refusé');
+SELECT public.regler_resume((SELECT p FROM a3)::uuid, 'Un lieu accompagné à Namur.', true);
+SELECT pg_temp.ok('A3 : face publique d''un projet semi-sensible (quête réservée à la guilde)', pg_temp.en('service_role', NULL,
+  $q$SELECT (f->>'publiable') || ' ' || (f->>'audience') || ' ' || (f->>'nature') || ' ' || (f->>'resume') || ' ' || (f->>'lien_retour' LIKE 'https://troistiers.space/projets/%')::text
+     FROM (SELECT public.publication_ctg((SELECT p FROM a3)::uuid, '00000000-0000-0000-0000-0000000000a1') f) s$q$),
+  'true guilde MISSION Un lieu accompagné à Namur. true');
+SELECT pg_temp.ok('A3 : un membre ne voit pas l''état de publication', pg_temp.en('service_role', NULL,
+  $q$SELECT COALESCE(public.publication_ctg((SELECT p FROM a3)::uuid, '00000000-0000-0000-0000-0000000000b9')::text, '—')$q$), '—');
+SELECT pg_temp.ok('A3 : le référent propose la publication', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT (public.proposer_publication_ctg((SELECT p FROM a3)::uuid, 'Pour trouver des partenaires') IS NOT NULL)::text$q$), 'true');
+SELECT pg_temp.ok('A3 : pas deux propositions en attente', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.proposer_publication_ctg((SELECT p FROM a3)::uuid)::text$q$), 'refusé');
+SELECT pg_temp.ok('A3 : le référent ne valide pas sa propre proposition', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.decider_revue((SELECT id FROM revue WHERE type = 'publication_ctg' AND statut = 'en_attente'), 'accepter')$q$), 'refusé');
+SELECT pg_temp.ok('A3 : la coordination la voit dans sa revue', pg_temp.en('service_role', NULL,
+  $q$SELECT (x->>'type') || ' ' || (x->'objet'->>'audience') FROM jsonb_array_elements(public.ma_revue('00000000-0000-0000-0000-0000000000a1')) x WHERE x->>'type' = 'publication_ctg'$q$), 'publication_ctg guilde');
+SELECT pg_temp.ok('A3 : la coordination valide', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.decider_revue((SELECT id FROM revue WHERE type = 'publication_ctg' AND statut = 'en_attente'), 'accepter')$q$), 'accepte');
+SELECT pg_temp.ok('A3 : le projet est à publier', pg_temp.en('service_role', NULL,
+  $q$SELECT string_agg(x->>'titre', ',') FROM jsonb_array_elements(public.projets_a_publier('00000000-0000-0000-0000-0000000000a1')) x$q$), 'Lieu A (Namur)');
+SELECT pg_temp.ok('A3 : un membre n''enregistre pas de quête', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.enregistrer_quete_ctg((SELECT p FROM a3)::uuid, 'https://changethegame.xyz/quests/22222222-2222-2222-2222-222222222222')::text$q$), 'refusé');
+SELECT pg_temp.ok('A3 : adresse non reconnue', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.enregistrer_quete_ctg((SELECT p FROM a3)::uuid, 'https://changethegame.xyz/quests/abc')::text$q$), 'refusé');
+SELECT pg_temp.ok('A3 : la coordination enregistre l''adresse de la quête', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.enregistrer_quete_ctg((SELECT p FROM a3)::uuid, 'https://changethegame.xyz/quests/22222222-2222-2222-2222-222222222222')::text$q$), '22222222-2222-2222-2222-222222222222');
+SELECT pg_temp.ok('A3 : plus rien à publier', pg_temp.en('service_role', NULL,
+  $q$SELECT jsonb_array_length(public.projets_a_publier('00000000-0000-0000-0000-0000000000a1'))::text$q$), '0');
+SELECT pg_temp.ok('A3 : une quête ne se relie qu''à un seul projet', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.enregistrer_quete_ctg((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'), 'https://changethegame.xyz/quests/22222222-2222-2222-2222-222222222222')::text$q$), 'refusé');
+SELECT pg_temp.ok('A3 : un projet sensible n''est jamais publiable', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.face_ctg(id)->>'publiable') || ' ' || (public.face_ctg(id)->'raisons'->>0) FROM projets WHERE ref_externe = 'pilote-m'$q$),
+  'false Projet sensible : il n''est jamais publié sur ChangeTheGame.');
