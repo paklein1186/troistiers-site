@@ -231,7 +231,16 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
               {!apercu ? <p><strong>Invisible</strong> à ce niveau.</p> : (
                 <>
                   <p><strong>{apercu.titre}</strong>{apercu.etape ? ` · ${libEtape(apercu.etape)}` : " · étape masquée"}{apercu.phrase ? ` — ${apercu.phrase}` : ""}</p>
-                  {apercu.elements.length === 0 ? <p class="doux">Aucun contenu à ce niveau.</p> : (
+                  {apercu.resume ? <p>{apercu.resume}</p> : p.resume && (
+                    <p class="doux">Résumé : {p.resume_valide ? "masqué à ce niveau." : <>pas encore visible, il est en <a href="#resume">brouillon à valider</a>.</>}</p>
+                  )}
+                  {apercu.enjeux ? <p class="enjeux"><strong>Enjeux.</strong> {apercu.enjeux}</p> : p.enjeux && (
+                    <p class="doux">Enjeux : {p.enjeux_valide ? "masqués à ce niveau." : <>pas encore visibles, ils sont en <a href="#resume">brouillon à valider</a>.</>}</p>
+                  )}
+                  {apercu.lead && profilCtg(apercu.lead.id, chargerContenu().liens.changethegame_guilde) && (
+                    <p class="doux">Pilotage : <a href={profilCtg(apercu.lead.id, chargerContenu().liens.changethegame_guilde)!} rel="noopener">{apercu.lead.nom ?? "profil"} sur ChangeTheGame</a></p>
+                  )}
+                  {apercu.elements.length === 0 ? (!apercu.resume && !apercu.enjeux && <p class="doux">Aucun autre contenu à ce niveau.</p>) : (
                     <dl class="elements">{apercu.elements.map((e) => (<><dt>{libellesTypes[e.type] ?? e.type}</dt><dd>{e.texte}</dd></>))}</dl>
                   )}
                   {apercu.documents.length > 0 && <p class="doux">Documents : {apercu.documents.map((d) => d.titre).join(", ")}</p>}
