@@ -373,3 +373,30 @@ SELECT pg_temp.ok('liaison : la quête écartée est dans la liste', pg_temp.en(
 SELECT pg_temp.ok('liaison : la reprendre', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
   $q$SELECT public.ecarter_quete_ctg('cccccccc-0000-0000-0000-00000000a2a2', 'Hors sujet', NULL, false)::text$q$), '∅');
 SELECT pg_temp.ok('liaison : … plus écartée', (SELECT count(*)::text FROM quetes_ecartees), '0');
+
+-- Quêtes CTG, B1 : publication automatique.
+UPDATE projets SET sensibilite = 'transparent', resume_public = 'Résumé', resume_valide = true, ctg_quete_id = NULL,
+  ctg_publication_validee_le = NULL, validateur_externe = NULL, en_proposition = false
+WHERE ref_externe = 'pilote-m:mission:gt-d';
+SELECT pg_temp.ok('publication auto : refusée sans validation de la coordination', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.enregistrer_publication_auto((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'dddddddd-0000-0000-0000-0000000000b1', 'e1')::text$q$), 'refusé');
+UPDATE projets SET ctg_publication_validee_le = now() WHERE ref_externe = 'pilote-m:mission:gt-d';
+SELECT pg_temp.ok('publication auto : un référent ne peut pas', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.enregistrer_publication_auto((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'dddddddd-0000-0000-0000-0000000000b1', 'e1')::text$q$), 'refusé');
+SELECT pg_temp.ok('publication auto : la coordination relie', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.enregistrer_publication_auto((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'dddddddd-0000-0000-0000-0000000000b1', 'e1')::text$q$), '∅');
+SELECT pg_temp.ok('publication auto : lien automatique posé',
+  (SELECT concat_ws('/', ctg_lien_auto, ctg_empreinte) FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 't/e1');
+SELECT pg_temp.ok('publication auto : la face part au serveur', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.faces_ctg_a_synchroniser() @> '[{"quete": "dddddddd-0000-0000-0000-0000000000b1", "empreinte": "e1"}]')::text$q$), 'true');
+SELECT pg_temp.ok('publication auto : jamais aux visiteurs ni aux membres',
+  (has_function_privilege('authenticated', 'public.faces_ctg_a_synchroniser()', 'EXECUTE')
+   OR has_function_privilege('anon', 'public.noter_synchro_ctg(uuid, text, text)', 'EXECUTE'))::text, 'false');
+SELECT pg_temp.ok('publication auto : une erreur garde l''ancienne empreinte', pg_temp.en('service_role', NULL,
+  $q$SELECT public.noter_synchro_ctg((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'e2', 'CTG 500')::text$q$), '∅');
+SELECT pg_temp.ok('publication auto : … empreinte e1, erreur notée',
+  (SELECT concat_ws('/', ctg_empreinte, ctg_synchro_erreur) FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'e1/CTG 500');
+SELECT pg_temp.ok('publication auto : changer de quête à la main coupe la synchro', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.enregistrer_quete_ctg((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'https://changethegame.xyz/quests/eeeeeeee-0000-0000-0000-0000000000b1')::text$q$), 'eeeeeeee-0000-0000-0000-0000000000b1');
+SELECT pg_temp.ok('publication auto : … lien automatique retiré',
+  (SELECT ctg_lien_auto::text FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'false');

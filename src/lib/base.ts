@@ -393,7 +393,7 @@ export function adresseQueteCtg(id: string, lienGuilde: string): string | null {
 export const quetesLiees = () => rpc<{ projet: string; quete: string }[]>("quetes_liees", {});
 /** File de liaison des quêtes CTG (coordination, étape A2). */
 export interface EtatLiaison {
-  liees: { quete: string; projet: string; titre: string }[];
+  liees: { quete: string; projet: string; titre: string; auto?: boolean; synchro_le?: string | null; erreur?: string | null }[];
   ecartees: { quete: string; titre: string | null; motif: string | null; le: string }[];
   projets: { id: string; titre: string; famille: string | null }[];
 }
@@ -402,6 +402,13 @@ export const accueillirQueteCtg = (acteur: string, quete: string, titre: string,
   rpc<string>("accueillir_quete_ctg", { p_quete: quete, p_titre: titre, p_description: description, p_nature_ctg: nature, p_acteur: acteur });
 export const ecarterQueteCtg = (acteur: string, quete: string, titre: string, motif: string | null, ecarter: boolean) =>
   rpc<null>("ecarter_quete_ctg", { p_quete: quete, p_titre: titre, p_motif: motif, p_ecarter: ecarter, p_acteur: acteur });
+/** Publication automatique (palier 2, B1). */
+export const enregistrerPublicationAuto = (acteur: string, projet: string, quete: string, empreinte: string) =>
+  rpc<null>("enregistrer_publication_auto", { p_projet: projet, p_quete: quete, p_empreinte: empreinte, p_acteur: acteur });
+export const facesASynchroniser = () =>
+  rpc<{ projet: string; quete: string; empreinte: string | null; face: FaceCtg }[]>("faces_ctg_a_synchroniser", {});
+export const noterSynchroCtg = (projet: string, empreinte: string, erreur: string | null) =>
+  rpc<null>("noter_synchro_ctg", { p_projet: projet, p_empreinte: empreinte, p_erreur: erreur });
 /** Changer la nature d'un projet (coordination) : décide de la nature de la quête ChangeTheGame. */
 export const changerNature = (acteur: string, projet: string, nature: string) =>
   rpc<null>("changer_nature", { p_projet: projet, p_nature: nature, p_acteur: acteur });

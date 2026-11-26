@@ -160,6 +160,8 @@ const fait = FAITS[Astro.url.searchParams.get("fait") ?? ""];
                 <a href={`/membre/projets/${r.projet}`}>{r.titre}</a> ↔ {r.q
                   ? <a href={r.q.url} rel="noopener">{r.q.title}</a>
                   : <span class="doux">quête introuvable dans la guilde (supprimée, ou hors de la guilde)</span>}
+                {r.auto && <span class="doux"> · synchronisée automatiquement{r.synchro_le ? ` (le ${new Date(r.synchro_le).toLocaleString("fr-BE", { dateStyle: "short", timeStyle: "short" })})` : ""}</span>}
+                {r.erreur && <span class="avertissement-texte"> · dernière synchro en erreur : {r.erreur}</span>}
               </li>
             ))}
           </ul>
@@ -194,6 +196,7 @@ const fait = FAITS[Astro.url.searchParams.get("fait") ?? ""];
   .liaison form { margin: 6px 0 0; }
   .liaison select { max-width: 100%; min-width: 0; flex: 1 1 260px; }
   .liaison input[name="motif"] { flex: 1 1 180px; min-width: 0; }
+  .avertissement-texte { color: var(--erreur, #9b2c2c); }
   ul.simple { padding-left: 1.1rem; display: grid; gap: 6px; }
   button.lien { background: none; border: 0; padding: 0 0 0 8px; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
