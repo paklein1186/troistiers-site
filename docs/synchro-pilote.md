@@ -6,15 +6,23 @@ invité depuis une autre organisation (le compte de PA) est refusé, et aucun r�
 
 Le circuit :
 
-1. **Compte Trois-Tiers (Mac mini)** : une tâche planifiée, toutes les 2 heures, lit les données du Pilote et remplace
-   le contenu d'un seul fichier Google Drive, `pilote-33-export.json`, dans le dossier `Trois-Tiers / Synchro site`.
-2. **Google Drive pour ordinateur**, sur la machine du site, recopie ce fichier localement.
-3. **Le site** relit le fichier toutes les 2 heures (et 30 secondes après son démarrage) ; s'il a changé, il le passe à
+1. **Compte Trois-Tiers (Mac mini)** : toutes les 2 heures, la page du Pilote exporte ses données (« Exporter tout
+   (JSON) ») dans le dossier Drive `Trois-Tiers 3/3 / Synchro site`.
+2. **Google Drive pour ordinateur**, sur la machine du site, recopie ce dossier localement.
+3. **Le site** relit le plus récent des fichiers `pilote….json` du dossier toutes les 2 heures (et 30 secondes après son démarrage) ; s'il a changé, il le passe à
    `importer_pilote_missions`, exactement comme le bouton « Synchroniser ». L'état est gardé dans
    `.donnees/synchro-pilote-33.json` (hors dépôt) et affiché dans l'onglet « Agents & journal » du Pilote, avec un bouton
    « Synchroniser maintenant ».
 
-## 1. Créer la tâche planifiée sur le compte Trois-Tiers
+**Mise à jour du 26/11 : synchro par le Mac.** Une tâche dans le cloud ne convient pas : le connecteur Google Drive ne
+sait pas réécrire un fichier existant, et faire passer toute la base du Pilote (≈ 1,9 Mo) par Claude 12 fois par jour
+est trop lourd et risque de tronquer l'export. Seule la page du Pilote, ouverte dans un navigateur, calcule l'export
+exact. La tâche tourne donc **sur le Mac mini** (compte Trois-Tiers) : elle ouvre la page du Pilote, clique « Exporter
+tout (JSON) » et range le fichier téléchargé dans **`Trois-Tiers 3/3 / Synchro site`** (dossier Drive partagé de PA).
+Comme un navigateur crée un nouveau fichier à chaque téléchargement, **le site accepte un dossier** dans
+`PILOTE_33_EXPORT` et lit le plus récent de ses fichiers `pilote….json` (les anciens peuvent être supprimés).
+
+## 1. (première version, remplacée par la synchro par le Mac) Tâche planifiée dans le cloud
 
 Ouvrir une nouvelle conversation Claude **connectée au compte Trois-Tiers** (application de bureau du Mac mini, ou
 claude.ai dans un navigateur connecté à ce compte), avec le connecteur Google Drive activé, et coller :
@@ -38,18 +46,18 @@ Le dossier contient les tâches de l'équipe : le partager seulement avec les pe
 ## 2. Rendre le fichier visible sur la machine du site
 
 - Installer **Google Drive pour ordinateur** sur la machine du site, connecté à un compte qui voit le dossier
-  `Trois-Tiers / Synchro site` (s'il est partagé avec un autre compte : « Ajouter un raccourci à Mon Drive », sinon le
+  `Trois-Tiers 3/3 / Synchro site` (s'il est partagé avec un autre compte : « Ajouter un raccourci à Mon Drive », sinon le
   dossier n'est pas recopié).
-- Repérer le chemin du fichier recopié. Sur Mac, il ressemble à :
-  `/Users/<vous>/Library/CloudStorage/GoogleDrive-<compte>/Mon Drive/Trois-Tiers/Synchro site/pilote-33-export.json`
-  (dans le Finder : clic droit sur le fichier, maintenir Option, « Copier … en tant que chemin d'accès »).
+- Repérer le chemin du dossier recopié. Sur Mac, il ressemble à :
+  `/Users/<vous>/Library/CloudStorage/GoogleDrive-<compte>/Mon Drive/Trois-Tiers 3-3/Synchro site`
+  (dans le Finder : clic droit sur le dossier, maintenir Option, « Copier … en tant que chemin d'accès »).
 
 ## 3. Régler le site
 
-Dans `.env` :
+Dans `.env`, le chemin du **dossier** (ou d'un fichier précis) :
 
 ```
-PILOTE_33_EXPORT=/Users/<vous>/Library/CloudStorage/GoogleDrive-<compte>/Mon Drive/Trois-Tiers/Synchro site/pilote-33-export.json
+PILOTE_33_EXPORT=/Users/<vous>/Library/CloudStorage/GoogleDrive-<compte>/Mon Drive/Trois-Tiers 3-3/Synchro site
 PILOTE_33_INTERVALLE_MIN=120
 ```
 

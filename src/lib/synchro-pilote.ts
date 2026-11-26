@@ -4,19 +4,32 @@
  * Une tâche planifiée du compte Trois-Tiers (propriétaire de l'artefact Pilote) écrit toutes les 2 heures l'export
  * JSON du Pilote dans un fichier Google Drive, que Google Drive recopie sur la machine du site. Le site relit ce
  * fichier toutes les 2 heures (et au démarrage) et, s'il a changé, le passe à importer_pilote_missions, comme le
- * bouton « Synchroniser ». Réglages dans .env : PILOTE_33_EXPORT (chemin du fichier), PILOTE_33_INTERVALLE_MIN
+ * bouton « Synchroniser ». Réglages dans .env : PILOTE_33_EXPORT (chemin du fichier, ou d'un dossier : le site prend
+ * alors le plus récent de ses fichiers « pilote….json », car un navigateur crée un nouveau fichier à chaque
+ * téléchargement), PILOTE_33_INTERVALLE_MIN
  * (120 par défaut). Sans PILOTE_33_EXPORT, rien ne tourne.
  */
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { baseConfiguree, rpc, type BilanImport } from "./base";
 
 const env = (k: string) => ((import.meta.env?.[k] as string | undefined) || process.env[k]) || undefined;
 const ETAT = resolve(process.cwd(), ".donnees/synchro-pilote-33.json");
 const SOURCE = "pilote-33";
 
-export interface EtatSynchro { empreinte?: string; le?: string; bilan?: BilanImport; erreur?: string; essai_le?: string }
+export interface EtatSynchro { empreinte?: string; le?: string; bilan?: BilanImport; erreur?: string; essai_le?: string; fichier_lu?: string }
+
+/** Le fichier à lire : le chemin donné, ou, si c'est un dossier, son fichier « pilote….json » le plus récent. */
+export function fichierExport(chemin: string): string {
+  if (!statSync(chemin).isDirectory()) return chemin;
+  const candidats = readdirSync(chemin)
+    .filter((n) => /^pilote.*\.json$/i.test(n))
+    .map((n) => ({ n, t: statSync(join(chemin, n)).mtimeMs }))
+    .sort((a, b) => b.t - a.t);
+  if (!candidats.length) throw new Error(`aucun fichier « pilote….json » dans ${chemin}`);
+  return join(chemin, candidats[0].n);
+}
 
 function lireEtat(): EtatSynchro {
   try { return JSON.parse(readFileSync(ETAT, "utf8")); } catch { return {}; }
@@ -33,8 +46,8 @@ export async function synchroniserDepuisFichier(force = false): Promise<EtatSync
   const essai_le = new Date().toISOString();
   if (!chemin || !baseConfiguree()) return etat;
   try {
-    statSync(chemin);
-    const texte = readFileSync(chemin, "utf8");
+    const fichier = fichierExport(chemin);
+    const texte = readFileSync(fichier, "utf8");
     const empreinte = createHash("sha256").update(texte).digest("hex");
     if (!force && empreinte === etat.empreinte) { ecrireEtat({ ...etat, essai_le, erreur: undefined }); return lireEtat(); }
     const donnees = JSON.parse(texte) as { tasks?: unknown; missions?: unknown; titre?: string };
@@ -42,7 +55,7 @@ export async function synchroniserDepuisFichier(force = false): Promise<EtatSync
     donnees.titre ??= "Pilote 3/3";
     // Appel du serveur, sans personne : réservé à la clé serveur (comme le SQL Editor).
     const bilan = await rpc<BilanImport>("importer_pilote_missions", { p_source: SOURCE, p_export: donnees, p_acteur: null });
-    const nouvel: EtatSynchro = { empreinte, le: essai_le, essai_le, bilan };
+    const nouvel: EtatSynchro = { empreinte, le: essai_le, essai_le, bilan, fichier_lu: fichier };
     ecrireEtat(nouvel);
     console.log(`Synchro Pilote 3/3 : ${bilan.missions} missions, ${bilan.taches} tâches, ${bilan.retirees} retirée(s).`);
     return nouvel;
