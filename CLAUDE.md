@@ -252,7 +252,8 @@ Règles :
 - changethegame : branche + PR, jamais `main` ; dire à PA ce qu'une fusion change en production.
 
 Étapes du palier 1 (une branche et une PR chacune) : A1 base (tâches ouvertes à contribution, provenance,
-correspondances nature / territoire / étiquettes) ; A2 liaison à la main `/membre/quetes/liaison` ; A3 publication
+correspondances nature / territoire / étiquettes ; migration `20261126190000_quetes_a1_base.sql` ; **CTG n'a que les natures
+IDEA, PROJECT, MISSION** : projet et groupe → PROJECT, capitalisé → statut COMPLETED) ; A2 liaison à la main `/membre/quetes/liaison` ; A3 publication
 manuelle (bloc « ChangeTheGame » sur la fiche, proposition du référent dans `/membre/revue`, face publique à copier,
 adresse de la quête créée ; liste `/membre/quetes/a-publier`) ; A4 lien retour (`website_url` de la quête → fiche du
 site) ; A5 lecture des quêtes (fonction CTG `guild-quests`, branche `trois-tiers/quetes-guilde`). Point avec PA quand

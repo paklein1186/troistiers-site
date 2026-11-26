@@ -245,6 +245,25 @@ Note du 26/11 : huit migrations portaient une date à venir (26 au 28/11) ; elle
 (`20261125202400` à `20261126183000`), sans changer leur contenu ni leur ordre. Une base où elles sont déjà passées n'a
 rien à refaire.
 
+## Projets ↔ quêtes ChangeTheGame, palier 1
+
+Fiche : https://claude.ai/artifact/QeYwiZKRp7Btcaacvabwr6 ; décisions de PA du 26/11 dans `CLAUDE.md`.
+
+**A1, base** (migration `20261126190000_quetes_a1_base.sql`) :
+- `taches.ouverte_contribution` (faux par défaut ; `ouvrir_contribution`, réglage propre au site, gardé aux
+  synchronisations du Pilote).
+- `provenance` des projets et des tâches : `pilote` | `site` | `ctg` | `agent` (par défaut : `pilote` si l'élément a une
+  référence externe, sinon `site`). Un élément `agent` reste une proposition (`en_proposition`) tant qu'un humain ne l'a
+  pas validé (`valider_proposition`) ; un projet proposé reste invisible hors équipe.
+- `ctg_correspondances`, modifiable sans code (SQL Editor ou `regler_correspondance`, coordination) :
+  - nature → `quest_nature`. **CTG n'accepte que `IDEA`, `PROJECT`, `MISSION`** (vérifié dans le code de CTG le
+    26/11) : mission → MISSION ; projet et groupe de travail → PROJECT ; idée → IDEA ; opportunité → rien.
+  - étape → statut de la quête (`OPEN`, `ACTIVE`, `COMPLETED`, `CANCELLED`) : un projet capitalisé ou clos donne une
+    quête `COMPLETED` (CTG n'a pas de nature « réalisation »).
+  - territoire (texte, sans casse) → identifiant de territoire CTG : à remplir lors de l'inventaire (A2).
+- `correspondance_ctg(projet)` : nature, statut, étiquettes (`famille:<code>`, `chantier:<code>`), territoires CTG et
+  territoire pas encore relié.
+
 ## Lots suivants
 
 - Lot 3 : le Pilote branché (lecture et écriture via MCP, données migrées hors de l'artefact).
