@@ -6,7 +6,8 @@ import { niveauAcces } from "../lib/acces";
 import { chargerContenu } from "../lib/contenu";
 import missions from "../../data/missions.exemple.json";
 import { acteurConnecte } from "../lib/acteur";
-import { baseConfiguree, etapes, profilCtg, projetsVisibles, type ProjetVu } from "../lib/base";
+import { baseConfiguree, etapes, profilCtg, projetsVisibles, quetesLiees, type ProjetVu } from "../lib/base";
+import { LIBELLE_STATUT, quetesPubliques, sansDoublon, type QueteCtg } from "../lib/quetes-ctg";
 
 const k = chargerContenu();
 const c = chargerCommunaute();
@@ -42,6 +43,19 @@ if (baseConfiguree()) {
     console.error("Projets (base) :", e);
   }
 }
+// Quêtes publiques de la guilde sur ChangeTheGame qui ne sont pas déjà un projet ci-dessus (étape A5).
+let quetes: QueteCtg[] = [];
+try {
+  const [toutes, liees] = await Promise.all([
+    quetesPubliques(),
+    baseConfiguree() ? quetesLiees().catch((e) => { console.error("Quêtes liées :", e); return null; }) : Promise.resolve([]),
+  ]);
+  // Sans la liste des liens, on ne montre rien plutôt que risquer un doublon.
+  if (liees) quetes = sansDoublon(toutes, new Set(liees.map((l) => l.quete)));
+} catch (e) {
+  console.error("Quêtes CTG :", e);
+}
+const extrait = (t: string | null) => (t && t.length > 260 ? `${t.slice(0, 257).trimEnd()}…` : t ?? "");
 const nbEnCours = enCours.reduce((n, g) => n + g.projets.length, 0);
 const resumeDe = (p: ProjetVu) => [p.resume, p.enjeux].filter(Boolean).join(" ");
 const piedDe = (p: ProjetVu) => (p.lead?.id ? `Pilotage : ${p.lead.nom ?? "voir le profil"}` : undefined);
@@ -91,6 +105,23 @@ const lienPied = (p: ProjetVu) => (p.lead?.id ? profilCtg(p.lead.id, k.liens.cha
           </div>
         ))
       )}
+    </section>
+  )}
+
+  {quetes.length > 0 && (
+    <section class="bloc" id="quetes">
+      <h2>Quêtes ouvertes sur ChangeTheGame</h2>
+      <p class="doux">Proposées par les membres de la guilde Trois-Tiers : on peut les suivre ou y contribuer sur ChangeTheGame.</p>
+      <Liste elements={quetes.map((q) => ({
+        cle: q.web_tags?.slice(0, 2).join(" · ") ?? "",
+        titre: q.title,
+        texte: extrait(q.description),
+        etat: q.status ? LIBELLE_STATUT[q.status] ?? undefined : undefined,
+        lien: q.url,
+        facultatif: true,
+        pied: "Voir la quête",
+        lienPied: q.url,
+      }))} />
     </section>
   )}
 
