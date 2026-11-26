@@ -42,12 +42,13 @@ try {
   console.error("Base Trois-Tiers (revue, lecture) :", e);
   message ||= "La file de revue n'a pas pu être chargée.";
 }
-const TYPES: Record<string, string> = { candidature: "Candidature", badge: "Badge proposé", etape: "Changement d'étape", classification: "Classement", diffusion: "Diffusion", opportunite: "Opportunité" };
+const TYPES: Record<string, string> = { candidature: "Candidature", badge: "Badge proposé", etape: "Changement d'étape", classification: "Classement", diffusion: "Diffusion", opportunite: "Opportunité", publication_ctg: "Publication sur ChangeTheGame" };
 const resume = (r: PropositionRevue) => {
   const o = r.objet as Record<string, string>;
   if (r.type === "candidature") return `${r.personne ?? r.personne_email ?? "Quelqu'un"} souhaite rejoindre « ${r.projet} » comme ${ROLES_CONTEXTUELS[o.role] ?? o.role}.`;
   if (r.type === "badge") return `Accorder « ${o.badge} » à ${r.personne ?? r.personne_email ?? "?"}${r.projet ? ` sur « ${r.projet} »` : ""}.`;
   if (r.type === "etape") return `« ${r.projet} » : ${libellesEtapes[o.de] ?? o.de} → ${libellesEtapes[o.vers] ?? o.vers}${o.confiance ? ` (confiance ${Math.round(Number(o.confiance) * 100)} %)` : ""}.`;
+  if (r.type === "publication_ctg") return `Publier « ${r.projet} » comme quête ${o.audience === "public" ? "publique" : "réservée aux membres de la guilde"} sur ChangeTheGame. Une fois acceptée, la face publique est prête à copier dans « Quêtes à publier ».`;
   return JSON.stringify(o);
 };
 ---
@@ -57,7 +58,7 @@ const resume = (r: PropositionRevue) => {
     <h1>File de revue</h1>
     <p class="lead">Ce que les agents proposent et les candidatures à vos projets. Rien de ce qui ouvre des droits ne se fait sans une décision humaine.</p>
   </section>
-  {fait && <p class="pastille" role="status">{fait === "accepter" ? "Proposition acceptée." : "Proposition refusée."}</p>}
+  {fait && <p class="pastille" role="status">{fait === "accepter" ? <>Proposition acceptée. Une publication acceptée attend sa quête dans <a href="/membre/quetes/a-publier">Quêtes à publier</a>.</> : "Proposition refusée."}</p>}
   {message && <p class="avertissement" role="alert">{message}</p>}
 
   {liste.length === 0 ? <p class="doux">Rien à examiner pour l'instant.</p> : (
@@ -66,7 +67,7 @@ const resume = (r: PropositionRevue) => {
         <li class="panneau">
           <p><span class="etiquette" style="margin:0 8px 0 0">{TYPES[r.type] ?? r.type}</span>{resume(r)}</p>
           {r.justification && <p class="doux">« {r.justification} »</p>}
-          <p class="doux" style="font-size:.85rem">Proposé par {r.propose_par.startsWith("agent:") ? `l'agent ${r.propose_par.slice(6)}` : "la personne elle-même"} · {new Date(r.cree_le).toLocaleDateString("fr-BE")}
+          <p class="doux" style="font-size:.85rem">Proposé par {r.propose_par.startsWith("agent:") ? `l'agent ${r.propose_par.slice(6)}` : r.type === "publication_ctg" ? "le référent du projet" : "la personne elle-même"} · {new Date(r.cree_le).toLocaleDateString("fr-BE")}
             {r.projet_id && <> · <a href={`/membre/projets/${encodeURIComponent(r.projet_id)}`}>voir le projet</a></>}</p>
           <form method="post" class="rangee">
             <input type="hidden" name="id" value={r.id} />
