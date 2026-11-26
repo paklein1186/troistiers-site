@@ -24,7 +24,11 @@ try {
   console.error("Fiche publique :", e);
   erreur = true;
 }
-if (!p && !erreur) Astro.response.status = 404;
+if (!p && !erreur) {
+  // Garder cette page (« Projet réservé ») plutôt que la page 404 générique d'Astro.
+  Astro.response.status = 404;
+  Astro.response.headers.set("X-Astro-Reroute", "no");
+}
 const ici = `/projets/${encodeURIComponent(id)}`;
 const profil = (pid: string | null | undefined) => (pid ? profilCtg(pid, k.liens.changethegame_guilde) : null);
 ---
