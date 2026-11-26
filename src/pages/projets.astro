@@ -83,7 +83,7 @@ const lienPied = (p: ProjetVu) => (p.lead?.id ? profilCtg(p.lead.id, k.liens.cha
               titre: p.titre,
               texte: resumeDe(p),
               etat: p.etape ? libelles[p.etape] ?? p.etape : undefined,
-              lien: acteur ? `/membre/projets/${p.id}` : undefined,
+              lien: acteur ? `/membre/projets/${p.id}` : `/projets/${p.id}`,
               facultatif: true,
               pied: piedDe(p),
               lienPied: lienPied(p),

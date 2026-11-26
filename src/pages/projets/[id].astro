@@ -1,0 +1,90 @@
+---
+import Base from "../../layouts/Base.astro";
+import { acteurConnecte } from "../../lib/acteur";
+import { apercuProjet, baseConfiguree, etapes, NATURES, profilCtg, type ProjetVu } from "../../lib/base";
+import { chargerContenu } from "../../lib/contenu";
+
+// Fiche d'un projet ouverte à tous : c'est l'adresse que porte la quête ChangeTheGame (website_url, étape A4).
+// La base filtre selon le niveau de la personne : le public voit ce qui est visible en N0, une personne connectée
+// ce que son adhésion et ses rôles lui ouvrent. Le détail complet reste dans l'espace membres.
+const id = Astro.params.id ?? "";
+if (!baseConfiguree() || !/^[0-9a-f-]{36}$/i.test(id)) return Astro.redirect("/projets");
+const u = Astro.locals.utilisateur;
+const acteur = u ? await acteurConnecte(Astro.cookies) : null;
+const k = chargerContenu();
+
+let p: ProjetVu | null = null;
+let libelles: Record<string, string> = {};
+let erreur = false;
+try {
+  const [vu, l] = await Promise.all([apercuProjet(id, acteur), etapes()]);
+  p = vu;
+  libelles = Object.fromEntries(l.map((e) => [e.code, e.libelle]));
+} catch (e) {
+  console.error("Fiche publique :", e);
+  erreur = true;
+}
+if (!p && !erreur) {
+  // Garder cette page (« Projet réservé ») plutôt que la page 404 générique d'Astro.
+  Astro.response.status = 404;
+  Astro.response.headers.set("X-Astro-Reroute", "no");
+}
+const ici = `/projets/${encodeURIComponent(id)}`;
+const profil = (pid: string | null | undefined) => (pid ? profilCtg(pid, k.liens.changethegame_guilde) : null);
+---
+<Base titre={p?.titre ?? "Projet"}>
+  <p class="surtitre"><a href="/projets">Projets</a></p>
+  {erreur ? (
+    <p class="avertissement" role="alert">Le projet n'a pas pu être chargé. Réessayez dans un instant.</p>
+  ) : !p ? (
+    <section class="hero">
+      <h1>Projet réservé</h1>
+      <p class="lead">Ce projet n'est pas visible {u ? "à votre niveau d'adhésion" : "publiquement"}.
+        {!u && <> Si vous êtes membre de Trois-Tiers, <a href={`/connexion?suite=${encodeURIComponent(ici)}`}>connectez-vous</a> pour le voir.</>}</p>
+      <p><a href="/projets">Voir les projets du réseau</a></p>
+    </section>
+  ) : (
+    <>
+      <section class="hero">
+        <p class="surtitre">{[p.famille?.libelle ?? NATURES[p.nature] ?? p.nature, p.territoire].filter(Boolean).join(" · ")}</p>
+        <h1 class="titre">{p.titre}</h1>
+        {p.etape && <p><span class="etiquette">{libelles[p.etape] ?? p.etape}</span></p>}
+        {p.resume && <p class="lead">{p.resume}</p>}
+        {!p.resume && p.phrase && <p class="lead">{p.phrase}</p>}
+      </section>
+      {p.enjeux && (
+        <section class="bloc">
+          <h2>Enjeux</h2>
+          <p class="texte">{p.enjeux}</p>
+        </section>
+      )}
+      {(p.lead || (p.personnes ?? []).length > 0) && (
+        <section class="bloc">
+          <h2>Qui</h2>
+          {p.lead && <p>Pilotage : {profil(p.lead.id) ? <a href={profil(p.lead.id)!} rel="noopener">{p.lead.nom ?? "profil"} sur ChangeTheGame</a> : p.lead.nom}</p>}
+          {(p.personnes ?? []).length > 0 && (
+            <p>Personnes impliquées : {p.personnes!.map((x, i) => <>{i > 0 && ", "}{profil(x.id) ? <a href={profil(x.id)!} rel="noopener">{x.nom}</a> : x.nom}</>)}</p>
+          )}
+        </section>
+      )}
+      {p.elements.length > 0 && (
+        <section class="bloc">
+          <h2>Nouvelles et contenus</h2>
+          <ul class="simple">{p.elements.map((e) => <li>{e.texte}</li>)}</ul>
+        </section>
+      )}
+      <section class="bloc">
+        {u ? (
+          <p><a class="bouton creux" href={`/membre/projets/${encodeURIComponent(p.id)}`}>Ouvrir la fiche dans l'espace membres</a></p>
+        ) : (
+          <p class="doux">Le détail de ce projet est réservé aux membres de Trois-Tiers. <a href={`/connexion?suite=${encodeURIComponent(ici)}`}>Se connecter</a> ou <a href="/adherer">adhérer</a>.</p>
+        )}
+      </section>
+    </>
+  )}
+</Base>
+
+<style>
+  .titre { overflow-wrap: anywhere; }
+  .texte { max-width: 70ch; white-space: pre-wrap; }
+</style>
