@@ -210,7 +210,10 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   `/membre/pilotes/pilote-33`, **au design de l'artefact** (25/11, demande de PA : Tableau, Missions, Planning, Salle
   d'attente, Agents & journal + Synchroniser, recherche, fiches ; CSS de l'artefact limité à `.p33`). Synchro automatique bloquée :
   l'artefact appartient à une autre organisation claude.ai qui refuse ArtifactData depuis Claude Code ; PA règle
-  l'accès (option 1) ; refusé encore le 26/11 malgré son statut d'éditeur ; en attendant, dépôt manuel de l'export. **Familles** (25/11) : fonction socle (stratégie,
+  l'accès : refusé encore le 26/11 malgré son statut d'éditeur, et aucun réglage d'organisation ne l'autorise. **Option 2
+  retenue (26/11)** : une tâche planifiée du compte Trois-Tiers (Mac mini, propriétaire de l'artefact) écrit l'export toutes
+  les 2 heures dans un fichier Google Drive ; le site le relit toutes les 2 heures (`PILOTE_33_EXPORT`,
+  `src/lib/synchro-pilote.ts`, mode d'emploi `docs/synchro-pilote.md`) ; le dépôt manuel reste possible. **Familles** (25/11) : fonction socle (stratégie,
   admin, finances, instruments, **volet animation**), coordination (marché public wallon), groupes de travail (SDC, AMO et
   réseau d'accompagnants, réseaux européens, tiers-lieux en maison de retraite, **réseau territoires**, **institut
   recherche et données**, **pistes à dispatcher** par la coordination) ; classement propre au site, corrigeable dans le

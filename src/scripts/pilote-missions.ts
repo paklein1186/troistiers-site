@@ -327,12 +327,21 @@ function renderAttente() {
 }
 
 /* ---------- Agents & journal ---------- */
+function autoBlock() {
+  const a = DATA.auto;
+  if (!a) return "";
+  if (!a.fichier) return `<p class="msg">Synchronisation automatique : pas encore réglée (fichier d’export à indiquer dans le réglage PILOTE_33_EXPORT du site).</p>`;
+  return `<div class="hbodj"><span>Synchronisation automatique toutes les 2 heures, depuis le fichier d’export du Drive.${a.le ? ` Dernière : ${esc(fmtDT(a.le))}${a.bilan ? ` (${a.bilan.taches} tâches, ${a.bilan.missions} missions)` : ""}.` : " Pas encore passée."}${a.essai_le && a.essai_le !== a.le && !a.erreur ? ` Fichier relu le ${esc(fmtDT(a.essai_le))}, inchangé.` : ""}</span>
+    ${a.erreur ? `<span class="pill warn">${esc(a.erreur)}</span>` : ""}
+    <form method="post" enctype="multipart/form-data" style="display:inline"><input type="hidden" name="depuis_fichier" value="1"><button class="btn small" type="submit">Synchroniser maintenant</button></form></div>`;
+}
 function syncBlock() {
   const r = DATA.import || {};
   return `<div class="section"><h2>Synchronisation avec l’artefact</h2>
     <p class="hint">Pendant la transition, on travaille dans l’artefact et ses agents ; le site en garde une copie, en lecture, réservée à l’équipe.${DATA.racine.synchro_le ? ` Dernière synchronisation : ${esc(fmtDT(DATA.racine.synchro_le))}.` : ""}${lienSur(DATA.racine.artefact) ? ` <a href="${esc(DATA.racine.artefact)}" target="_blank" rel="noopener">Ouvrir l’artefact</a>.` : ""}</p>
     ${r.bilan ? `<p class="pill ok">Synchronisation faite : ${r.bilan.missions} missions, ${r.bilan.taches} tâches, ${r.bilan.absences} indisponibilités, ${r.bilan.historique} entrées de journal et propositions${r.bilan.retirees ? `, ${r.bilan.retirees} tâche(s) retirée(s)` : ""}.</p>` : ""}
     ${r.message ? `<p class="pill warn" role="alert">${esc(r.message)}</p>` : ""}
+    ${autoBlock()}
     ${DATA.peut_importer ? `<form method="post" enctype="multipart/form-data" class="formrow" style="margin-top:8px">
         <div class="field wide"><label for="export">Export de l’artefact (onglet « Agents &amp; journal », « Exporter tout (JSON) »)</label><input id="export" name="export" type="file" accept="application/json,.json" required></div>
         <button class="btn primary" type="submit">Synchroniser</button>

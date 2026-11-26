@@ -13,6 +13,7 @@ import { resolve } from "node:path";
 import { parse } from "yaml";
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
+import { etatSynchroPilote, synchroniserDepuisFichier } from "../../../lib/synchro-pilote";
 import {
   baseConfiguree, historiquePilote, importerPiloteMissions, SOURCE_PILOTE, tableauPilote,
   type BilanImport, type EntreeHistorique, type TableauPilote,
@@ -39,7 +40,16 @@ if (envoi) {
   try {
     const f = await Astro.request.formData();
     const fichier = f.get("export");
-    if (!(fichier instanceof File) || fichier.size === 0) message = "Choisissez le fichier JSON exporté depuis l'artefact.";
+    if (f.get("depuis_fichier") === "1") {
+      // Relire tout de suite le fichier de la synchronisation automatique (coordination : la base revérifie).
+      const t = await tableauPilote(source, acteur);
+      if (!t?.peut_importer) message = "La synchronisation est réservée à la coordination.";
+      else {
+        const r = await synchroniserDepuisFichier(true);
+        if (r.erreur) message = `Synchronisation automatique : ${r.erreur}`;
+        else bilan = r.bilan ?? null;
+      }
+    } else if (!(fichier instanceof File) || fichier.size === 0) message = "Choisissez le fichier JSON exporté depuis l'artefact.";
     else if (fichier.size > 15 * 1024 * 1024) message = "Fichier trop lourd (15 Mo au plus).";
     else {
       let donnees: unknown = null;
@@ -115,6 +125,7 @@ if (tableau) {
     racine: tableau.racine, peut_importer: tableau.peut_importer, peut_classer: !!tableau.peut_classer,
     familles: tableau.familles ?? [], url_classer: `${ici}/classer`, vue: envoi ? "journal" : null,
     import: envoi ? { bilan, message } : null,
+    auto: tableau.peut_importer ? etatSynchroPilote() : null,
     membres, chantiers: tableau.chantiers.map((c) => ({ k: c.code ?? c.nom, n: c.nom })),
     taches, absences, missions, journal, propositions,
     conges: [...periodes("be", conges?.belgique?.periodes), ...periodes("fr", conges?.france?.periodes)],
