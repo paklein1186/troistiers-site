@@ -18,8 +18,11 @@ ALTER TABLE public.taches
   ADD COLUMN provenance text CHECK (provenance IN ('pilote', 'site', 'ctg', 'agent')),
   ADD COLUMN en_proposition boolean NOT NULL DEFAULT false;
 UPDATE public.projets SET provenance = CASE WHEN source_pilote IS NOT NULL THEN 'pilote' ELSE 'site' END;
+-- Les copies synchronisées du Pilote sont protégées contre toute modification : on lève la protection le temps de la reprise.
+ALTER TABLE public.taches DISABLE TRIGGER taches_copie_synchro;
 UPDATE public.taches SET provenance = CASE WHEN ref_externe IS NOT NULL THEN 'pilote' ELSE 'site' END
 WHERE provenance IS NULL;
+ALTER TABLE public.taches ENABLE TRIGGER taches_copie_synchro;
 ALTER TABLE public.projets ALTER COLUMN provenance SET NOT NULL;
 
 -- Provenance par défaut à la création : « pilote » si l'élément vient d'un import (référence externe), sinon « site ».

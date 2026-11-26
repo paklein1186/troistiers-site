@@ -1,0 +1,64 @@
+---
+// Face publique d'un projet pour ChangeTheGame, prête à copier champ par champ dans le formulaire de quête de CTG,
+// et champ « adresse de la quête créée » (coordination). Les valeurs viennent de la base (face_ctg) : seul le résumé
+// validé part, jamais la fiche, les obstacles ou le budget.
+import type { FaceCtg } from "../lib/base";
+interface Props { face: FaceCtg; projet: string; action: string; lienGuilde: string }
+const { face, projet, action, lienGuilde } = Astro.props;
+const NATURES: Record<string, string> = { MISSION: "Mission", PROJECT: "Projet", IDEA: "Idée" };
+const STATUTS: Record<string, string> = { OPEN: "Ouverte", ACTIVE: "Active", COMPLETED: "Terminée", CANCELLED: "Annulée" };
+const champs: { libelle: string; valeur: string; aide?: string }[] = [
+  { libelle: "Titre (title)", valeur: face.titre },
+  { libelle: "Description (description)", valeur: face.resume ?? "" },
+  { libelle: "Nature (quest_nature)", valeur: face.nature ?? "", aide: NATURES[face.nature ?? ""] },
+  { libelle: "Statut", valeur: face.statut ?? "", aide: STATUTS[face.statut ?? ""] },
+  { libelle: "Visibilité", valeur: face.audience === "public" ? "Publique" : "Réservée aux membres de la guilde Trois-Tiers",
+    aide: face.audience === "guilde" ? "Projet semi-sensible : la quête ne doit pas être publique." : undefined },
+  { libelle: "Territoire", valeur: face.territoires.length ? face.territoires.join(", ") : face.territoire ?? "",
+    aide: face.territoire_non_relie ? `« ${face.territoire_non_relie} » n'est pas encore relié à un territoire de CTG : choisissez-le à la main.` : undefined },
+  { libelle: "Étiquettes (web_tags)", valeur: face.etiquettes.join(", ") },
+  ...(face.besoins ? [{ libelle: "Besoins publics", valeur: face.besoins }] : []),
+  { libelle: "Adresse du site (website_url)", valeur: face.lien_retour, aide: "La quête renvoie vers la fiche du projet, qui filtre selon le niveau de la personne." },
+];
+---
+<div class="face-ctg">
+  <p class="doux">À recopier dans le formulaire de nouvelle quête de la <a href={lienGuilde} rel="noopener">guilde Trois-Tiers sur ChangeTheGame</a>.</p>
+  <dl>
+    {champs.map((c) => (
+      <>
+        <dt>{c.libelle}</dt>
+        <dd>
+          <span class="valeur">{c.valeur || "—"}</span>
+          {c.valeur && <button type="button" class="copier-champ bouton creux" data-valeur={c.valeur}>Copier</button>}
+          {c.aide && <span class="aide doux">{c.aide}</span>}
+        </dd>
+      </>
+    ))}
+  </dl>
+  <form method="post" action={action} class="formulaire">
+    <input type="hidden" name="action" value="quete_ctg" />
+    <input type="hidden" name="projet" value={projet} />
+    <label for={`quete-${projet}`}>Adresse de la quête créée sur ChangeTheGame</label>
+    <input id={`quete-${projet}`} name="adresse" type="url" required placeholder="https://changethegame.xyz/quests/…" />
+    <div><button type="submit">Enregistrer le lien</button></div>
+  </form>
+</div>
+
+<style>
+  .face-ctg { display: grid; gap: 10px; }
+  .face-ctg dl { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+  .face-ctg dt { font-weight: 600; font-size: .92rem; }
+  .face-ctg dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; overflow-wrap: anywhere; }
+  .face-ctg .valeur { white-space: pre-wrap; }
+  .face-ctg .copier-champ { min-height: 30px; padding: 2px 10px; font-size: .82rem; }
+  .face-ctg .aide { flex-basis: 100%; font-size: .86rem; }
+  @media (max-width: 620px) { .face-ctg dl { grid-template-columns: minmax(0, 1fr); } .face-ctg dd { margin-bottom: 6px; } }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>(".copier-champ").forEach((b) => b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(b.dataset.valeur ?? ""); b.textContent = "Copié"; }
+    catch { window.prompt("Copiez :", b.dataset.valeur ?? ""); }
+    setTimeout(() => (b.textContent = "Copier"), 1500);
+  }));
+</script>

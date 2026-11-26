@@ -1,0 +1,66 @@
+---
+import Base from "../../../layouts/Base.astro";
+import FaceCtgBloc from "../../../components/FaceCtg.astro";
+import { acteurConnecte, messageBase } from "../../../lib/acteur";
+import { baseConfiguree, enregistrerQueteCtg, projetsAPublier, type FaceCtg } from "../../../lib/base";
+import { chargerContenu } from "../../../lib/contenu";
+
+// Projets dont la publication sur ChangeTheGame est validée et dont la quête reste à créer (coordination).
+// Pour chacun : la face publique à recopier dans CTG, puis l'adresse de la quête créée (qui pose ctg_quete_id).
+const u = Astro.locals.utilisateur;
+const ici = "/membre/quetes/a-publier";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree()) return Astro.redirect("/membre/projets");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+
+let message = "";
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  const projet = String(f.get("projet") ?? "");
+  try {
+    if (/^[0-9a-f-]{36}$/i.test(projet)) {
+      await enregistrerQueteCtg(acteur, projet, String(f.get("adresse") ?? "").trim().slice(0, 500));
+      return Astro.redirect(`${ici}?fait=1`, 303);
+    }
+  } catch (e) {
+    message = (e as { code?: string })?.code === "23514" ? `Refusé : ${(e as Error).message}` : messageBase(e);
+  }
+}
+let liste: FaceCtg[] = [];
+try {
+  liste = await projetsAPublier(acteur);
+} catch (e) {
+  console.error("Quêtes à publier :", e);
+  message ||= messageBase(e, "La liste n'a pas pu être chargée.");
+}
+const lienGuilde = chargerContenu().liens.changethegame_guilde;
+---
+<Base titre="Quêtes à publier">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/projets">Projets</a> · Quêtes à publier</p>
+  <section class="hero">
+    <h1>Quêtes à publier</h1>
+    <p class="lead">Les projets dont la publication sur ChangeTheGame est validée. Pour chacun, créez la quête dans la guilde Trois-Tiers en recopiant la face publique, puis collez ici son adresse.</p>
+  </section>
+  {Astro.url.searchParams.get("fait") && <p class="pastille" role="status">Lien enregistré : le projet est relié à sa quête.</p>}
+  {message && <p class="avertissement" role="alert">{message}</p>}
+  {liste.length === 0 ? (
+    <p class="doux">Rien à publier pour l'instant. Les référents proposent une publication depuis la fiche de leur projet ; vous la validez dans la <a href="/membre/revue">file de revue</a>.</p>
+  ) : (
+    <div class="a-publier">
+      {liste.map((f) => (
+        <section class="panneau">
+          <h2><a href={`/membre/projets/${f.id}`}>{f.titre}</a></h2>
+          <FaceCtgBloc face={f} projet={f.id!} action={ici} lienGuilde={lienGuilde} />
+        </section>
+      ))}
+    </div>
+  )}
+</Base>
+
+<style>
+  .a-publier { display: grid; gap: 16px; }
+  .a-publier h2 { font-size: 1.15rem; margin: 0 0 8px; }
+</style>
