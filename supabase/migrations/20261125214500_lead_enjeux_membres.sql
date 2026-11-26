@@ -1,43 +1,28 @@
--- Base Trois-Tiers — personnes impliquées dans un projet (28/11).
+-- Base Trois-Tiers — décisions du 25/11 (page Projets de l'espace membres).
 --
--- Liste montrée selon la matrice de diffusion (type de contenu « personnes ») : actifs, alliés et partenaires (N3)
--- pendant le projet, membres (N2) après capitalisation ; l'équipe et la coordination toujours. On y trouve les
--- personnes qui ont un rôle sur le projet (référent, animateur, initiateur, représentant du lieu, membre d'équipe
--- ajouté à la main) et celles qui portent ses tâches dans le Pilote (comptes reliés, ou nom du Pilote en attendant).
--- L'appartenance automatique de l'équipe salariée à toutes les missions (décision 3A) n'y figure pas.
+-- - Les enjeux validés sont visibles des membres adhérents (N2) et plus, là où le titre l'est (avant : gradient des
+--   besoins, N3 pendant le projet). Toujours publics si les besoins du projet le sont.
+-- - La personne qui pilote le projet (nom et identifiant ChangeTheGame, pour un lien vers son profil) s'affiche pour les
+--   membres connectés (N2 et plus), jamais pour le public : le référent de mission, l'animateur ou l'initiateur, sinon
+--   le référent indiqué dans le Pilote (s'il s'est déjà connecté au site). Aucun e-mail n'est diffusé.
 
-CREATE FUNCTION public.personnes_projet(pr public.projets)
+CREATE FUNCTION public.lead_projet(pr public.projets)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  WITH roles AS (
-    SELECT pe.id, COALESCE(a.libelle, pe.nom) AS nom, bt.libelle AS role,
-           array_position(ARRAY['referent_mission', 'animateur_gt', 'initiateur', 'representant_lieu', 'membre_equipe', 'expert_externe'], b.badge_code) AS rang
-    FROM public.badge_attributions b
-    JOIN public.personnes pe ON pe.id = b.personne_id
-    JOIN public.badge_types bt ON bt.code = b.badge_code
+  WITH badge AS (       -- référent de mission, sinon animateur, sinon initiateur
+    SELECT COALESCE(a.libelle, pe.nom) AS nom, pe.id, 1 AS rang,
+           array_position(ARRAY['referent_mission', 'animateur_gt', 'initiateur'], b.badge_code) AS ordre
+    FROM public.badge_attributions b JOIN public.personnes pe ON pe.id = b.personne_id
     LEFT JOIN public.alias_personnes a ON a.personne_id = pe.id AND a.source = pr.source_pilote
     WHERE b.portee_type = 'projet' AND b.portee_id = pr.id AND b.statut = 'actif'
-      AND b.badge_code IN ('referent_mission', 'animateur_gt', 'initiateur', 'representant_lieu', 'membre_equipe', 'expert_externe')
-      AND NOT (b.badge_code = 'membre_equipe' AND b.source = 'automatique' AND COALESCE(b.motif, '') LIKE 'Équipe du Pilote%')
-  ), taches_ids AS (    -- comptes reliés qui portent des tâches
-    SELECT DISTINCT pe.id, COALESCE(a.libelle, pe.nom) AS nom
-    FROM public.taches t CROSS JOIN LATERAL unnest(t.responsables) r(id)
-    JOIN public.personnes pe ON pe.id = r.id
-    LEFT JOIN public.alias_personnes a ON a.personne_id = pe.id AND a.source = pr.source_pilote
-    WHERE t.projet_id = pr.id AND NOT t.absence
-  ), taches_codes AS (  -- codes du Pilote pas encore reliés (nom seulement)
-    SELECT DISTINCT COALESCE(a.libelle, c.code) AS nom
-    FROM public.taches t CROSS JOIN LATERAL unnest(t.responsables_alias || COALESCE(t.porteur, '')) c(code)
-    LEFT JOIN public.alias_personnes a ON a.source = pr.source_pilote AND a.alias = c.code
-    WHERE t.projet_id = pr.id AND NOT t.absence AND c.code NOT IN ('', 'col') AND a.personne_id IS NULL
-  ), tous AS (
-    (SELECT DISTINCT ON (id) id, nom, role, rang FROM roles ORDER BY id, rang)
-    UNION ALL
-    SELECT ti.id, ti.nom, 'Tâches' AS role, 50 FROM taches_ids ti WHERE NOT EXISTS (SELECT 1 FROM roles r WHERE r.id = ti.id)
-    UNION ALL
-    SELECT NULL::uuid, tc.nom, 'Tâches', 60 FROM taches_codes tc
-    WHERE NOT EXISTS (SELECT 1 FROM roles r WHERE r.nom = tc.nom) AND NOT EXISTS (SELECT 1 FROM taches_ids ti WHERE ti.nom = tc.nom)
+      AND b.badge_code IN ('referent_mission', 'animateur_gt', 'initiateur')
+  ), pilote AS (        -- référent indiqué dans le Pilote, s'il est relié à un compte
+    SELECT COALESCE(a.libelle, pe.nom) AS nom, pe.id, 2 AS rang, 0 AS ordre
+    FROM public.alias_personnes a JOIN public.personnes pe ON pe.id = a.personne_id
+    WHERE a.source = pr.source_pilote AND a.alias = pr.fiche ->> 'referent'
   )
-  SELECT COALESCE(jsonb_agg(jsonb_build_object('id', id, 'nom', nom, 'role', role) ORDER BY rang, nom), '[]'::jsonb) FROM tous;
+  SELECT jsonb_build_object('nom', nom, 'id', id)
+  FROM (SELECT * FROM badge UNION ALL SELECT * FROM pilote) c
+  ORDER BY rang, ordre LIMIT 1;
 $$;
 
 CREATE OR REPLACE FUNCTION public.vue_projet(p_projet uuid, p_niveau int)
@@ -93,9 +78,6 @@ BEGIN
                    WHEN pr.enjeux_valide AND (p_niveau >= 2 OR public.forme_visible(pr, 'besoins', p_niveau) IS NOT NULL) THEN pr.enjeux END,
     -- Personne qui pilote le projet (nom, identifiant ChangeTheGame) : membres connectés (N2 et plus), jamais le public.
     'lead', CASE WHEN p_niveau >= 2 THEN public.lead_projet(pr) END,
-    -- Personnes impliquées : selon la matrice (type « personnes ») ; l'équipe et la coordination toujours.
-    'personnes', CASE WHEN p_niveau >= 4 OR public.forme_visible(pr, 'personnes', p_niveau) IS NOT NULL
-                      THEN public.personnes_projet(pr) END,
     'enjeux_valide', CASE WHEN p_niveau >= 4 THEN pr.enjeux_valide END,
     'famille', CASE WHEN pr.parent_id IS NOT NULL AND pr.source_pilote IS NOT NULL THEN
       (SELECT jsonb_build_object('code', f.code, 'famille', f.famille, 'libelle', f.libelle, 'ordre', f.ordre)
@@ -106,4 +88,4 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.personnes_projet(public.projets) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.lead_projet(public.projets) FROM PUBLIC, anon;

@@ -1,4 +1,4 @@
--- Base Trois-Tiers — brouillons à valider en une seule lecture (28/11).
+-- Base Trois-Tiers — brouillons à valider en une seule lecture (26/11).
 --
 -- La page « Brouillons à valider » interrogeait les droits projet par projet (une requête chacun) : trop lent sur la
 -- base en ligne. brouillons_a_valider renvoie en une fois les projets dont la personne gère la diffusion

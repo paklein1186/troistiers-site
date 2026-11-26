@@ -2265,7 +2265,7 @@ GRANT EXECUTE ON FUNCTION public.pilotes_visibles(uuid) TO authenticated, servic
 GRANT EXECUTE ON FUNCTION public.tableau_pilote(text, uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.historique_pilote(uuid, uuid, int) TO authenticated, service_role;
 
--- ===== supabase/migrations/20261126090000_lot3_pilote_missions_dates.sql =====
+-- ===== supabase/migrations/20261125202400_lot3_pilote_missions_dates.sql =====
 -- Base Trois-Tiers — Pilote 3/3 : une tâche sans échéance dans l'artefact reste sans échéance dans la copie
 -- (avant : l'échéance prenait la date de début, et la tâche paraissait en retard). Relancer « Synchroniser » corrige
 -- les tâches déjà importées.
@@ -2473,8 +2473,8 @@ BEGIN
 END;
 $$;
 
--- ===== supabase/migrations/20261126100000_lot3_pilote_familles.sql =====
--- Base Trois-Tiers — Pilote 3/3 : familles d'activité (décisions de PA du 26/11).
+-- ===== supabase/migrations/20261125203000_lot3_pilote_familles.sql =====
+-- Base Trois-Tiers — Pilote 3/3 : familles d'activité (décisions de PA du 25/11).
 --
 -- Trois familles :
 -- - fonction socle : stratégie et gouvernance, administration, finances, financements et instruments, animation ;
@@ -2624,8 +2624,8 @@ REVOKE ALL ON FUNCTION public.famille_mission(text, public.projets) FROM PUBLIC,
 REVOKE ALL ON FUNCTION public.famille_tache(text, public.taches, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.classer_pilote(text, text, text, text, uuid) TO authenticated, service_role;
 
--- ===== supabase/migrations/20261126110000_lot3_gradient_decisions.sql =====
--- Base Trois-Tiers — décisions du 26/11 sur le gradient de diffusion (échantillon de 10 missions du Pilote 3/3).
+-- ===== supabase/migrations/20261125204700_lot3_gradient_decisions.sql =====
+-- Base Trois-Tiers — décisions du 25/11 sur le gradient de diffusion (échantillon de 10 missions du Pilote 3/3).
 --
 -- 1A : le budget est visible des actifs, alliés et partenaires (N3) dès la négociation (plafond d'étape « en cours »).
 -- 2A : les versions adaptées sous N4 seront proposées par un agent et relues par le référent (étape 2, rien ici).
@@ -2801,7 +2801,7 @@ BEGIN
     v_missions := v_missions || jsonb_build_object(m ->> 'id', v_cible);
   END LOOP;
   SELECT array_agg(id) INTO v_famille FROM public.projets WHERE id = v_racine OR parent_id = v_racine;
-  -- Nouvelle mission : réglage de diffusion par défaut de sa famille (décision du 26/11).
+  -- Nouvelle mission : réglage de diffusion par défaut de sa famille (décision du 25/11).
   PERFORM public.appliquer_defaut_famille(p_source, id) FROM unnest(v_nouvelles) id;
 
   -- Tâches : dans leur mission, sinon dans le Pilote ; couloir = chantier.
@@ -2945,8 +2945,8 @@ REVOKE ALL ON FUNCTION public.equiper_pilote(text) FROM PUBLIC, anon, authentica
 GRANT EXECUTE ON FUNCTION public.appliquer_defaut_famille(text, uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.equiper_pilote(text) TO service_role;
 
--- ===== supabase/migrations/20261127090000_resume_public.sql =====
--- Base Trois-Tiers — résumé public des projets (décision du 27/11, page Projets du site).
+-- ===== supabase/migrations/20261125210000_resume_public.sql =====
+-- Base Trois-Tiers — résumé public des projets (décision du 25/11, page Projets du site).
 --
 -- Chaque projet peut porter un résumé public de 1 à 2 phrases. Il est rédigé (à la main en attendant l'agent, décision
 -- 2A), puis validé par la coordination ou un gestionnaire de la diffusion du projet (référent, initiateur, animateur).
@@ -3045,8 +3045,8 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.regler_resume(uuid, text, boolean, uuid) TO authenticated, service_role;
 
--- ===== supabase/migrations/20261127100000_enjeux.sql =====
--- Base Trois-Tiers — enjeux des projets (décision du 27/11, page Projets de l'espace membres).
+-- ===== supabase/migrations/20261125213500_enjeux.sql =====
+-- Base Trois-Tiers — enjeux des projets (décision du 25/11, page Projets de l'espace membres).
 --
 -- 2 à 3 phrases sur ce qui se joue dans un projet : enjeu, opportunité, besoin repéré. Rédigées à la main en attendant
 -- l'agent (2A), validées comme le résumé public. Hors équipe, elles suivent le gradient des « besoins » : actifs, alliés
@@ -3141,8 +3141,8 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.regler_enjeux(uuid, text, boolean, uuid) TO authenticated, service_role;
 
--- ===== supabase/migrations/20261128090000_lead_enjeux_membres.sql =====
--- Base Trois-Tiers — décisions du 28/11 (page Projets de l'espace membres).
+-- ===== supabase/migrations/20261125214500_lead_enjeux_membres.sql =====
+-- Base Trois-Tiers — décisions du 25/11 (page Projets de l'espace membres).
 --
 -- - Les enjeux validés sont visibles des membres adhérents (N2) et plus, là où le titre l'est (avant : gradient des
 --   besoins, N3 pendant le projet). Toujours publics si les besoins du projet le sont.
@@ -3234,8 +3234,8 @@ $$;
 
 REVOKE ALL ON FUNCTION public.lead_projet(public.projets) FROM PUBLIC, anon;
 
--- ===== supabase/migrations/20261128100000_brouillons.sql =====
--- Base Trois-Tiers — brouillons à valider en une seule lecture (28/11).
+-- ===== supabase/migrations/20261126182200_brouillons.sql =====
+-- Base Trois-Tiers — brouillons à valider en une seule lecture (26/11).
 --
 -- La page « Brouillons à valider » interrogeait les droits projet par projet (une requête chacun) : trop lent sur la
 -- base en ligne. brouillons_a_valider renvoie en une fois les projets dont la personne gère la diffusion
@@ -3288,8 +3288,8 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.valider_brouillons(jsonb, uuid) TO authenticated, service_role;
 
--- ===== supabase/migrations/20261128110000_personnes_projet.sql =====
--- Base Trois-Tiers — personnes impliquées dans un projet (28/11).
+-- ===== supabase/migrations/20261126183000_personnes_projet.sql =====
+-- Base Trois-Tiers — personnes impliquées dans un projet (26/11).
 --
 -- Liste montrée selon la matrice de diffusion (type de contenu « personnes ») : actifs, alliés et partenaires (N3)
 -- pendant le projet, membres (N2) après capitalisation ; l'équipe et la coordination toujours. On y trouve les
