@@ -212,7 +212,8 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   l'artefact appartient à une autre organisation claude.ai qui refuse ArtifactData depuis Claude Code ; PA règle
   l'accès : refusé encore le 26/11 malgré son statut d'éditeur, et aucun réglage d'organisation ne l'autorise. **Option 2
   retenue (26/11)** : une tâche planifiée du compte Trois-Tiers (Mac mini, propriétaire de l'artefact) écrit l'export toutes
-  les 2 heures dans un fichier Google Drive ; le site le relit toutes les 2 heures (`PILOTE_33_EXPORT`,
+  les 2 heures dans le Drive (« synchro par le Mac » : la page du Pilote, ouverte sur le Mac mini, exporte elle-même ;
+  dossier `Trois-Tiers 3/3 / Synchro site`) ; le site relit le dossier toutes les 2 heures, fichier `pilote….json` le plus récent (`PILOTE_33_EXPORT`,
   `src/lib/synchro-pilote.ts`, mode d'emploi `docs/synchro-pilote.md`) ; le dépôt manuel reste possible. **Familles** (25/11) : fonction socle (stratégie,
   admin, finances, instruments, **volet animation**), coordination (marché public wallon), groupes de travail (SDC, AMO et
   réseau d'accompagnants, réseaux européens, tiers-lieux en maison de retraite, **réseau territoires**, **institut
