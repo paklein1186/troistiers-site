@@ -1,0 +1,200 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { acteurConnecte, messageBase } from "../../../lib/acteur";
+import {
+  accueillirQueteCtg, baseConfiguree, ecarterQueteCtg, enregistrerQueteCtg, etatLiaison, type EtatLiaison,
+} from "../../../lib/base";
+import { jetonsValides } from "../../../lib/ctg";
+import { garderJetons, lireJetons } from "../../../lib/jetons";
+import { LIBELLE_STATUT, quetesAdmin, type QueteCtgAdmin } from "../../../lib/quetes-ctg";
+
+// Étape A2 : relier à la main les quêtes de la guilde Trois-Tiers sur ChangeTheGame aux projets de la base (coordination).
+// Une quête créée sur CTG n'est jamais recréée : elle attend ici qu'on la relie à un projet, qu'on l'accueille comme
+// nouveau projet (provenance « ctg », à classer) ou qu'on l'écarte. Les quêtes sont lues en direct avec le jeton CTG de la
+// personne, qui doit administrer la guilde.
+const u = Astro.locals.utilisateur;
+const ici = "/membre/quetes/liaison";
+const connexion = `/auth/ctg?suite=${encodeURIComponent(ici)}`;
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree()) return Astro.redirect("/membre/projets");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+const jetons = await jetonsValides(lireJetons(Astro.cookies));
+if (!jetons) return Astro.redirect(connexion);
+garderJetons(Astro.cookies, jetons);
+
+let message = "";
+let etat: EtatLiaison | null = null;
+let quetes: QueteCtgAdmin[] | null = null;
+let ctgInjoignable = false;
+try {
+  etat = await etatLiaison(acteur);
+} catch (e) {
+  message = (e as { code?: string })?.code === "42501"
+    ? "Cette page est réservée à la coordination."
+    : messageBase(e, "La liste n'a pas pu être chargée.");
+}
+if (etat) {
+  try {
+    quetes = await quetesAdmin(jetons.acces);
+  } catch (e) {
+    console.error("Liaison, quêtes CTG :", e);
+    ctgInjoignable = true;
+  }
+}
+
+const FAITS: Record<string, string> = {
+  relie: "Quête reliée au projet.", accueilli: "Quête accueillie : le projet est créé, à classer.",
+  ecarte: "Quête écartée.", repris: "Quête remise dans la file.",
+};
+if (Astro.request.method === "POST" && etat && quetes) {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  const action = String(f.get("action") ?? "");
+  const id = String(f.get("quete") ?? "");
+  // Les données de la quête viennent toujours de CTG, jamais du formulaire.
+  const q = quetes.find((x) => x.id === id);
+  const ecartee = etat.ecartees.find((x) => x.quete === id);
+  try {
+    if (action === "relier" && q) {
+      const projet = String(f.get("projet") ?? "");
+      if (!/^[0-9a-f-]{36}$/i.test(projet)) throw Object.assign(new Error("Choisissez un projet."), { code: "choix" });
+      await enregistrerQueteCtg(acteur, projet, q.url);
+      return Astro.redirect(`${ici}?fait=relie`, 303);
+    }
+    if (action === "accueillir" && q) {
+      const projet = await accueillirQueteCtg(acteur, q.id, q.title, q.description, q.quest_nature);
+      return Astro.redirect(`/membre/projets/${projet}?accueilli=1`, 303);
+    }
+    if (action === "ecarter" && q) {
+      await ecarterQueteCtg(acteur, q.id, q.title, String(f.get("motif") ?? "").trim().slice(0, 300) || null, true);
+      return Astro.redirect(`${ici}?fait=ecarte`, 303);
+    }
+    if (action === "reprendre" && ecartee) {
+      await ecarterQueteCtg(acteur, ecartee.quete, ecartee.titre ?? "", null, false);
+      return Astro.redirect(`${ici}?fait=repris`, 303);
+    }
+    message = "Cette quête n'est plus dans la guilde. Rechargez la page.";
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    message = code === "choix" ? (e as Error).message : code === "23514" ? `Refusé : ${(e as Error).message}` : messageBase(e);
+  }
+}
+
+const liees = new Map((etat?.liees ?? []).map((l) => [l.quete, l]));
+const ecartees = new Set((etat?.ecartees ?? []).map((e) => e.quete));
+const aClasser = (quetes ?? []).filter((q) => !liees.has(q.id) && !ecartees.has(q.id));
+const reliees = (etat?.liees ?? []).map((l) => ({ ...l, q: quetes?.find((x) => x.id === l.quete) ?? null }));
+const extrait = (t: string | null) => (t && t.length > 220 ? `${t.slice(0, 217).trimEnd()}…` : t ?? "");
+const visibilite = (q: QueteCtgAdmin) =>
+  q.is_draft ? "Brouillon" : q.public_visibility === "public" ? "Publique" : q.public_visibility === "unlisted" ? "Non listée" : "Privée";
+const NATURE: Record<string, string> = { PROJECT: "Projet", MISSION: "Mission", IDEA: "Idée" };
+const fait = FAITS[Astro.url.searchParams.get("fait") ?? ""];
+---
+<Base titre="Quêtes à relier">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/projets">Projets</a> · Quêtes à relier</p>
+  <section class="hero">
+    <h1>Quêtes de la guilde à relier</h1>
+    <p class="lead">Les quêtes créées dans la guilde Trois-Tiers sur ChangeTheGame. Aucune n'est recréée : reliez-la au projet qui lui correspond, accueillez-la comme nouveau projet (à classer ensuite), ou écartez-la.</p>
+  </section>
+  {fait && <p class="pastille" role="status">{fait}</p>}
+  {message && <p class="avertissement" role="alert">{message}</p>}
+
+  {etat && quetes === null && !ctgInjoignable && (
+    <p class="avertissement" role="alert">ChangeTheGame ne vous reconnaît pas comme admin de la guilde Trois-Tiers : seules ses admins voient toutes ses quêtes. <a href={connexion}>Se reconnecter</a></p>
+  )}
+  {ctgInjoignable && <p class="avertissement" role="alert">ChangeTheGame ne répond pas. Réessayez dans un instant.</p>}
+
+  {etat && quetes && (
+    <>
+      <section class="bloc">
+        <h2>À classer · {aClasser.length}</h2>
+        {aClasser.length === 0 ? <p class="doux">Toutes les quêtes de la guilde sont reliées ou écartées.</p> : (
+          <div class="liaison">
+            {aClasser.map((q) => (
+              <article class="panneau">
+                <h3><a href={q.url} rel="noopener">{q.title}</a></h3>
+                <p class="doux etiquettes">
+                  <span class="etiquette">{visibilite(q)}</span>
+                  {q.status && !q.is_draft && <span class="etiquette">{LIBELLE_STATUT[q.status] ?? q.status}</span>}
+                  {q.quest_nature && <span class="etiquette">{NATURE[q.quest_nature] ?? q.quest_nature}</span>}
+                  {q.link === "affiliation" && <span class="etiquette">Affiliée</span>}
+                </p>
+                {q.description && <p>{extrait(q.description)}</p>}
+                <form method="post" class="rangee">
+                  <input type="hidden" name="action" value="relier" />
+                  <input type="hidden" name="quete" value={q.id} />
+                  <label class="sr" for={`p-${q.id}`}>Projet</label>
+                  <select id={`p-${q.id}`} name="projet" required>
+                    <option value="">Relier au projet…</option>
+                    {etat!.projets.map((p) => <option value={p.id}>{p.titre}{p.famille ? ` (${p.famille})` : ""}</option>)}
+                  </select>
+                  <button class="bouton">Relier</button>
+                </form>
+                <div class="rangee">
+                  <form method="post">
+                    <input type="hidden" name="action" value="accueillir" />
+                    <input type="hidden" name="quete" value={q.id} />
+                    <button class="bouton creux">Accueillir comme nouveau projet</button>
+                  </form>
+                  <form method="post" class="rangee">
+                    <input type="hidden" name="action" value="ecarter" />
+                    <input type="hidden" name="quete" value={q.id} />
+                    <input name="motif" placeholder="Motif (facultatif)" maxlength="300" aria-label="Motif" />
+                    <button class="bouton creux">Écarter</button>
+                  </form>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section class="bloc">
+        <h2>Déjà reliées · {reliees.length}</h2>
+        {reliees.length === 0 ? <p class="doux">Aucune pour l'instant.</p> : (
+          <ul class="simple">
+            {reliees.map((r) => (
+              <li>
+                <a href={`/membre/projets/${r.projet}`}>{r.titre}</a> ↔ {r.q
+                  ? <a href={r.q.url} rel="noopener">{r.q.title}</a>
+                  : <span class="doux">quête introuvable dans la guilde (supprimée, ou hors de la guilde)</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {etat.ecartees.length > 0 && (
+        <section class="bloc">
+          <h2>Écartées · {etat.ecartees.length}</h2>
+          <ul class="simple">
+            {etat.ecartees.map((e) => (
+              <li>
+                {e.titre ?? e.quete}{e.motif && <span class="doux"> · {e.motif}</span>}
+                <form method="post" style="display:inline">
+                  <input type="hidden" name="action" value="reprendre" />
+                  <input type="hidden" name="quete" value={e.quete} />
+                  <button class="lien">Remettre dans la file</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )}
+</Base>
+
+<style>
+  .liaison { display: grid; gap: 16px; }
+  .liaison h3 { font-size: 1.1rem; margin: 0 0 6px; }
+  .etiquettes { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .liaison form { margin: 6px 0 0; }
+  .liaison select { max-width: 100%; min-width: 0; flex: 1 1 260px; }
+  .liaison input[name="motif"] { flex: 1 1 180px; min-width: 0; }
+  ul.simple { padding-left: 1.1rem; display: grid; gap: 6px; }
+  button.lien { background: none; border: 0; padding: 0 0 0 8px; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>

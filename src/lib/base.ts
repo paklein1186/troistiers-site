@@ -93,7 +93,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "etat_liaison",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -391,6 +391,17 @@ export function adresseQueteCtg(id: string, lienGuilde: string): string | null {
 }
 /** Paires projet ↔ quête CTG déjà reliées (pour ne pas montrer deux fois la même chose). Serveur seulement. */
 export const quetesLiees = () => rpc<{ projet: string; quete: string }[]>("quetes_liees", {});
+/** File de liaison des quêtes CTG (coordination, étape A2). */
+export interface EtatLiaison {
+  liees: { quete: string; projet: string; titre: string }[];
+  ecartees: { quete: string; titre: string | null; motif: string | null; le: string }[];
+  projets: { id: string; titre: string; famille: string | null }[];
+}
+export const etatLiaison = (acteur: string) => rpc<EtatLiaison>("etat_liaison", { p_acteur: acteur });
+export const accueillirQueteCtg = (acteur: string, quete: string, titre: string, description: string | null, nature: string | null) =>
+  rpc<string>("accueillir_quete_ctg", { p_quete: quete, p_titre: titre, p_description: description, p_nature_ctg: nature, p_acteur: acteur });
+export const ecarterQueteCtg = (acteur: string, quete: string, titre: string, motif: string | null, ecarter: boolean) =>
+  rpc<null>("ecarter_quete_ctg", { p_quete: quete, p_titre: titre, p_motif: motif, p_ecarter: ecarter, p_acteur: acteur });
 /** Changer la nature d'un projet (coordination) : décide de la nature de la quête ChangeTheGame. */
 export const changerNature = (acteur: string, projet: string, nature: string) =>
   rpc<null>("changer_nature", { p_projet: projet, p_nature: nature, p_acteur: acteur });
