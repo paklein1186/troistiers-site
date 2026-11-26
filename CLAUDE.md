@@ -256,7 +256,7 @@ correspondances nature / territoire / étiquettes ; migration `20261126190000_qu
 IDEA, PROJECT, MISSION** : projet et groupe → PROJECT, capitalisé → statut COMPLETED) ; A2 liaison à la main `/membre/quetes/liaison` ; A3 publication
 manuelle (bloc « ChangeTheGame » sur la fiche, proposition du référent dans `/membre/revue`, face publique à copier,
 adresse de la quête créée ; liste `/membre/quetes/a-publier` ; migration `20261126194500_quetes_a3_publication.sql`,
-**fonctionne de bout en bout en local le 26/11** sur l'offre SDC) ; A4 lien retour (`website_url` de la quête → fiche du
+**fonctionne de bout en bout en local le 26/11** sur l'offre SDC; choix de la **nature** d'un projet par la coordination, migration `20261126203000_choix_nature.sql`) ; A4 lien retour (`website_url` de la quête → fiche du
 site) ; A5 lecture des quêtes (fonction CTG `guild-quests`, branche `trois-tiers/quetes-guilde`). Point avec PA quand
 A3 fonctionne de bout en bout sur un projet de test. Pas maintenant (paliers 2 et 3, après le vote du 7 décembre) :
 publication automatique, commentaires synchronisés, besoins dans les deux sens, tâches partagées, personnes sur la quête.

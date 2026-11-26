@@ -277,6 +277,10 @@ Fiche : https://claude.ai/artifact/QeYwiZKRp7Btcaacvabwr6 ; décisions de PA du 
 - Site : bloc « ChangeTheGame » sur la fiche (`#ctg`), file de revue, `/membre/quetes/a-publier` (face publique prête à
   copier, champ « adresse de la quête créée »).
 
+**Nature d'un projet** (migration `20261126203000_choix_nature.sql`, décision du 26/11) : `changer_nature`, réservé à la
+coordination (bloc « Nature du projet » sur la fiche). Les missions importées du Pilote ont toutes la nature « mission » ;
+la nature décide de la quête CTG et la synchronisation ne la modifie pas.
+
 ## Lots suivants
 
 - Lot 3 : le Pilote branché (lecture et écriture via MCP, données migrées hors de l'artefact).

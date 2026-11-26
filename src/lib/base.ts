@@ -389,3 +389,6 @@ export function adresseQueteCtg(id: string, lienGuilde: string): string | null {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   try { return `${new URL(lienGuilde).origin}/quests/${id}`; } catch { return null; }
 }
+/** Changer la nature d'un projet (coordination) : décide de la nature de la quête ChangeTheGame. */
+export const changerNature = (acteur: string, projet: string, nature: string) =>
+  rpc<null>("changer_nature", { p_projet: projet, p_nature: nature, p_acteur: acteur });
