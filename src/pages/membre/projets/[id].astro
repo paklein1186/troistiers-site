@@ -112,6 +112,11 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
         {p.resume && (p.niveau < 4 || p.resume_valide) && <p>{p.resume}</p>}
         {p.enjeux && (p.niveau < 4 || p.enjeux_valide) && <p class="enjeux"><strong>Enjeux.</strong> {p.enjeux}</p>}
         {p.lead && profilCtg(p.lead.id, chargerContenu().liens.changethegame_guilde) && <p class="doux">Pilotage : <a href={profilCtg(p.lead.id, chargerContenu().liens.changethegame_guilde)!} rel="noopener">{p.lead.nom ?? "profil"} sur ChangeTheGame</a></p>}
+        {(p.personnes ?? []).length > 0 && (
+          <p class="doux">Personnes impliquées : {p.personnes!.map((x, i) => (
+            <>{i > 0 && ", "}{x.id && profilCtg(x.id, chargerContenu().liens.changethegame_guilde) ? <a href={profilCtg(x.id, chargerContenu().liens.changethegame_guilde)!} rel="noopener">{x.nom}</a> : x.nom} <span class="role">({x.role.toLowerCase()})</span></>
+          ))}</p>
+        )}
         <p class="doux" style="font-size:.9rem">Vous voyez ce projet au niveau {NIVEAUX[p.niveau] ?? p.niveau}.</p>
       </section>
 
@@ -237,6 +242,7 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
                   {apercu.enjeux ? <p class="enjeux"><strong>Enjeux.</strong> {apercu.enjeux}</p> : p.enjeux && (
                     <p class="doux">Enjeux : {p.enjeux_valide ? "masqués à ce niveau." : <>pas encore visibles, ils sont en <a href="#resume">brouillon à valider</a>.</>}</p>
                   )}
+                  {(apercu.personnes ?? []).length > 0 && <p class="doux">Personnes impliquées : {apercu.personnes!.map((x) => x.nom).join(", ")}</p>}
                   {apercu.lead && profilCtg(apercu.lead.id, chargerContenu().liens.changethegame_guilde) && (
                     <p class="doux">Pilotage : <a href={profilCtg(apercu.lead.id, chargerContenu().liens.changethegame_guilde)!} rel="noopener">{apercu.lead.nom ?? "profil"} sur ChangeTheGame</a></p>
                   )}

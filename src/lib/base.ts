@@ -144,6 +144,7 @@ export interface ProjetVu {
   resume?: string | null; resume_valide?: boolean | null;
   enjeux?: string | null; enjeux_valide?: boolean | null;
   lead?: { nom: string | null; id: string } | null;
+  personnes?: { id: string | null; nom: string; role: string }[] | null;
   famille?: { code: string; famille: "socle" | "coordination" | "groupe"; libelle: string; ordre: number } | null;
 }
 export interface Droits {
