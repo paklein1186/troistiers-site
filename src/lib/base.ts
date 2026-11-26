@@ -93,7 +93,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -389,6 +389,8 @@ export function adresseQueteCtg(id: string, lienGuilde: string): string | null {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   try { return `${new URL(lienGuilde).origin}/quests/${id}`; } catch { return null; }
 }
+/** Paires projet ↔ quête CTG déjà reliées (pour ne pas montrer deux fois la même chose). Serveur seulement. */
+export const quetesLiees = () => rpc<{ projet: string; quete: string }[]>("quetes_liees", {});
 /** Changer la nature d'un projet (coordination) : décide de la nature de la quête ChangeTheGame. */
 export const changerNature = (acteur: string, projet: string, nature: string) =>
   rpc<null>("changer_nature", { p_projet: projet, p_nature: nature, p_acteur: acteur });

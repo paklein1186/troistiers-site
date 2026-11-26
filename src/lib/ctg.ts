@@ -166,11 +166,12 @@ export async function jetonsValides(j: Jetons | null): Promise<Jetons | null> {
   }
 }
 
-const urlFonctions = () => (env("CTG_FUNCTIONS_URL") ?? `${new URL(env("CTG_ISSUER")!).origin}/functions/v1`).replace(/\/$/, "");
+export const urlFonctionsCtg = () => (env("CTG_FUNCTIONS_URL") ?? `${new URL(env("CTG_ISSUER")!).origin}/functions/v1`).replace(/\/$/, "");
+export const guildeCtg = () => env("CTG_GUILD_ID") ?? "";
 
 /** Appelle une fonction de CTG au nom de la personne. Renvoie le statut HTTP et le corps JSON. */
 async function appeler(nom: string, jeton: string, corps?: unknown, query = ""): Promise<{ statut: number; donnees: any }> {
-  const r = await fetch(`${urlFonctions()}/${nom}${query}`, {
+  const r = await fetch(`${urlFonctionsCtg()}/${nom}${query}`, {
     method: corps === undefined ? "GET" : "POST",
     headers: {
       authorization: `Bearer ${jeton}`,

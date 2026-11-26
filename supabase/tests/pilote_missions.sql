@@ -345,3 +345,9 @@ SELECT pg_temp.ok('nature : gardée à la synchronisation', pg_temp.en('service_
   $q$SELECT (public.importer_pilote_missions('pilote-m', jsonb_set((SELECT e FROM export1), '{missions}',
        ((SELECT e FROM export1)->'missions') || '[{"id": "gt-d", "name": "GT D", "type": "autre"}]')) ->> 'cree')$q$), 'false');
 SELECT pg_temp.ok('nature : … toujours groupe de travail', (SELECT nature FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'groupe_travail');
+
+-- Quêtes CTG, A5 : quêtes déjà reliées (pour la page publique, sans doublon), serveur seulement.
+UPDATE projets SET ctg_quete_id = 'aaaaaaaa-0000-0000-0000-00000000a5a5' WHERE ref_externe = 'pilote-m:mission:gt-d';
+SELECT pg_temp.ok('quêtes liées : la paire projet ↔ quête est renvoyée', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.quetes_liees() @> '[{"quete": "aaaaaaaa-0000-0000-0000-00000000a5a5"}]')::text$q$), 'true');
+SELECT pg_temp.ok('quêtes liées : fermé aux visiteurs', has_function_privilege('anon', 'public.quetes_liees()', 'EXECUTE')::text, 'false');
