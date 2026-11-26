@@ -256,3 +256,38 @@ SELECT pg_temp.ok('personnes : pas pour un membre (N2) pendant le projet', pg_te
   $q$SELECT COALESCE(public.vue_projet(id, 2)->>'personnes', '—') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), '—');
 SELECT pg_temp.ok('personnes : oui pour un actif (N3)', pg_temp.en('service_role', NULL,
   $q$SELECT (jsonb_array_length(public.vue_projet(id, 3)->'personnes') > 0)::text FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'true');
+
+-- Quêtes CTG, étape A1 (26/11) : provenance, tâches ouvertes à contribution, correspondances.
+SELECT pg_temp.ok('A1 : provenance des éléments importés', (SELECT string_agg(DISTINCT p.provenance || '/' || t.provenance, ',')
+  FROM projets p JOIN taches t ON t.projet_id = p.id WHERE p.source_pilote = 'pilote-m'), 'pilote/pilote');
+SELECT pg_temp.ok('A1 : création d''un projet sur le site', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT (public.creer_projet('projet', 'Projet du site', NULL, NULL) IS NOT NULL)::text$q$), 'true');
+SELECT pg_temp.ok('A1 : … de provenance « site »', (SELECT provenance FROM projets WHERE titre = 'Projet du site'), 'site');
+INSERT INTO projets (nature, titre, sensibilite, etape, provenance) VALUES ('idee', 'Idée d''agent', 'transparent', 'deploiement', 'agent');
+SELECT pg_temp.ok('A1 : une proposition d''agent reste invisible hors équipe', pg_temp.en('service_role', NULL,
+  $q$SELECT COALESCE(public.vue_projet(id, 0)::text, 'invisible') || ' / ' || (public.vue_projet(id, 5)->>'en_proposition') FROM projets WHERE titre = 'Idée d''agent'$q$), 'invisible / true');
+SELECT pg_temp.ok('A1 : un membre ne valide pas une proposition', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000b9',
+  $q$SELECT public.valider_proposition('projet', (SELECT id FROM projets WHERE titre = 'Idée d''agent'))::text$q$), 'refusé');
+SELECT pg_temp.ok('A1 : la coordination valide la proposition', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.valider_proposition('projet', (SELECT id FROM projets WHERE titre = 'Idée d''agent'))::text$q$), '∅');
+SELECT pg_temp.ok('A1 : validée, elle devient visible', pg_temp.en('service_role', NULL,
+  $q$SELECT public.vue_projet(id, 0)->>'titre' FROM projets WHERE titre = 'Idée d''agent'$q$), 'Idée d''agent');
+UPDATE projets SET synchro_externe = true WHERE source_pilote = 'pilote-m';
+SELECT pg_temp.ok('A1 : ouvrir une tâche d''une copie synchronisée aux contributions', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.ouvrir_contribution((SELECT id FROM taches WHERE ref_externe = 'SPW-01'), true)::text$q$), '∅');
+SELECT pg_temp.ok('A1 : un allié n''ouvre pas une tâche', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000b9',
+  $q$SELECT public.ouvrir_contribution((SELECT id FROM taches WHERE ref_externe = 'SPW-01'), false)::text$q$), 'refusé');
+SELECT pg_temp.ok('A1 : l''ouverture survit à la synchronisation', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.importer_pilote_missions('pilote-m', (SELECT e FROM export1)) ->> 'taches')$q$), '3');
+SELECT pg_temp.ok('A1 : … et reste ouverte', (SELECT ouverte_contribution::text FROM taches WHERE ref_externe = 'SPW-01'), 'true');
+SELECT pg_temp.ok('A1 : correspondance d''une mission', pg_temp.en('service_role', NULL,
+  $q$SELECT (c->>'nature') || ' ' || (c->>'statut') || ' ' || (c->'etiquettes')::text || ' ' || COALESCE(c->>'territoire_non_relie', '—')
+     FROM projets p, LATERAL (SELECT public.correspondance_ctg(p) c) x WHERE p.ref_externe = 'pilote-m:mission:lieu-a'$q$),
+  'MISSION ACTIVE ["chantier:SPW", "famille:coordination-spw"] Namur');
+SELECT pg_temp.ok('A1 : un membre ne règle pas une correspondance', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000b9',
+  $q$SELECT public.regler_correspondance('territoire', 'Namur', '11111111-1111-1111-1111-111111111111')::text$q$), 'refusé');
+SELECT pg_temp.ok('A1 : territoire relié par la coordination', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.regler_correspondance('territoire', 'Namur', '11111111-1111-1111-1111-111111111111')::text$q$), '∅');
+SELECT pg_temp.ok('A1 : … et repris dans la correspondance', pg_temp.en('service_role', NULL,
+  $q$SELECT (c->'territoires')::text || ' ' || COALESCE(c->>'territoire_non_relie', '—')
+     FROM projets p, LATERAL (SELECT public.correspondance_ctg(p) c) x WHERE p.ref_externe = 'pilote-m:mission:lieu-a'$q$), '["11111111-1111-1111-1111-111111111111"] —');

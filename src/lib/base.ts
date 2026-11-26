@@ -145,6 +145,7 @@ export interface ProjetVu {
   enjeux?: string | null; enjeux_valide?: boolean | null;
   lead?: { nom: string | null; id: string } | null;
   personnes?: { id: string | null; nom: string; role: string }[] | null;
+  provenance?: Provenance | null; en_proposition?: boolean | null; ctg_quete_id?: string | null;
   famille?: { code: string; famille: "socle" | "coordination" | "groupe"; libelle: string; ordre: number } | null;
 }
 export interface Droits {
@@ -208,6 +209,7 @@ export interface Tache {
   responsables: { id: string; nom: string }[]; responsables_alias: string[]; sous_taches: SousTache[]; modifiable?: boolean;
   ref?: string | null; porteur?: string | null; dependances?: string[]; estimation_h?: number | null; source?: { label?: string; url?: string } | null;
   mission?: boolean; famille?: string | null; famille_choisie?: boolean;
+  provenance?: Provenance; en_proposition?: boolean; ouverte_contribution?: boolean;
 }
 export const STATUTS_TACHE: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", bloque: "Bloqué", fait: "Fait" };
 export const tachesProjet = (projet: string, acteur: string) => rpc<Tache[]>("taches_projet", { p_projet: projet, p_acteur: acteur });
@@ -357,3 +359,13 @@ export const brouillonsAValider = (acteur: string) => rpc<Brouillon[]>("brouillo
 /** Valider plusieurs projets en une seule requête (résumé et enjeux, textes éventuellement corrigés). */
 export const validerBrouillons = (acteur: string, lot: { id: string; resume: string; enjeux: string }[]) =>
   rpc<{ valides: string[]; refuses: string[] }>("valider_brouillons", { p_lot: lot, p_acteur: acteur });
+
+// ---------------------------------------------------------------------------
+// Projets ↔ quêtes ChangeTheGame, palier 1 (A1) : provenance, tâches ouvertes à contribution.
+// ---------------------------------------------------------------------------
+export type Provenance = "pilote" | "site" | "ctg" | "agent";
+export const PROVENANCES: Record<Provenance, string> = { pilote: "Pilote", site: "Site", ctg: "ChangeTheGame", agent: "Agent (proposition)" };
+export const ouvrirContribution = (acteur: string, tache: string, ouverte: boolean) =>
+  rpc<null>("ouvrir_contribution", { p_tache: tache, p_ouverte: ouverte, p_acteur: acteur });
+export const validerProposition = (acteur: string, type: "projet" | "tache", id: string) =>
+  rpc<null>("valider_proposition", { p_type: type, p_id: id, p_acteur: acteur });
