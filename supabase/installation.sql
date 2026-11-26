@@ -3261,3 +3261,30 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.brouillons_a_valider(uuid) TO authenticated, service_role;
 
+-- Valider plusieurs projets en une seule requête : p_lot = [{"id": "...", "resume": "...", "enjeux": "..."}].
+-- Chaque projet est vérifié et validé à part ; un refus n'empêche pas les autres. Renvoie validés et refusés.
+CREATE FUNCTION public.valider_brouillons(p_lot jsonb, p_acteur uuid DEFAULT NULL)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  x jsonb;
+  v_ok jsonb := '[]';
+  v_refus jsonb := '[]';
+BEGIN
+  IF jsonb_typeof(p_lot) IS DISTINCT FROM 'array' OR jsonb_array_length(p_lot) > 300 THEN
+    RAISE EXCEPTION 'lot attendu' USING ERRCODE = 'check_violation';
+  END IF;
+  FOR x IN SELECT * FROM jsonb_array_elements(p_lot) LOOP
+    BEGIN
+      PERFORM public.regler_resume((x ->> 'id')::uuid, x ->> 'resume', true, p_acteur);
+      PERFORM public.regler_enjeux((x ->> 'id')::uuid, x ->> 'enjeux', true, p_acteur);
+      v_ok := v_ok || to_jsonb(x ->> 'id');
+    EXCEPTION WHEN OTHERS THEN
+      v_refus := v_refus || to_jsonb(x ->> 'id');
+    END;
+  END LOOP;
+  RETURN jsonb_build_object('valides', v_ok, 'refuses', v_refus);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.valider_brouillons(jsonb, uuid) TO authenticated, service_role;
+

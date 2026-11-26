@@ -353,3 +353,6 @@ export interface Brouillon {
 }
 /** Projets dont la personne gère la diffusion et qui ont un résumé ou des enjeux à valider (une seule lecture). */
 export const brouillonsAValider = (acteur: string) => rpc<Brouillon[]>("brouillons_a_valider", { p_acteur: acteur });
+/** Valider plusieurs projets en une seule requête (résumé et enjeux, textes éventuellement corrigés). */
+export const validerBrouillons = (acteur: string, lot: { id: string; resume: string; enjeux: string }[]) =>
+  rpc<{ valides: string[]; refuses: string[] }>("valider_brouillons", { p_lot: lot, p_acteur: acteur });

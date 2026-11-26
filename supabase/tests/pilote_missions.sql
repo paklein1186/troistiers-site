@@ -238,3 +238,12 @@ SELECT pg_temp.ok('brouillons : la coordination les voit', pg_temp.en('service_r
   $q$SELECT (jsonb_array_length(public.brouillons_a_valider('00000000-0000-0000-0000-0000000000a1')) > 0)::text$q$), 'true');
 SELECT pg_temp.ok('brouillons : rien pour un membre', pg_temp.en('service_role', NULL,
   $q$SELECT jsonb_array_length(public.brouillons_a_valider('00000000-0000-0000-0000-0000000000b9'))::text$q$), '0');
+SELECT pg_temp.ok('brouillons : validation en lot, refus isolé', pg_temp.en('service_role', NULL,
+  format($q$SELECT jsonb_array_length(r->'valides') || ' validé(s), ' || jsonb_array_length(r->'refuses') || ' refusé(s)'
+     FROM (SELECT public.valider_brouillons(jsonb_build_array(
+       jsonb_build_object('id', %L, 'resume', 'Résumé lot.', 'enjeux', 'Enjeux lot.'),
+       jsonb_build_object('id', '00000000-0000-0000-0000-00000000dead', 'resume', 'x', 'enjeux', 'y')),
+       '00000000-0000-0000-0000-0000000000a1') r) s$q$, (SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'))), '1 validé(s), 1 refusé(s)');
+SELECT pg_temp.ok('brouillons : un membre ne valide rien', pg_temp.en('service_role', NULL,
+  format($q$SELECT jsonb_array_length(public.valider_brouillons(jsonb_build_array(jsonb_build_object('id', %L, 'resume', 'x', 'enjeux', 'y')),
+     '00000000-0000-0000-0000-0000000000b9')->'valides')::text$q$, (SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'))), '0');
