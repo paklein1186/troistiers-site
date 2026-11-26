@@ -261,7 +261,7 @@ IDEA, PROJECT, MISSION** : projet et groupe → PROJECT, capitalisé → statut 
 accueillir comme projet `ctg` sans famille, écarter ; migration `20261126230000_quetes_a2_liaison.sql`) ; A3 publication
 manuelle (bloc « ChangeTheGame » sur la fiche, proposition du référent dans `/membre/revue`, face publique à copier,
 adresse de la quête créée ; liste `/membre/quetes/a-publier` ; migration `20261126194500_quetes_a3_publication.sql`,
-**fonctionne de bout en bout en local le 26/11** sur l'offre SDC; choix de la **nature** d'un projet par la coordination, migration `20261126203000_choix_nature.sql`) ; A4 lien retour (`website_url` de la quête → fiche du
+**fonctionne de bout en bout en local le 26/11** sur l'offre SDC; choix de la **nature** d'un projet par la coordination, migration `20261126203000_choix_nature.sql`) ; B2 (palier 2) : rapprochement avant création sur `/membre/quetes/a-publier` (quêtes proches, « Relier à cette quête »). A4 lien retour (`website_url` de la quête → fiche du
 site) ; A5 lecture des quêtes (fonction CTG `guild-quests`, changethegame#21 : sans jeton, quêtes « Public » seulement ; avec le
 jeton d'un·e admin, toutes ; site : section « Quêtes ouvertes sur ChangeTheGame » de `/projets`, sans les quêtes déjà reliées,
 migration `20261126220000_quetes_liees.sql`). A4 : fiche publique `/projets/<id>` (#39). Point avec PA quand
