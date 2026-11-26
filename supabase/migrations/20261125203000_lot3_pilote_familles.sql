@@ -1,4 +1,4 @@
--- Base Trois-Tiers — Pilote 3/3 : familles d'activité (décisions de PA du 26/11).
+-- Base Trois-Tiers — Pilote 3/3 : familles d'activité (décisions de PA du 25/11).
 --
 -- Trois familles :
 -- - fonction socle : stratégie et gouvernance, administration, finances, financements et instruments, animation ;

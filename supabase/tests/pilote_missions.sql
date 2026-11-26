@@ -169,7 +169,7 @@ SELECT pg_temp.ok('le classement survit à une synchronisation', pg_temp.en('ser
   $q$SELECT (public.importer_pilote_missions('pilote-m', (SELECT e FROM export1)) ->> 'taches') || ' ' || pg_temp.familles()$q$),
   '3 GOUV-01=socle-strategie,SPW-01=coordination-spw,SPW-02=coordination-spw');
 
--- Décisions du 26/11 sur le gradient.
+-- Décisions du 25/11 sur le gradient.
 SELECT pg_temp.ok('1A : budget aux N3 pendant le projet (transparent)', (SELECT COALESCE(public.forme_visible(
   jsonb_populate_record(NULL::public.projets, '{"nature": "mission", "titre": "x", "etape": "negociation", "sensibilite": "transparent"}'), 'budget', 3), '—')), 'complet');
 SELECT pg_temp.ok('1A : semi-sensible garde le budget à l''équipe', (SELECT COALESCE(public.forme_visible(
@@ -191,7 +191,7 @@ SELECT pg_temp.ok('3A : et référente de ses missions', (SELECT string_agg(p.ti
 SELECT pg_temp.ok('3A : elle voit maintenant le Pilote', pg_temp.en('service_role', NULL,
   $q$SELECT jsonb_array_length(public.tableau_pilote('pilote-m', '00000000-0000-0000-0000-0000000000c1')->'missions')::text$q$), '4');
 
--- Résumé public (27/11).
+-- Résumé public (25/11).
 UPDATE projets SET sensibilite = 'transparent', validateur_externe = NULL WHERE ref_externe = 'pilote-m:mission:lieu-b';
 SELECT pg_temp.ok('un allié n''écrit pas de résumé', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a9',
   $q$SELECT public.regler_resume((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'), 'x', true)::text$q$), 'refusé');
@@ -208,7 +208,7 @@ SELECT pg_temp.ok('validé : public, avec sa famille', pg_temp.en('service_role'
 SELECT pg_temp.ok('le gradient tient : résumé d''un projet sensible invisible du public', pg_temp.en('service_role', NULL,
   $q$SELECT COALESCE((public.vue_projet(id, 0))::text, 'rien') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'rien');
 
--- Enjeux (27/11) : gradient des besoins.
+-- Enjeux (25/11) : gradient des besoins.
 SELECT pg_temp.ok('enjeux validés', pg_temp.en('service_role', NULL,
   $q$SELECT public.regler_enjeux((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'), 'Ce qui se joue.', true)::text$q$), '∅');
 SELECT pg_temp.ok('enjeux : membre (N2) et actif (N3)', pg_temp.en('service_role', NULL,
@@ -224,7 +224,7 @@ SELECT pg_temp.ok('enjeux remis en brouillon', pg_temp.en('service_role', NULL,
 SELECT pg_temp.ok('enjeux en brouillon : seulement l''équipe', pg_temp.en('service_role', NULL,
   $q$SELECT COALESCE(public.vue_projet(id, 3)->>'enjeux', '—') || ' / ' || (public.vue_projet(id, 4)->>'enjeux') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '— / Brouillon.');
 
--- Personne qui pilote le projet (28/11).
+-- Personne qui pilote le projet (25/11).
 UPDATE projets SET sensibilite = 'semi_sensible', validateur_externe = NULL WHERE ref_externe = 'pilote-m:mission:lieu-a';
 SELECT pg_temp.ok('lead : référente de la mission, pour un membre', pg_temp.en('service_role', NULL,
   $q$SELECT (public.vue_projet(id, 2)->'lead'->>'nom') || ' ' || (public.vue_projet(id, 2)->'lead'->>'id') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'Eveline 00000000-0000-0000-0000-0000000000c1');
@@ -233,7 +233,7 @@ SELECT pg_temp.ok('lead : aucun e-mail diffusé', pg_temp.en('service_role', NUL
 SELECT pg_temp.ok('lead : jamais pour le public', pg_temp.en('service_role', NULL,
   $q$SELECT COALESCE(public.vue_projet(id, 0)->>'lead', '—') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '—');
 
--- Brouillons à valider en une lecture (28/11).
+-- Brouillons à valider en une lecture (26/11).
 SELECT pg_temp.ok('brouillons : la coordination les voit', pg_temp.en('service_role', NULL,
   $q$SELECT (jsonb_array_length(public.brouillons_a_valider('00000000-0000-0000-0000-0000000000a1')) > 0)::text$q$), 'true');
 SELECT pg_temp.ok('brouillons : rien pour un membre', pg_temp.en('service_role', NULL,
@@ -248,7 +248,7 @@ SELECT pg_temp.ok('brouillons : un membre ne valide rien', pg_temp.en('service_r
   format($q$SELECT jsonb_array_length(public.valider_brouillons(jsonb_build_array(jsonb_build_object('id', %L, 'resume', 'x', 'enjeux', 'y')),
      '00000000-0000-0000-0000-0000000000b9')->'valides')::text$q$, (SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'))), '0');
 
--- Personnes impliquées (28/11).
+-- Personnes impliquées (26/11).
 SELECT pg_temp.ok('personnes : référente et porteurs de tâches, sans l''équipe automatique', pg_temp.en('service_role', NULL,
   $q$SELECT string_agg((x->>'nom') || ' (' || (x->>'role') || ')', ', ') FROM projets p, jsonb_array_elements(public.vue_projet(p.id, 4)->'personnes') x
      WHERE p.ref_externe = 'pilote-m:mission:lieu-a'$q$), 'Eveline (Référent de mission), isa (Tâches)');

@@ -210,24 +210,54 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   `/membre/pilotes/pilote-33`, **au design de l'artefact** (25/11, demande de PA : Tableau, Missions, Planning, Salle
   d'attente, Agents & journal + Synchroniser, recherche, fiches ; CSS de l'artefact limité à `.p33`). Synchro automatique bloquée :
   l'artefact appartient à une autre organisation claude.ai qui refuse ArtifactData depuis Claude Code ; PA règle
-  l'accès (option 1) le 26/11 ; en attendant, dépôt manuel de l'export. **Familles** (26/11) : fonction socle (stratégie,
+  l'accès (option 1) ; refusé encore le 26/11 malgré son statut d'éditeur ; en attendant, dépôt manuel de l'export. **Familles** (25/11) : fonction socle (stratégie,
   admin, finances, instruments, **volet animation**), coordination (marché public wallon), groupes de travail (SDC, AMO et
   réseau d'accompagnants, réseaux européens, tiers-lieux en maison de retraite, **réseau territoires**, **institut
   recherche et données**, **pistes à dispatcher** par la coordination) ; classement propre au site, corrigeable dans le
-  Pilote (migration `20261126100000_lot3_pilote_familles.sql`). « Mission ASPA » (FRB) = la mission à Spa menée
-  par Aurélie Portois (bruit de transcription), groupe AMO ; à renommer dans l'artefact. **Gradient** (26/11, étude sur 10 missions, artefact https://claude.ai/artifact/ATKxBTUwMEu9jjb3UMhrjv) :
+  Pilote (migration `20261125203000_lot3_pilote_familles.sql`). « Mission ASPA » (FRB) = la mission à Spa menée
+  par Aurélie Portois (bruit de transcription), groupe AMO ; à renommer dans l'artefact. **Gradient** (25/11, étude sur 10 missions, artefact https://claude.ai/artifact/ATKxBTUwMEu9jjb3UMhrjv) :
   1A budget aux N3 dès la négociation ; 2A versions sous N4 proposées par un agent, relues par le référent (à faire,
   étape 2) ; 3A équipe salariée membre d'équipe du Pilote 3/3 et référente de ses missions, automatiquement à la liaison ;
   4 défaut par famille (socle sensible, coordination semi-sensible + validation du lieu, GT semi-sensible) ; migration
-  `20261126110000_lot3_gradient_decisions.sql`, réglages de l'échantillon dans un fichier privé. **Page publique Projets**
-  (27/11) : missions et groupes de travail lus dans la base par famille, selon le gradient (public = N0 ; connecté = aussi
+  `20261125204700_lot3_gradient_decisions.sql`, réglages de l'échantillon dans un fichier privé. **Page publique Projets**
+  (25/11) : missions et groupes de travail lus dans la base par famille, selon le gradient (public = N0 ; connecté = aussi
   les projets réservés aux membres, avec lien vers la fiche) ; **résumé public** rédigé par Claude, validé d'un clic sur
-  la fiche (migration `20261127090000_resume_public.sql`) ; **enjeux** (2-3 phrases, gradient des besoins, migration
-  `20261127100000_enjeux.sql`) ; `/membre/projets` en vignettes ou liste, filtres famille et groupe. 28/11 : enjeux visibles
+  la fiche (migration `20261125210000_resume_public.sql`) ; **enjeux** (2-3 phrases, gradient des besoins, migration
+  `20261125213500_enjeux.sql`) ; `/membre/projets` en vignettes ou liste, filtres famille et groupe. Enjeux visibles
   dès N2 (adhérents), **personne qui pilote** affichée aux membres connectés avec un lien vers son profil ChangeTheGame (aucun e-mail ; jamais au public), page
-  `/membre/projets/brouillons` (tout valider d'un coup) ; migration `20261128090000_lead_enjeux_membres.sql` ; **personnes impliquées** sur les vignettes et la fiche (rôles sur le projet + porteurs de
-  tâches, selon la matrice : N3 pendant le projet ; migration `20261128110000_personnes_projet.sql`) ; brouillons lus et validés en une
-  seule requête (base en ligne lente : `TimeoutError`, migration `20261128100000_brouillons.sql`). Tests : 200 vérifications.
+  `/membre/projets/brouillons` (tout valider d'un coup) ; migration `20261125214500_lead_enjeux_membres.sql` ; le 26/11 : **personnes impliquées** sur les vignettes et la fiche (rôles sur le projet + porteurs de
+  tâches, selon la matrice : N3 pendant le projet ; migration `20261126183000_personnes_projet.sql`) ; brouillons lus et validés en une
+  seule requête (base en ligne lente : `TimeoutError`, migration `20261126182200_brouillons.sql`). Tests : 200 vérifications.
+
+## Projets Trois-Tiers ↔ quêtes ChangeTheGame (palier 1, sans synchronisation automatique)
+
+Fiche de référence (correspondance des champs, gradient, règles anti-doublon, feuille de route) :
+https://claude.ai/artifact/QeYwiZKRp7Btcaacvabwr6. Décisions de PA du 26/11/2026 :
+
+1. **Qui décide qu'un projet devient quête** : le référent propose, la coordination valide (plus tard : automatique
+   pour les projets transparents).
+2. **Une quête créée directement dans la guilde sur CTG n'est jamais recréée** : elle entre dans la base comme projet
+   de provenance `ctg`, dans une file « à classer » par la coordination. Rien n'est adopté sans décision.
+3. **Commentaires** : un seul fil, sur la quête CTG, synchronisé et affiché aussi sur la fiche du site (palier 2, pas
+   maintenant). Ce qui est sensible reste dans les notes internes de la base.
+4. **Un groupe de travail = une quête au long cours.**
+5. **Les personnes apparaissent sur la quête par défaut**, informées au préalable et libres de se retirer (palier 3).
+6. **Licences** : code AGPL-3.0, contenus CC BY-SA 4.0 (PR #32 de ce dépôt, changethegame#20, space2#11).
+
+Règles :
+- La base Trois-Tiers reste maître du projet. CTG ne reçoit que la face publique (N0) ou réservée à la guilde ; un
+  projet sensible n'est jamais publié.
+- Seul le résumé validé part, jamais la fiche, les obstacles ou le budget.
+- Lien explicite : `projets.ctg_quete_id` ; aucune publication sans vérifier ce lien.
+- changethegame : branche + PR, jamais `main` ; dire à PA ce qu'une fusion change en production.
+
+Étapes du palier 1 (une branche et une PR chacune) : A1 base (tâches ouvertes à contribution, provenance,
+correspondances nature / territoire / étiquettes) ; A2 liaison à la main `/membre/quetes/liaison` ; A3 publication
+manuelle (bloc « ChangeTheGame » sur la fiche, proposition du référent dans `/membre/revue`, face publique à copier,
+adresse de la quête créée ; liste `/membre/quetes/a-publier`) ; A4 lien retour (`website_url` de la quête → fiche du
+site) ; A5 lecture des quêtes (fonction CTG `guild-quests`, branche `trois-tiers/quetes-guilde`). Point avec PA quand
+A3 fonctionne de bout en bout sur un projet de test. Pas maintenant (paliers 2 et 3, après le vote du 7 décembre) :
+publication automatique, commentaires synchronisés, besoins dans les deux sens, tâches partagées, personnes sur la quête.
 
 ## Avant d'ouvrir les paiements réels
 
@@ -243,9 +273,12 @@ observatoire depuis Space2 ; assistants et packs de tokens.
 
 ## Failles signalées dans ChangeTheGame (à vérifier sur la base de production)
 
-- Corrigée par la PR #10 : un membre pouvait modifier sa propre adhésion.
-- Ouvertes : le flux public des quêtes ne filtre peut-être pas la visibilité ; l'accès aux salons est vérifié
-  par l'application et non par la base ; une clé MCP « écriture » permet aussi de distribuer de l'XP et des $CTG.
+- Corrigées : un membre pouvait modifier sa propre adhésion (PR #10) ; l'accès aux salons, messages, réponses,
+  pièces jointes et sous-tâches n'était vérifié que par l'application (changethegame#15) ; décisions et votes, poids
+  recalculé par la base (changethegame#16).
+- Ouvertes : **le flux public des quêtes** (constaté le 25/11 : la base laisse lire toute quête publiée, non brouillon
+  et non supprimée, avec ses sous-tâches, quels que soient `public_visibility` et la guilde ; le filtre n'est fait que
+  par l'écran) ; **la clé MCP « écriture »**, qui permet aussi de distribuer de l'XP et des $CTG.
 
 ## Références
 

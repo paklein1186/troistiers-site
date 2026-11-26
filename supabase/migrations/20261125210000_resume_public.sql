@@ -1,19 +1,23 @@
--- Base Trois-Tiers — enjeux des projets (décision du 27/11, page Projets de l'espace membres).
+-- Base Trois-Tiers — résumé public des projets (décision du 25/11, page Projets du site).
 --
--- 2 à 3 phrases sur ce qui se joue dans un projet : enjeu, opportunité, besoin repéré. Rédigées à la main en attendant
--- l'agent (2A), validées comme le résumé public. Hors équipe, elles suivent le gradient des « besoins » : actifs, alliés
--- et partenaires (N3) pendant le projet, membres après capitalisation, public si les besoins du projet le sont.
+-- Chaque projet peut porter un résumé public de 1 à 2 phrases. Il est rédigé (à la main en attendant l'agent, décision
+-- 2A), puis validé par la coordination ou un gestionnaire de la diffusion du projet (référent, initiateur, animateur).
+-- Hors équipe, il ne s'affiche qu'une fois validé, et là où le titre est visible (gradient inchangé). vue_projet
+-- donne aussi la famille d'une mission de Pilote, pour regrouper la page publique.
 
 ALTER TABLE public.projets
-  ADD COLUMN enjeux text,
-  ADD COLUMN enjeux_valide boolean NOT NULL DEFAULT false;
+  ADD COLUMN resume_public text,
+  ADD COLUMN resume_valide boolean NOT NULL DEFAULT false,
+  ADD COLUMN resume_valide_par uuid,
+  ADD COLUMN resume_valide_le timestamptz;
 
-CREATE FUNCTION public.regler_enjeux(p_projet uuid, p_texte text, p_valider boolean, p_acteur uuid DEFAULT NULL)
+-- Écrire (et éventuellement valider) le résumé public. Un texte modifié sans validation repasse en brouillon.
+CREATE FUNCTION public.regler_resume(p_projet uuid, p_texte text, p_valider boolean, p_acteur uuid DEFAULT NULL)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_acteur uuid := public.acteur(p_acteur);
   pr public.projets;
-  v_texte text := nullif(left(trim(p_texte), 1200), '');
+  v_texte text := nullif(left(trim(p_texte), 600), '');
 BEGIN
   SELECT * INTO pr FROM public.projets WHERE id = p_projet;
   IF NOT FOUND THEN
@@ -23,10 +27,14 @@ BEGIN
           OR (auth.uid() IS NULL AND p_acteur IS NULL AND public.appel_serveur())) THEN
     RAISE EXCEPTION 'réservé aux gestionnaires de la diffusion' USING ERRCODE = 'insufficient_privilege';
   END IF;
-  UPDATE public.projets SET enjeux = v_texte, enjeux_valide = COALESCE(p_valider, false) AND v_texte IS NOT NULL
+  UPDATE public.projets SET
+    resume_public = v_texte,
+    resume_valide = COALESCE(p_valider, false) AND v_texte IS NOT NULL,
+    resume_valide_par = CASE WHEN COALESCE(p_valider, false) THEN v_acteur END,
+    resume_valide_le = CASE WHEN COALESCE(p_valider, false) THEN now() END
   WHERE id = p_projet;
-  PERFORM public.noter(v_acteur, 'humain', CASE WHEN p_valider THEN 'enjeux_valides' ELSE 'enjeux_ecrits' END, 'projet',
-                       p_projet::text, jsonb_build_object('texte', pr.enjeux, 'valide', pr.enjeux_valide),
+  PERFORM public.noter(v_acteur, 'humain', CASE WHEN p_valider THEN 'resume_valide' ELSE 'resume_ecrit' END, 'projet',
+                       p_projet::text, jsonb_build_object('texte', pr.resume_public, 'valide', pr.resume_valide),
                        jsonb_build_object('texte', v_texte, 'valide', COALESCE(p_valider, false)));
 END;
 $$;
@@ -78,10 +86,6 @@ BEGIN
     -- Résumé public : hors équipe, seulement une fois validé ; l'équipe voit aussi le brouillon.
     'resume', CASE WHEN p_niveau >= 4 OR pr.resume_valide THEN pr.resume_public END,
     'resume_valide', CASE WHEN p_niveau >= 4 THEN pr.resume_valide END,
-    -- Enjeux (ce qui se joue, opportunité, besoin repéré) : même gradient que les besoins du projet, une fois validés.
-    'enjeux', CASE WHEN p_niveau >= 4 THEN pr.enjeux
-                   WHEN pr.enjeux_valide AND public.forme_visible(pr, 'besoins', p_niveau) IS NOT NULL THEN pr.enjeux END,
-    'enjeux_valide', CASE WHEN p_niveau >= 4 THEN pr.enjeux_valide END,
     'famille', CASE WHEN pr.parent_id IS NOT NULL AND pr.source_pilote IS NOT NULL THEN
       (SELECT jsonb_build_object('code', f.code, 'famille', f.famille, 'libelle', f.libelle, 'ordre', f.ordre)
        FROM public.pilote_familles f WHERE f.code = public.famille_mission(pr.source_pilote, pr)) END,
@@ -91,4 +95,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.regler_enjeux(uuid, text, boolean, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.regler_resume(uuid, text, boolean, uuid) TO authenticated, service_role;

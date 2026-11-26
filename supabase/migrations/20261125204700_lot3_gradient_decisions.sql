@@ -1,4 +1,4 @@
--- Base Trois-Tiers — décisions du 26/11 sur le gradient de diffusion (échantillon de 10 missions du Pilote 3/3).
+-- Base Trois-Tiers — décisions du 25/11 sur le gradient de diffusion (échantillon de 10 missions du Pilote 3/3).
 --
 -- 1A : le budget est visible des actifs, alliés et partenaires (N3) dès la négociation (plafond d'étape « en cours »).
 -- 2A : les versions adaptées sous N4 seront proposées par un agent et relues par le référent (étape 2, rien ici).
@@ -174,7 +174,7 @@ BEGIN
     v_missions := v_missions || jsonb_build_object(m ->> 'id', v_cible);
   END LOOP;
   SELECT array_agg(id) INTO v_famille FROM public.projets WHERE id = v_racine OR parent_id = v_racine;
-  -- Nouvelle mission : réglage de diffusion par défaut de sa famille (décision du 26/11).
+  -- Nouvelle mission : réglage de diffusion par défaut de sa famille (décision du 25/11).
   PERFORM public.appliquer_defaut_famille(p_source, id) FROM unnest(v_nouvelles) id;
 
   -- Tâches : dans leur mission, sinon dans le Pilote ; couloir = chantier.

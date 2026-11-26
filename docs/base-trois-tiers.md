@@ -191,10 +191,10 @@ par personne, filtres, compteurs), Missions (fiches), Planning (congés scolaire
 journal (dont « Synchroniser », coordination), recherche transversale (« / ») et fiche de chaque tâche. En lecture
 seule : « Ma journée », l'Hebdo, les validations et l'analyse des PV restent dans l'artefact pour l'instant.
 
-Migration `20261126090000_lot3_pilote_missions_dates.sql` : une tâche sans échéance reste sans échéance (avant, elle
+Migration `20261125202400_lot3_pilote_missions_dates.sql` : une tâche sans échéance reste sans échéance (avant, elle
 prenait sa date de début et paraissait en retard). Après l'avoir exécutée, relancer « Synchroniser ».
 
-Familles d'activité (migration `20261126100000_lot3_pilote_familles.sql`, décisions du 26/11) : **fonction socle**
+Familles d'activité (migration `20261125203000_lot3_pilote_familles.sql`, décisions du 25/11) : **fonction socle**
 (stratégie et gouvernance, administration, finances et facturation, financements et instruments, animation et
 communication), **coordination** (marché public wallon) et **groupes de travail** (SDC, AMO et réseau d'accompagnants,
 réseaux européens, tiers-lieux en maison de retraite, réseau territoires, institut recherche et données, pistes à
@@ -204,8 +204,8 @@ Dans le Pilote : filtre « Famille », « Grouper par Famille », et pour la coo
 d'une tâche et sur chaque mission (`classer_pilote`). Les exceptions du Pilote 3/3 sont chargées par un fichier privé
 (`pilote-33-familles.sql`), fourni à part.
 
-Gradient de diffusion (étude sur 10 missions, décisions du 26/11 : 1A, 2A, 3A, 4 ; migration
-`20261126110000_lot3_gradient_decisions.sql`) :
+Gradient de diffusion (étude sur 10 missions, décisions du 25/11 : 1A, 2A, 3A, 4 ; migration
+`20261125204700_lot3_gradient_decisions.sql`) :
 - **1A** : le budget est visible des N3 (actifs, alliés, partenaires) dès la négociation (plafond d'étape « en cours ») ;
   un projet semi-sensible le garde à l'équipe.
 - **2A** : les versions adaptées sous N4 seront proposées par un agent et relues par le référent (étape 2, à faire).
@@ -217,7 +217,7 @@ Gradient de diffusion (étude sur 10 missions, décisions du 26/11 : 1A, 2A, 3A,
 - La synchronisation garde l'étape choisie sur le site ; seuls « en veille » et « clôturée » viennent de l'artefact.
 - Réglages de l'échantillon et des missions existantes : fichier privé `pilote-33-gradient.sql`, fourni à part.
 
-Page publique Projets (décisions du 27/11 ; migration `20261127090000_resume_public.sql`) : la section « Missions et
+Page publique Projets (décisions du 25/11 ; migration `20261125210000_resume_public.sql`) : la section « Missions et
 groupes de travail en cours » lit la base, regroupée par famille (coordination, groupes de travail ; jamais le socle).
 Elle suit le gradient : le public voit ce qui est visible en N0, une personne connectée voit aussi ce qui est réservé aux
 membres, avec un lien vers la fiche dans l'espace membres. Chaque projet porte un **résumé public** (1 à 2 phrases, sans
@@ -225,13 +225,13 @@ noms ni montants) : rédigé à la main en attendant l'agent (2A), il ne s'affic
 coordination ou un gestionnaire de la diffusion, depuis la fiche du projet (bloc « Résumé public », `regler_resume`).
 Brouillons du Pilote 3/3 : fichier privé `pilote-33-resumes.sql`, fourni à part.
 
-**Enjeux** (27/11 ; migration `20261127100000_enjeux.sql`) : 2 à 3 phrases sur ce qui se joue (enjeu, opportunité,
+**Enjeux** (25/11 ; migration `20261125213500_enjeux.sql`) : 2 à 3 phrases sur ce qui se joue (enjeu, opportunité,
 besoin repéré), rédigées et validées comme le résumé (`regler_enjeux`, même bloc « Résumé et enjeux » sur la fiche).
 Hors équipe, elles suivent le gradient des besoins : N3 pendant le projet, N2 après capitalisation, public si les
 besoins du projet sont publics. Brouillons : fichier privé `pilote-33-enjeux.sql`. Espace membres `/membre/projets` :
 vignettes par défaut ou liste (`?vue=liste`), filtres par famille (`?famille=`) et par groupe de travail (`?groupe=`).
 
-Décisions du 28/11 (migration `20261128090000_lead_enjeux_membres.sql`) : les **enjeux** validés sont visibles des
+Décisions du 25/11 (migration `20261125214500_lead_enjeux_membres.sql`) : les **enjeux** validés sont visibles des
 membres adhérents (N2) et plus, là où le titre l'est (public si les besoins le sont) ; la **personne qui pilote** le
 projet s'affiche pour les membres connectés, jamais pour le public, avec un lien vers son profil ChangeTheGame (aucun
 e-mail diffusé ; `lead_projet` : référent de mission, animateur ou initiateur, sinon référent du Pilote relié) ;
@@ -240,6 +240,10 @@ résumés et enjeux des projets que l'on gère.
 
 Synchronisation automatique : en attente de l'accès aux données de l'artefact (il appartient à une autre organisation
 claude.ai, qui bloque pour l'instant la lecture depuis Claude Code). En attendant, dépôt manuel de l'export.
+
+Note du 26/11 : huit migrations portaient une date à venir (26 au 28/11) ; elles ont été renommées à leur vraie date
+(`20261125202400` à `20261126183000`), sans changer leur contenu ni leur ordre. Une base où elles sont déjà passées n'a
+rien à refaire.
 
 ## Lots suivants
 
