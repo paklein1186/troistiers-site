@@ -333,3 +333,15 @@ SELECT pg_temp.ok('A3 : une quête ne se relie qu''à un seul projet', pg_temp.e
 SELECT pg_temp.ok('A3 : un projet sensible n''est jamais publiable', pg_temp.en('service_role', NULL,
   $q$SELECT (public.face_ctg(id)->>'publiable') || ' ' || (public.face_ctg(id)->'raisons'->>0) FROM projets WHERE ref_externe = 'pilote-m'$q$),
   'false Projet sensible : il n''est jamais publié sur ChangeTheGame.');
+
+-- Choix de la nature (26/11).
+SELECT pg_temp.ok('nature : un référent ne la change pas', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.changer_nature((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'groupe_travail')::text$q$), 'refusé');
+SELECT pg_temp.ok('nature : la coordination la change', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.changer_nature((SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'groupe_travail')::text$q$), '∅');
+SELECT pg_temp.ok('nature : la quête devient PROJECT', pg_temp.en('service_role', NULL,
+  $q$SELECT public.face_ctg(id)->>'nature' FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'$q$), 'PROJECT');
+SELECT pg_temp.ok('nature : gardée à la synchronisation', pg_temp.en('service_role', NULL,
+  $q$SELECT (public.importer_pilote_missions('pilote-m', jsonb_set((SELECT e FROM export1), '{missions}',
+       ((SELECT e FROM export1)->'missions') || '[{"id": "gt-d", "name": "GT D", "type": "autre"}]')) ->> 'cree')$q$), 'false');
+SELECT pg_temp.ok('nature : … toujours groupe de travail', (SELECT nature FROM projets WHERE ref_externe = 'pilote-m:mission:gt-d'), 'groupe_travail');

@@ -5,7 +5,7 @@ import ListeTaches from "../../../components/ListeTaches.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
@@ -45,6 +45,8 @@ if (Astro.request.method === "POST" && acteur) {
     } else if (action === "resume" || action === "resume_valider" || action === "resume_retirer") {
       await reglerResume(acteur, id, String(f.get("resume") ?? "").slice(0, 600), action === "resume_valider");
       await reglerEnjeux(acteur, id, String(f.get("enjeux") ?? "").slice(0, 1200), action === "resume_valider");
+    } else if (action === "nature") {
+      await changerNature(acteur, id, String(f.get("nature") ?? ""));
     } else if (action === "proposer_ctg") {
       await proposerPublicationCtg(acteur, id, String(f.get("message") ?? "").slice(0, 1000));
     } else if (action === "quete_ctg" || action === "retirer_ctg") {
@@ -98,6 +100,7 @@ const FAITS: Record<string, string> = {
   resume: "Résumé et enjeux enregistrés comme brouillons : ils ne s'affichent pas encore hors de l'équipe.",
   resume_valider: "Résumé et enjeux validés : le résumé s'affiche là où le titre est visible, les enjeux là où les besoins le sont.",
   resume_retirer: "Validation retirée : résumé et enjeux ne s'affichent plus hors de l'équipe.",
+  nature: "Nature du projet changée.",
   proposer_ctg: "Publication proposée : elle attend la validation de la coordination (file de revue).",
   quete_ctg: "Lien vers la quête enregistré : le projet est relié à ChangeTheGame.",
   retirer_ctg: "Lien vers la quête retiré.",
@@ -178,6 +181,16 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
             <button type="submit" name="action" value="valider">Valider la diffusion</button>
             <button type="submit" name="action" value="refuser" class="bouton creux">Refuser</button>
           </div>
+        </form>
+      )}
+
+      {droits && droits.niveau >= 5 && (
+        <form method="post" class="panneau bloc formulaire">
+          <h2>Nature du projet</h2>
+          <input type="hidden" name="action" value="nature" />
+          <label for="nature">Nature <span class="doux">(décide de la quête ChangeTheGame : mission → MISSION ; projet et groupe de travail → PROJECT ; idée → IDEA ; opportunité → pas de quête)</span></label>
+          <select id="nature" name="nature">{Object.entries(NATURES).map(([c, l]) => <option value={c} selected={c === p!.nature}>{l}</option>)}</select>
+          <div><button type="submit">Changer la nature</button></div>
         </form>
       )}
 
