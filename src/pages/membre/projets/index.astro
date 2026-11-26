@@ -49,7 +49,9 @@ if (baseConfiguree()) {
     ]);
   } catch (e) {
     console.error("Base Trois-Tiers (liste) :", e);
-    message ||= "Les projets n'ont pas pu être chargés.";
+    message ||= (e as { name?: string })?.name === "TimeoutError"
+      ? "La base Trois-Tiers a mis trop de temps à répondre. Rechargez la page dans un instant."
+      : "Les projets n'ont pas pu être chargés.";
   }
 }
 
@@ -144,6 +146,11 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
               )}
               {p.lead && profil(p) && (
                 <p class="lead-contact">Pilotage : <a href={profil(p)!} rel="noopener">{p.lead.nom ?? "profil"} sur ChangeTheGame</a></p>
+              )}
+              {(p.personnes ?? []).length > 0 && (
+                <p class="lead-contact">Avec : {p.personnes!.map((x, i) => (
+                  <>{i > 0 && ", "}{x.id && profilCtg(x.id, lienGuilde) ? <a href={profilCtg(x.id, lienGuilde)!} rel="noopener" title={x.role}>{x.nom}</a> : <span title={x.role}>{x.nom}</span>}</>
+                ))}</p>
               )}
             </li>
           ))}

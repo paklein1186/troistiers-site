@@ -1,7 +1,7 @@
 ---
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
-import { baseConfiguree, mesDroits, projetsVisibles, reglerEnjeux, reglerResume, type ProjetVu } from "../../../lib/base";
+import { baseConfiguree, brouillonsAValider, validerBrouillons, type Brouillon } from "../../../lib/base";
 
 // Relire et valider d'un coup les résumés et enjeux en brouillon des projets que l'on gère (coordination, référents).
 // Chaque texte reste modifiable ; seuls les projets cochés sont validés. La base revérifie le droit, projet par projet.
@@ -21,31 +21,35 @@ if (Astro.request.method === "POST") {
   if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
   const f = await Astro.request.formData();
   const ids = f.getAll("valider").map(String).filter((x) => UUID.test(x)).slice(0, 200);
-  for (const id of ids) {
+  // Une seule requête pour tout le lot : chaque projet est vérifié et validé à part par la base.
+  if (ids.length) {
     try {
-      await reglerResume(acteur, id, String(f.get(`resume-${id}`) ?? "").slice(0, 600), true);
-      await reglerEnjeux(acteur, id, String(f.get(`enjeux-${id}`) ?? "").slice(0, 1200), true);
-      valides++;
+      const r = await validerBrouillons(acteur, ids.map((id) => ({
+        id, resume: String(f.get(`resume-${id}`) ?? "").slice(0, 600), enjeux: String(f.get(`enjeux-${id}`) ?? "").slice(0, 1200),
+      })));
+      valides = r.valides.length;
+      for (const id of r.refuses) echecs.push(String(f.get(`titre-${id}`) ?? id));
     } catch (e) {
-      console.error("Brouillons :", e);
-      echecs.push(String(f.get(`titre-${id}`) ?? id));
+      console.error("Brouillons (validation) :", e);
+      message = (e as { name?: string })?.name === "TimeoutError"
+        ? "La base Trois-Tiers a mis trop de temps à répondre. La validation a pu aboutir quand même : rechargez la page pour voir ce qui reste."
+        : messageBase(e, "La validation n'a pas abouti.");
     }
   }
   if (!ids.length) message = "Cochez au moins un projet à valider.";
+  else if (message) { /* message déjà posé */ }
   else if (!echecs.length) return Astro.redirect(`${ici}?valides=${valides}`, 303);
 }
 
-let brouillons: ProjetVu[] = [];
+// Une seule lecture : les projets dont la personne gère la diffusion et qui ont un texte à valider.
+let brouillons: Brouillon[] = [];
 try {
-  const tous = await projetsVisibles(acteur);
-  const candidats = tous.filter((p) => p.niveau >= 4 && ((p.resume && !p.resume_valide) || (p.enjeux && !p.enjeux_valide)));
-  // Seulement les projets dont la personne gère la diffusion (sinon la validation serait refusée).
-  const droits = await Promise.all(candidats.map((p) => mesDroits(p.id, acteur).catch(() => null)));
-  brouillons = candidats.filter((_, i) => droits[i]?.fixer_sensibilite)
-    .sort((a, b) => (a.famille?.ordre ?? 99) - (b.famille?.ordre ?? 99) || a.titre.localeCompare(b.titre, "fr"));
+  brouillons = (await brouillonsAValider(acteur)).sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || a.titre.localeCompare(b.titre, "fr"));
 } catch (e) {
   console.error("Brouillons (liste) :", e);
-  message ||= messageBase(e, "Les brouillons n'ont pas pu être chargés.");
+  message ||= (e as { name?: string })?.name === "TimeoutError"
+    ? "La base Trois-Tiers a mis trop de temps à répondre. Rechargez la page dans un instant."
+    : messageBase(e, "Les brouillons n'ont pas pu être chargés.");
 }
 const valid = Number(Astro.url.searchParams.get("valides") ?? 0);
 ---
@@ -57,7 +61,7 @@ const valid = Number(Astro.url.searchParams.get("valides") ?? 0);
   </section>
   {valid > 0 && <p class="pastille" role="status">{valid} projet{valid > 1 ? "s" : ""} validé{valid > 1 ? "s" : ""}.</p>}
   {message && <p class="avertissement" role="alert">{message}</p>}
-  {echecs.length > 0 && <p class="avertissement" role="alert">{valides} validé(s) ; non validé(s), faute de droit ou d'erreur : {echecs.join(", ")}.</p>}
+  {echecs.length > 0 && <p class="avertissement" role="alert">{valides} validé(s) ; refusé(s) par la base, faute de droit sur le projet : {echecs.join(", ")}.</p>}
 
   {brouillons.length === 0 ? (
     <p class="doux">Aucun brouillon à valider. <a href="/membre/projets">Retour aux projets</a></p>
@@ -71,7 +75,7 @@ const valid = Number(Astro.url.searchParams.get("valides") ?? 0);
         <fieldset class="brouillon-projet">
           <legend>
             <label class="option"><input type="checkbox" name="valider" value={p.id} checked class="case" /> <strong>{p.titre}</strong></label>
-            {p.famille && <span class="doux"> · {p.famille.libelle}</span>}
+            {p.famille && <span class="doux"> · {p.famille}</span>}
           </legend>
           <input type="hidden" name={`titre-${p.id}`} value={p.titre} />
           <label for={`resume-${p.id}`}>Résumé</label>

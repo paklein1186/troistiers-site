@@ -232,3 +232,27 @@ SELECT pg_temp.ok('lead : aucun e-mail diffusé', pg_temp.en('service_role', NUL
   $q$SELECT (public.vue_projet(id, 2)->'lead' ? 'email')::text FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'false');
 SELECT pg_temp.ok('lead : jamais pour le public', pg_temp.en('service_role', NULL,
   $q$SELECT COALESCE(public.vue_projet(id, 0)->>'lead', '—') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'$q$), '—');
+
+-- Brouillons à valider en une lecture (28/11).
+SELECT pg_temp.ok('brouillons : la coordination les voit', pg_temp.en('service_role', NULL,
+  $q$SELECT (jsonb_array_length(public.brouillons_a_valider('00000000-0000-0000-0000-0000000000a1')) > 0)::text$q$), 'true');
+SELECT pg_temp.ok('brouillons : rien pour un membre', pg_temp.en('service_role', NULL,
+  $q$SELECT jsonb_array_length(public.brouillons_a_valider('00000000-0000-0000-0000-0000000000b9'))::text$q$), '0');
+SELECT pg_temp.ok('brouillons : validation en lot, refus isolé', pg_temp.en('service_role', NULL,
+  format($q$SELECT jsonb_array_length(r->'valides') || ' validé(s), ' || jsonb_array_length(r->'refuses') || ' refusé(s)'
+     FROM (SELECT public.valider_brouillons(jsonb_build_array(
+       jsonb_build_object('id', %L, 'resume', 'Résumé lot.', 'enjeux', 'Enjeux lot.'),
+       jsonb_build_object('id', '00000000-0000-0000-0000-00000000dead', 'resume', 'x', 'enjeux', 'y')),
+       '00000000-0000-0000-0000-0000000000a1') r) s$q$, (SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'))), '1 validé(s), 1 refusé(s)');
+SELECT pg_temp.ok('brouillons : un membre ne valide rien', pg_temp.en('service_role', NULL,
+  format($q$SELECT jsonb_array_length(public.valider_brouillons(jsonb_build_array(jsonb_build_object('id', %L, 'resume', 'x', 'enjeux', 'y')),
+     '00000000-0000-0000-0000-0000000000b9')->'valides')::text$q$, (SELECT id FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-b'))), '0');
+
+-- Personnes impliquées (28/11).
+SELECT pg_temp.ok('personnes : référente et porteurs de tâches, sans l''équipe automatique', pg_temp.en('service_role', NULL,
+  $q$SELECT string_agg((x->>'nom') || ' (' || (x->>'role') || ')', ', ') FROM projets p, jsonb_array_elements(public.vue_projet(p.id, 4)->'personnes') x
+     WHERE p.ref_externe = 'pilote-m:mission:lieu-a'$q$), 'Eveline (Référent de mission), isa (Tâches)');
+SELECT pg_temp.ok('personnes : pas pour un membre (N2) pendant le projet', pg_temp.en('service_role', NULL,
+  $q$SELECT COALESCE(public.vue_projet(id, 2)->>'personnes', '—') FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), '—');
+SELECT pg_temp.ok('personnes : oui pour un actif (N3)', pg_temp.en('service_role', NULL,
+  $q$SELECT (jsonb_array_length(public.vue_projet(id, 3)->'personnes') > 0)::text FROM projets WHERE ref_externe = 'pilote-m:mission:lieu-a'$q$), 'true');
