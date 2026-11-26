@@ -351,3 +351,25 @@ UPDATE projets SET ctg_quete_id = 'aaaaaaaa-0000-0000-0000-00000000a5a5' WHERE r
 SELECT pg_temp.ok('quêtes liées : la paire projet ↔ quête est renvoyée', pg_temp.en('service_role', NULL,
   $q$SELECT (public.quetes_liees() @> '[{"quete": "aaaaaaaa-0000-0000-0000-00000000a5a5"}]')::text$q$), 'true');
 SELECT pg_temp.ok('quêtes liées : fermé aux visiteurs', has_function_privilege('anon', 'public.quetes_liees()', 'EXECUTE')::text, 'false');
+
+-- Quêtes CTG, A2 : liaison à la main.
+SELECT pg_temp.ok('liaison : un référent ne voit pas la file', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.etat_liaison()::text$q$), 'refusé');
+SELECT pg_temp.ok('liaison : la coordination voit les quêtes reliées', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT (public.etat_liaison()->'liees' @> '[{"quete": "aaaaaaaa-0000-0000-0000-00000000a5a5"}]')::text$q$), 'true');
+SELECT pg_temp.ok('liaison : accueillir une quête déjà reliée est refusé', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.accueillir_quete_ctg('aaaaaaaa-0000-0000-0000-00000000a5a5', 'Doublon', NULL, 'PROJECT')::text$q$), 'refusé');
+SELECT pg_temp.ok('liaison : un référent ne peut pas accueillir', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
+  $q$SELECT public.accueillir_quete_ctg('bbbbbbbb-0000-0000-0000-00000000a2a2', 'Atlas', 'Cartographier', 'MISSION')::text$q$), 'refusé');
+SELECT pg_temp.ok('liaison : la coordination accueille une quête', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT (public.accueillir_quete_ctg('bbbbbbbb-0000-0000-0000-00000000a2a2', 'Atlas', 'Cartographier', 'MISSION') IS NOT NULL)::text$q$), 'true');
+SELECT pg_temp.ok('liaison : projet de provenance ctg, sensible, non validé, sans famille',
+  (SELECT concat_ws('/', nature, provenance, sensibilite, resume_valide, resume_public, parent_id IS NULL)
+   FROM projets WHERE ctg_quete_id = 'bbbbbbbb-0000-0000-0000-00000000a2a2'), 'mission/ctg/sensible/f/Cartographier/t');
+SELECT pg_temp.ok('liaison : écarter une quête', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.ecarter_quete_ctg('cccccccc-0000-0000-0000-00000000a2a2', 'Hors sujet', 'test', true)::text$q$), '∅');
+SELECT pg_temp.ok('liaison : la quête écartée est dans la liste', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT (public.etat_liaison()->'ecartees' @> '[{"quete": "cccccccc-0000-0000-0000-00000000a2a2"}]')::text$q$), 'true');
+SELECT pg_temp.ok('liaison : la reprendre', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000a1',
+  $q$SELECT public.ecarter_quete_ctg('cccccccc-0000-0000-0000-00000000a2a2', 'Hors sujet', NULL, false)::text$q$), '∅');
+SELECT pg_temp.ok('liaison : … plus écartée', (SELECT count(*)::text FROM quetes_ecartees), '0');

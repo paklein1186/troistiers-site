@@ -29,6 +29,20 @@ export async function quetesPubliques(f: typeof fetch = fetch): Promise<QueteCtg
   }
 }
 
+export interface QueteCtgAdmin extends QueteCtg { is_draft: boolean | null; public_visibility: string | null; link: string | null }
+
+/** Toutes les quêtes de la guilde (brouillons compris), avec le jeton CTG d'un·e admin de la guilde. Jamais gardées en cache.
+ *  Renvoie null si CTG ne reconnaît pas la personne comme admin (réponse en mode public). */
+export async function quetesAdmin(jeton: string, f: typeof fetch = fetch): Promise<QueteCtgAdmin[] | null> {
+  const guilde = encodeURIComponent(guildeCtg());
+  const r = await f(`${urlFonctionsCtg()}/guild-quests?guild_id=${guilde}`, {
+    headers: { authorization: `Bearer ${jeton}` }, signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`guild-quests ${r.status}`);
+  const d = (await r.json()) as { mode?: string; quests?: QueteCtgAdmin[] };
+  return d.mode === "admin" ? d.quests ?? [] : null;
+}
+
 /** Retire les quêtes déjà reliées à un projet du site (lien explicite, ou adresse de la quête vers une fiche du site). */
 export function sansDoublon(quetes: QueteCtg[], liees: Set<string>): QueteCtg[] {
   return quetes.filter((q) => !liees.has(q.id) && !/\/projets\/[0-9a-f-]{36}\/?$/i.test(q.website_url ?? ""));

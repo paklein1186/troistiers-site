@@ -257,7 +257,8 @@ Règles :
 
 Étapes du palier 1 (une branche et une PR chacune) : A1 base (tâches ouvertes à contribution, provenance,
 correspondances nature / territoire / étiquettes ; migration `20261126190000_quetes_a1_base.sql` ; **CTG n'a que les natures
-IDEA, PROJECT, MISSION** : projet et groupe → PROJECT, capitalisé → statut COMPLETED) ; A2 liaison à la main `/membre/quetes/liaison` ; A3 publication
+IDEA, PROJECT, MISSION** : projet et groupe → PROJECT, capitalisé → statut COMPLETED) ; A2 liaison à la main `/membre/quetes/liaison` (quêtes lues en mode admin avec le jeton CTG de la coordination ; relier,
+accueillir comme projet `ctg` sans famille, écarter ; migration `20261126230000_quetes_a2_liaison.sql`) ; A3 publication
 manuelle (bloc « ChangeTheGame » sur la fiche, proposition du référent dans `/membre/revue`, face publique à copier,
 adresse de la quête créée ; liste `/membre/quetes/a-publier` ; migration `20261126194500_quetes_a3_publication.sql`,
 **fonctionne de bout en bout en local le 26/11** sur l'offre SDC; choix de la **nature** d'un projet par la coordination, migration `20261126203000_choix_nature.sql`) ; A4 lien retour (`website_url` de la quête → fiche du

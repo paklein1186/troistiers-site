@@ -111,6 +111,7 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
             ))}
           </nav>
           {brouillons > 0 && <a class="bouton creux" href={`${ici}/brouillons`}>Brouillons à valider · {brouillons}</a>}
+          {projets.some((p) => p.niveau >= 5) && <a class="bouton creux" href="/membre/quetes/liaison">Quêtes ChangeTheGame à relier</a>}
           <nav class="vues" aria-label="Affichage">
             <a href={lien({ vue: "vignettes" })} aria-current={vue === "vignettes" ? "true" : undefined}>Vignettes</a>
             <a href={lien({ vue: "liste" })} aria-current={vue === "liste" ? "true" : undefined}>Liste</a>
