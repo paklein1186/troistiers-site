@@ -144,7 +144,15 @@ coordination copie depuis `/membre/pilotes/pilote-33/retours` et colle dans l'ar
 - Un `statut_tache` ou une `sous_tache` s'applique seulement si la tâche n'a pas été modifiée dans l'artefact après
   `maj_le` (sinon : à l'arbitrage, dans la salle d'attente). Une `candidature` ou une `proposition` va toujours dans la
   salle d'attente.
-- À l'import suivant, le site vérifie que l'export de l'artefact a bien intégré ces retours et signale les écarts.
+- À l'import suivant, le site vérifie que l'export de l'artefact a bien intégré ces retours et signale les écarts :
+  un `statut_tache` ou une `sous_tache` est soldé quand l'export a le même statut ou la même coche ; un
+  `commentaire`, une `proposition` ou une `candidature` est soldé quand l'export **cite son `id`** (`site-r-…`,
+  `site-c-…`), par exemple dans `source` de l'entrée de journal ou de la proposition créée par l'artefact.
+- Un `sous_tache` porte aussi `rang` (1 pour la première) : tant que le site repère les sous-tâches par leur rang
+  (voir « Ce que le site ne lit pas encore »), c'est lui qui désigne la sous-tâche.
+- **Sur le site** : sur la fiche d'une mission du Pilote, l'équipe change un statut, coche une sous-tâche, commente
+  ou propose une tâche comme d'habitude ; la copie ne bouge pas (« ⏳ envoyé à l'artefact ») jusqu'à l'import qui
+  l'intègre. La coordination produit le journal sur `/membre/pilotes/pilote-33/retours`.
 
 ## Ce que la base renvoie
 
