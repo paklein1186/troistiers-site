@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const notes: unknown[][] = [];
 let faces: unknown[] = [];
+let aPublier: unknown[] = [];
+const publiees: unknown[][] = [];
 vi.mock("../src/lib/base", () => ({
   baseConfiguree: () => true,
   facesASynchroniser: async () => faces,
   noterSynchroCtg: async (...a: unknown[]) => { notes.push(a); },
+  nouvellesAPublier: async () => aPublier,
+  noterNouvellePubliee: async (...a: unknown[]) => { publiees.push(a); },
 }));
 vi.mock("../src/lib/ctg", () => ({ ctgConfiguree: () => true, urlFonctionsCtg: () => "https://ctg.test/functions/v1" }));
 
@@ -131,6 +135,30 @@ describe("publication automatique des quêtes (visibilité)", () => {
     process.env.CTG_PUBLICATION_AUTO = "true";
     process.env.BAC_A_SABLE = "true";
     expect(m.publicationAutoActive()).toBe(false);
+    expect(fx).not.toHaveBeenCalled();
+  });
+
+  it("nouvelles (B3) : seules les nouvelles validées partent, titre et texte seulement, auteur = qui a validé", async () => {
+    publiees.length = 0;
+    aPublier = [
+      { id: "n1", projet: "p1", quete: "q1", titre: "Nouvelle étape : Fin de chantier", texte: "Terminé.", auteur: "u1" },
+      { id: "n2", projet: "p2", quete: "q2", titre: "T", texte: "X", auteur: null },
+    ];
+    const { fx, appels } = fauxCtg(true, (c) => c.projet_id === "p2"
+      ? { status: 404, body: { error: "quest_not_linked" } } : { status: 200, body: { quest_id: c.quest_id, update_id: "u-ctg" } });
+    expect(await m.publierNouvelles(fx as any)).toEqual({ envoyees: 1, erreurs: 1 });
+    expect(appels[0].corps).toEqual({ action: "news", projet_id: "p1", quest_id: "q1",
+      nouvelle: { id: "n1", titre: "Nouvelle étape : Fin de chantier", texte: "Terminé." }, auteur: "u1" });
+    expect(appels[1].corps.auteur).toBeUndefined();
+    expect(appels.every((a) => a.jeton === undefined && a.cle.length >= 32)).toBe(true);
+    expect(publiees).toEqual([["n1", "u-ctg", null], ["n2", null, "quest_not_linked"]]);
+  });
+
+  it("nouvelles : rien ne part interrupteur fermé", async () => {
+    process.env.CTG_PUBLICATION_AUTO = "false";
+    aPublier = [{ id: "n1", projet: "p1", quete: "q1", titre: "T", texte: "X", auteur: null }];
+    const { fx } = fauxCtg(true);
+    expect(await m.publierNouvelles(fx as any)).toEqual({ envoyees: 0, erreurs: 0 });
     expect(fx).not.toHaveBeenCalled();
   });
 });

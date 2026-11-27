@@ -129,3 +129,16 @@ dans la réponse de `guild-member-profile` (déjà lue à chaque connexion) :
 - **Liste des quêtes** sur `/projets` : avec le jeton de la personne, `access: "teaser"` → fiche seule et « Demander à
   rejoindre » (`request_access_url`) ; sinon la liste publique.
 - **Propositions venues de CTG** : acceptées par l'import (provenance `ctg`), en attente, avec leur lien CTG en source.
+
+## 7. Nouvelles de quête (palier 2, B3)
+
+Quand un projet relié à une quête (publiée, avec une visibilité) change d'étape, la base prépare un **brouillon de
+nouvelle** (« Nouvelle étape : … »). Rien ne part sans validation : le référent du projet (droit « gerer ») ou la
+coordination le relit sur la fiche (bloc ChangeTheGame), le modifie, le valide ou l'écarte.
+
+- Lien automatique (publication automatique ouverte) : le serveur du site envoie les nouvelles validées à
+  `guild-quest-sync` (action `news`, changethegame#23), après la relecture des faces. CTG ne publie chaque nouvelle
+  qu'une fois ; l'auteur est la personne qui l'a validée si elle est membre de la guilde.
+- Lien manuel : on copie la nouvelle validée sur la quête, puis « marquer comme publiée ».
+- Seuls le titre et le texte validés partent. Un projet devenu sensible ou réservé à l'équipe n'envoie plus rien.
+- Base : table `nouvelles_quete`, migration `20261128130000_quetes_b3_nouvelles.sql` ; tests `supabase/tests/quetes_nouvelles.sql`.

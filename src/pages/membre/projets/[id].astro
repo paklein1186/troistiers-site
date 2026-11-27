@@ -5,7 +5,7 @@ import ListeTaches from "../../../components/ListeTaches.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, retoursProjet, queteDuProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, retoursProjet, nouvellesProjet, reglerNouvelle, type NouvelleQuete, queteDuProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
@@ -53,6 +53,11 @@ if (Astro.request.method === "POST" && acteur) {
       await enregistrerQueteCtg(acteur, id, action === "retirer_ctg" ? "" : String(f.get("adresse") ?? "").trim().slice(0, 500));
     } else if (action === "valider" || action === "refuser") {
       await validerDiffusion(acteur, id, action === "valider");
+    } else if (action === "nouvelle_valider" || action === "nouvelle_ecarter" || action === "nouvelle_copiee") {
+      // Palier 2, B3 : nouvelle de quête préparée à un changement d'étape.
+      await reglerNouvelle(acteur, String(f.get("nouvelle") ?? ""), action.slice(9) as "valider" | "ecarter" | "copiee",
+        String(f.get("titre") ?? "").slice(0, 200), String(f.get("texte") ?? "").slice(0, 4000));
+      return Astro.redirect(`${ici}?fait=${encodeURIComponent(action)}#nouvelles`, 303);
     }
     return Astro.redirect(`${ici}?fait=${encodeURIComponent(action)}`, 303);
   } catch (e) {
@@ -71,6 +76,8 @@ let publication: FaceCtg | null = null;
 // Copie du Pilote : retours vers l'artefact (étape 4 de la décision D).
 let retours: Awaited<ReturnType<typeof retoursProjet>> | null = null;
 let suppressions: SuppressionPilote[] = [];
+// Nouvelles de la quête préparées aux changements d'étape (palier 2, B3).
+let nouvelles: NouvelleQuete[] = [];
 // Projet relié à une quête CTG que la personne peut voir : « Rejoindre » mène à la quête (docs/quetes/visibilite.md).
 let quete: Awaited<ReturnType<typeof queteDuProjet>> = null;
 const niveauApercu = Astro.url.searchParams.get("en_tant_que");
@@ -83,9 +90,9 @@ try {
   ]);
   quete = await queteDuProjet(id, acteur).catch(() => null);
   if (droits && droits.niveau >= 4 && acteur) {
-    [taches, publication, retours, suppressions] = await Promise.all([
+    [taches, publication, retours, suppressions, nouvelles] = await Promise.all([
       tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null), retoursProjet(id, acteur).catch(() => null),
-      suppressionsProjet(id, acteur).catch(() => []),
+      suppressionsProjet(id, acteur).catch(() => []), nouvellesProjet(id, acteur).catch(() => []),
     ]);
   }
   // Aperçu en tant que : réservé à l'équipe du projet et à la coordination, jamais au-dessus de son niveau.
@@ -294,6 +301,40 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
           ) : (
             <p class="doux">Publiable : le référent du projet peut proposer sa publication.</p>
           )}
+          {nouvelles.length > 0 && (
+            <div id="nouvelles">
+              <h3>Nouvelles de la quête</h3>
+              <p class="doux">Préparées à chaque changement d'étape. Rien ne part sans validation ; seuls le titre et le texte ci-dessous partent sur la quête.
+                {nouvelles[0].auto ? " Une nouvelle validée est publiée toute seule sur ChangeTheGame." : " Le lien avec la quête n'est pas automatique : une fois validée, copiez-la sur la quête, puis marquez-la comme publiée."}</p>
+              {nouvelles.map((n) => (
+                n.statut === "brouillon" && n.peut_regler ? (
+                  <form method="post" class="formulaire nouvelle">
+                    <input type="hidden" name="nouvelle" value={n.id} />
+                    <label for={`nt-${n.id}`}>Titre <span class="doux">(brouillon du {new Date(n.cree_le).toLocaleDateString("fr-BE")})</span></label>
+                    <input id={`nt-${n.id}`} name="titre" maxlength="200" value={n.titre} />
+                    <label for={`nx-${n.id}`}>Texte</label>
+                    <textarea id={`nx-${n.id}`} name="texte" rows="3" maxlength="4000">{n.texte}</textarea>
+                    <div class="rangee">
+                      <button type="submit" name="action" value="nouvelle_valider">Valider</button>
+                      <button type="submit" name="action" value="nouvelle_ecarter" class="bouton creux">Écarter</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div class="nouvelle">
+                    <p><strong>{n.titre}</strong> · <span class="etiquette">{({ brouillon: "brouillon", validee: n.auto ? "validée, en cours d'envoi" : "validée, à copier", publiee: "publiée", ecartee: "écartée" } as const)[n.statut]}</span></p>
+                    <p class="texte">{n.texte}</p>
+                    {n.erreur && <p class="doux">Dernier envoi refusé : {n.erreur}</p>}
+                    {n.statut === "validee" && !n.auto && n.peut_regler && (
+                      <form method="post" class="rangee">
+                        <input type="hidden" name="nouvelle" value={n.id} />
+                        <button type="submit" name="action" value="nouvelle_copiee" class="bouton creux">Copiée sur la quête : marquer comme publiée</button>
+                      </form>
+                    )}
+                  </div>
+                )
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -373,6 +414,8 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
 
 <style>
   .titre { overflow-wrap: anywhere; }
+  .nouvelle { border-top: 1px solid var(--trait, #ddd); padding-top: 10px; margin-top: 10px; }
+  .nouvelle .texte { max-width: 70ch; white-space: pre-wrap; }
   .enjeux { max-width: 70ch; color: var(--doux); }
   .elements { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: 8px 18px; margin: 0; }
   .elements dt { font-weight: 600; } .elements dd { margin: 0; overflow-wrap: anywhere; }
