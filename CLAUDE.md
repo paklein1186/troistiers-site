@@ -297,8 +297,17 @@ convention** Trois-Tiers × ChangeTheGame. B1 : fonction CTG `guild-quest-sync` 
 `quest_external_links`, secrets `SITE_SYNC_KEY`, `SITE_SYNC_GUILD_ID`, `SITE_SYNC_ORIGINS`) ; site : bouton « Publier
 automatiquement » sur `/membre/quetes/a-publier`, relecture des faces toutes les 15 min (`src/lib/publication-ctg.ts`,
 `CTG_PUBLICATION_AUTO`, `CTG_SITE_SYNC_KEY`), retrait (brouillon privé) si la face n'est plus publique ; seuls les projets
-transparents ; migration `20261126234000_quetes_b1_publication_auto.sql`. Restent B3 (étapes → nouvelles), B4 (besoins),
-fil de commentaires unique, B5 (entrée automatique des quêtes nées sur CTG), puis palier 3.
+transparents ; migration `20261126234000_quetes_b1_publication_auto.sql`. **Palier 2 terminé le 28/11** (détail :
+`docs/quetes/visibilite.md` §7 à 10) : B3 étapes → nouvelles de quête (brouillon à chaque étape, validé par le référent ;
+changethegame#23, #55) ; B4 besoins dans les deux sens (`besoins_projet`, la dernière modification l'emporte ; décisions
+de PA : propositions d'aide = **compteur seul** dans la base, liste lue en direct par le référent ; changethegame#24, #56) ;
+**acceptation unique des propositions** `decide_quest_proposal` (écran CTG et site : crédits $CTG versés + XP + notification
+d'un bloc, euros réglés à part ; corrige l'écran CTG qui ne versait rien) ; **fil de commentaires unique** (bloc
+« Discussion », fil de la quête lu en direct, écrit au nom de la personne, `CTG_DISCUSSION`, ouvert par défaut ;
+changethegame#25 protège aussi les commentaires des quêtes réservées ; #58) ; B5 quêtes nées sur CTG relevées toutes les
+15 min dans la file `quetes_a_classer` (aucun projet créé automatiquement ; la coordination relie, accueille ou écarte).
+Onglet Projets de `/membre` : vignettes directes, « Rejoindre l'équipe » et « Proposer un projet » visibles (#57).
+Sauf la discussion, tout reste derrière l'interrupteur fermé `CTG_PUBLICATION_AUTO` jusqu'à la convention. Ensuite : palier 3.
 **Visibilité des quêtes (décisions de PA du 27/11)**, contrat commun `docs/quetes/visibilite.md` : les missions et groupes de
 travail deviennent des quêtes de la guilde avec la visibilité de leur sensibilité (transparent → publique ; semi-sensible →
 membres cotisants : titre, résumé, enjeux ; hors guilde et « galaxie » : rien) ; **les missions sensibles ne deviennent

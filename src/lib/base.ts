@@ -119,7 +119,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison", "nouvelles_projet", "besoins_du_projet", "peut_decider_propositions",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison", "nouvelles_projet", "besoins_du_projet", "peut_decider_propositions", "quetes_a_classer_liste", "nb_quetes_a_classer",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -439,6 +439,14 @@ export const facesASynchroniser = () =>
   rpc<{ projet: string; quete: string; empreinte: string | null; face: FaceCtg }[]>("faces_ctg_a_synchroniser", {});
 export const noterSynchroCtg = (projet: string, empreinte: string, erreur: string | null) =>
   rpc<null>("noter_synchro_ctg", { p_projet: projet, p_empreinte: empreinte, p_erreur: erreur });
+/** Palier 2, B5 : quêtes nées sur ChangeTheGame, relevées automatiquement dans la file « à classer ». */
+export interface QueteAClasser {
+  quete: string; titre: string; description: string | null; nature: string | null; statut: string | null;
+  brouillon: boolean; adresse: string | null; reperee_le: string;
+}
+export const releverQuetesCtg = (quetes: unknown[]) => rpc<number>("relever_quetes_ctg", { p_quetes: quetes });
+export const quetesAClasser = (acteur: string) => rpc<QueteAClasser[]>("quetes_a_classer_liste", { p_acteur: acteur });
+export const nbQuetesAClasser = (acteur: string) => rpc<number>("nb_quetes_a_classer", { p_acteur: acteur });
 /** Palier 2, B4 : besoins du projet, partagés avec la quête dans les deux sens. */
 export const CATEGORIES_BESOIN: Record<string, string> = {
   GENERAL: "Général", SKILLS: "Compétences", TOOLS: "Outils, matériel", PLACE: "Lieu", FUNDING: "Financement",

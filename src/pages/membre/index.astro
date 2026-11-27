@@ -7,7 +7,7 @@ import { jetonsValides, listerCodes, type CodeAchete } from "../../lib/ctg";
 import { garderJetons, lireJetons } from "../../lib/jetons";
 import { niveauAcces } from "../../lib/acces";
 import { chargerEnquetes, type Enquete } from "../../lib/space2";
-import { baseConfiguree, etapes, maRevue, projetsVisibles, sujetDuJeton, type ProjetVu } from "../../lib/base";
+import { baseConfiguree, etapes, maRevue, nbQuetesAClasser, projetsVisibles, sujetDuJeton, type ProjetVu } from "../../lib/base";
 import VignettesProjets from "../../components/VignettesProjets.astro";
 
 const u = Astro.locals.utilisateur;
@@ -60,6 +60,7 @@ const onglet = onglets.find((o) => o.id === demande)?.id ?? onglets[0].id;
 
 // Onglet Projets : les projets visibles, affichés directement, et les propositions à examiner.
 let aExaminer = 0;
+let aClasser = 0;
 let projets: ProjetVu[] = [];
 let libellesEtapes: Record<string, string> = {};
 let erreurProjets = false;
@@ -81,6 +82,7 @@ if (onglet === "projets") {
     } catch (e) {
       console.error("Base Trois-Tiers (revue) :", e);
     }
+    aClasser = await nbQuetesAClasser(acteur).catch(() => 0);
   }
 }
 
@@ -175,6 +177,7 @@ const profilMaj = Astro.url.searchParams.get("profil");
       <div class="rangee">
         <a class="bouton creux" href="/membre/taches">Mes tâches</a>
         {aExaminer > 0 && <a class="bouton creux" href="/membre/revue">File de revue ({aExaminer})</a>}
+        {aClasser > 0 && <a class="bouton creux" href="/membre/quetes/liaison">Quêtes ChangeTheGame à classer ({aClasser})</a>}
         <a class="bouton" href="/membre/projets?proposer=1#proposer">Proposer un projet</a>
         <a class="bouton creux" href="/membre/projets">Filtres et liste</a>
       </div>
