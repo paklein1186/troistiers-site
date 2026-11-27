@@ -7,7 +7,9 @@ import { chargerContenu } from "../lib/contenu";
 import missions from "../../data/missions.exemple.json";
 import { acteurConnecte } from "../lib/acteur";
 import { baseConfiguree, etapes, profilCtg, projetsVisibles, quetesLiees, type ProjetVu } from "../lib/base";
-import { LIBELLE_STATUT, quetesPubliques, sansDoublon, type QueteCtg } from "../lib/quetes-ctg";
+import { LIBELLE_STATUT, quetesPourPersonne, quetesPubliques, sansDoublon, type QueteCtg } from "../lib/quetes-ctg";
+import { jetonsValides } from "../lib/ctg";
+import { garderJetons, lireJetons } from "../lib/jetons";
 
 const k = chargerContenu();
 const c = chargerCommunaute();
@@ -47,7 +49,12 @@ if (baseConfiguree()) {
 let quetes: QueteCtg[] = [];
 try {
   const [toutes, liees] = await Promise.all([
-    quetesPubliques(),
+    // Connecté : la liste à son niveau (fiche seule pour les quêtes qu'il ne peut pas encore ouvrir) ; sinon les publiques.
+    (async () => {
+      const jetons = u ? await jetonsValides(lireJetons(Astro.cookies)) : null;
+      if (jetons) garderJetons(Astro.cookies, jetons);
+      return (jetons ? await quetesPourPersonne(jetons.acces) : null) ?? (await quetesPubliques());
+    })(),
     baseConfiguree() ? quetesLiees().catch((e) => { console.error("Quêtes liées :", e); return null; }) : Promise.resolve([]),
   ]);
   // Sans la liste des liens, on ne montre rien plutôt que risquer un doublon.
@@ -116,11 +123,12 @@ const lienPied = (p: ProjetVu) => (p.lead?.id ? profilCtg(p.lead.id, k.liens.cha
         cle: q.web_tags?.slice(0, 2).join(" · ") ?? "",
         titre: q.title,
         texte: extrait(q.description),
-        etat: q.status ? LIBELLE_STATUT[q.status] ?? undefined : undefined,
-        lien: q.url,
+        etat: q.access === "teaser" ? "Réservée" : q.status ? LIBELLE_STATUT[q.status] ?? undefined : undefined,
+        lien: q.access === "teaser" ? undefined : q.url,
         facultatif: true,
-        pied: "Voir la quête",
-        lienPied: q.url,
+        // Fiche seule : on demande l'accès sur ChangeTheGame, ses admins sont prévenus.
+        pied: q.access === "teaser" ? "Demander à rejoindre" : "Voir la quête",
+        lienPied: q.access === "teaser" ? q.request_access_url ?? q.url : q.url,
       }))} />
     </section>
   )}

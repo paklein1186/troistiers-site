@@ -110,3 +110,22 @@ dans la réponse de `guild-member-profile` (déjà lue à chaque connexion) :
    échoue si la protection manque.
 4. Puis, côté site : publication des missions semi-sensibles, recopie des accès individuels, bouton « Rejoindre sur
    ChangeTheGame ». Fermé par l'interrupteur `CTG_PUBLICATION_AUTO` jusqu'à la convention Trois-Tiers × ChangeTheGame.
+
+## 6. Côté site (codé le 28/11, interrupteur `CTG_PUBLICATION_AUTO` fermé)
+
+- **Visibilité déduite par la base** (`visibilite_quete`, `face_ctg.visibilite`) : niveau minimum où la fiche (le titre)
+  est visible sur le site → transparent et visible de tous : `public` ; visible dès N1 ou N2 : `membres` N2 (CTG n'a pas
+  de niveau N1 : on ferme plutôt qu'ouvrir) ; dès N3 : `membres` N3 ; seulement l'équipe (N4) ou projet sensible :
+  pas de quête (retrait). Le plafond par étape et la validation du lieu jouent donc aussi.
+- **Publication** (`src/lib/publication-ctg.ts`) : `visibilite` envoyée à la création et à chaque mise à jour ; avant une
+  quête `membres`, `{"action": "status"}`, puis envoi seulement si `visibilite_appliquee_par_la_base` vaut `true` (relu
+  dans chaque réponse, gardé 5 minutes). Sinon la quête attend, rien n'est envoyé, l'attente est notée. 422
+  `visibility_not_enforced` et 400 `invalid_visibility` sont signalés à la coordination.
+- **Accès individuels** : `acces_quetes` recopié à chaque lecture du profil (`recopier_acces_quetes`) ; `lecture` →
+  badge `lecteur_quete` (N3 sur ce projet), `equipe` → `membre_equipe`, `admin` → `referent_mission` ; un accès disparu
+  ou expiré retire le badge ; `null` ne touche à rien ; un badge accordé sur le site n'est jamais retiré par CTG.
+- **Rejoindre** (`quete_du_projet`) : sur la fiche publique et la fiche membre, « Rejoindre sur ChangeTheGame » mène à la
+  quête, seulement à partir de son niveau minimum ; il remplace la candidature du site pour un projet relié.
+- **Liste des quêtes** sur `/projets` : avec le jeton de la personne, `access: "teaser"` → fiche seule et « Demander à
+  rejoindre » (`request_access_url`) ; sinon la liste publique.
+- **Propositions venues de CTG** : acceptées par l'import (provenance `ctg`), en attente, avec leur lien CTG en source.

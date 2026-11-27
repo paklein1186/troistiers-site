@@ -74,6 +74,32 @@ export async function recopierPersonne(jetonCtg: string, u: Utilisateur, f: type
   }
 }
 
+/** Un accès accordé sur une quête ChangeTheGame reliée à un projet (guild-member-profile, contrat docs/quetes/visibilite.md). */
+export interface AccesQuete { quest_id: string; niveau: "lecture" | "equipe" | "admin"; accorde_par: string | null; accorde_le: string | null; expire_le: string | null }
+
+/**
+ * Recopie les accès accordés sur les quêtes CTG comme badges du projet relié (lecture → lecture N3, equipe → équipe,
+ * admin → référent·e) ; un accès disparu ou expiré retire le badge. `null` (CTG pas à jour) : rien n'est touché.
+ */
+export async function recopierAccesQuetes(jetonCtg: string, acces: AccesQuete[] | null | undefined, f: typeof fetch = fetch): Promise<boolean> {
+  if (!baseConfiguree() || acces === null || acces === undefined) return false;
+  const id = sujetDuJeton(jetonCtg);
+  if (!id) return false;
+  try {
+    const r = await f(`${env("TT_BASE_URL")!.replace(/\/$/, "")}/rest/v1/rpc/recopier_acces_quetes`, {
+      method: "POST",
+      headers: enTetes(env("TT_BASE_SERVICE_KEY")!),
+      body: JSON.stringify({ p_personne: id, p_acces: acces }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!r.ok) console.error(`Base Trois-Tiers : recopie des accès aux quêtes refusée (${r.status})`);
+    return r.ok;
+  } catch (e) {
+    console.error("Base Trois-Tiers : recopie des accès aux quêtes impossible :", e instanceof Error ? e.message : e);
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Lot 2 : projets, cycle de vie, candidatures, file de revue — au nom de la personne connectée.
 // Le site appelle avec sa clé serveur et passe l'identifiant ChangeTheGame de la personne (p_acteur) ;
@@ -93,7 +119,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "etat_liaison",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -379,6 +405,8 @@ export interface FaceCtg {
   territoire: string | null; territoire_non_relie: string | null; lien_retour: string; ctg_quete_id: string | null;
   publie_le: string | null; validee_le: string | null; proposition_en_attente: boolean;
   peut_proposer?: boolean; coordination?: boolean; id?: string;
+  /** Visibilité de la quête déduite du gradient (null = pas de quête) et niveau minimum où la fiche est visible. */
+  visibilite?: { mode: "public" } | { mode: "membres"; niveau_minimum: "N2" | "N3" } | null; niveau_fiche?: number | null;
 }
 export const publicationCtg = (projet: string, acteur: string) => rpc<FaceCtg | null>("publication_ctg", { p_projet: projet, p_acteur: acteur });
 export const proposerPublicationCtg = (acteur: string, projet: string, message: string) =>
@@ -436,6 +464,9 @@ export interface SuppressionPilote {
 }
 export const suppressionsProjet = (projet: string, acteur: string) =>
   rpc<SuppressionPilote[]>("suppressions_projet", { p_projet: projet, p_acteur: acteur });
+/** Quête reliée à un projet, seulement si la personne a le niveau minimum de la quête (bouton « Rejoindre »). */
+export const queteDuProjet = (projet: string, acteur: string | null) =>
+  rpc<{ quete: string; mode: "public" | "membres"; niveau_minimum: string } | null>("quete_du_projet", { p_projet: projet, p_acteur: acteur });
 /** Changer la nature d'un projet (coordination) : décide de la nature de la quête ChangeTheGame. */
 export const changerNature = (acteur: string, projet: string, nature: string) =>
   rpc<null>("changer_nature", { p_projet: projet, p_nature: nature, p_acteur: acteur });
