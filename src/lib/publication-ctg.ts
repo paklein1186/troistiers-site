@@ -191,7 +191,7 @@ export async function synchroniserBesoins(fx: typeof fetch = fetch): Promise<{ e
 /** Proposition d'aide faite sur CTG, lue en direct pour le référent : jamais enregistrée par le site. */
 export interface PropositionAide {
   id: string; need_id: string | null; titre: string; description: string | null; nom: string | null; profil_id: string | null;
-  demande_credits: number; demande_euros: number; cree_le: string; acceptable_depuis_le_site: boolean;
+  demande_credits: number; demande_euros: number; cree_le: string; contrepartie_a_suivre: boolean;
 }
 export async function propositionsAide(projet: string, quete: string, fx: typeof fetch = fetch): Promise<PropositionAide[]> {
   if (!publicationAutoActive()) return [];

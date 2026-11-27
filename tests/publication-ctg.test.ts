@@ -195,12 +195,12 @@ describe("publication automatique des quêtes (visibilité)", () => {
 
   it("propositions : décision envoyée avec l'auteur, puis compteurs relus ; refus de CTG remonté", async () => {
     aPousser = [];
-    const { fx, appels } = fauxCtg(true, (c) => c.action === "proposal_decide" && c.decision === "accept" && c.proposal_id === "x2"
-      ? { status: 409, body: { error: "needs_ctg", detail: "à accepter sur ChangeTheGame" } }
+    const { fx, appels } = fauxCtg(true, (c) => c.action === "proposal_decide" && c.proposal_id === "x2"
+      ? { status: 409, body: { error: "already_decided", detail: "proposition déjà traitée" } }
       : { status: 200, body: { quest_id: "q1", besoins: [], statut: "ACCEPTED" } });
     await m.deciderProposition("p1", "q1", "x1", "accept", "u1", fx as any);
     expect(appels[0].corps).toEqual({ action: "proposal_decide", projet_id: "p1", quest_id: "q1", proposal_id: "x1", decision: "accept", auteur: "u1" });
     expect(appels[1].corps.action).toBe("needs");
-    await expect(m.deciderProposition("p1", "q1", "x2", "accept", "u1", fx as any)).rejects.toMatchObject({ code: "needs_ctg" });
+    await expect(m.deciderProposition("p1", "q1", "x2", "accept", "u1", fx as any)).rejects.toMatchObject({ code: "already_decided" });
   });
 });

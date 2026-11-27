@@ -210,16 +210,23 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
                 <li>
                   <p><strong>{pr.titre}</strong>{pr.nom && <> · {pr.profil_id ? <a href={profilCtg(pr.profil_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">{pr.nom}</a> : pr.nom}</>}
                     {pr.need_id && vb.besoins.some((b) => b.ctg_need_id === pr.need_id) && <span class="doux"> · pour « {vb.besoins.find((b) => b.ctg_need_id === pr.need_id)!.titre} »</span>}</p>
-                  {pr.description && <p class="texte">{pr.description}</p>}
-                  {pr.acceptable_depuis_le_site ? (
-                    <form method="post" class="rangee">
-                      <input type="hidden" name="proposition" value={pr.id} />
-                      <button type="submit" name="action" value="proposition_accepter">Accepter</button>
-                      <button type="submit" name="action" value="proposition_refuser" class="bouton creux">Ne pas retenir</button>
-                    </form>
-                  ) : (
-                    <p class="doux">Demande {pr.demande_credits > 0 ? `${pr.demande_credits} crédits` : ""}{pr.demande_credits > 0 && pr.demande_euros > 0 ? " et " : ""}{pr.demande_euros > 0 ? `${pr.demande_euros} €` : ""} : à accepter sur ChangeTheGame, où se fait le versement.</p>
+                  {pr.contrepartie_a_suivre && (
+                    <p class="doux">Demande {[pr.demande_credits > 0 ? `${pr.demande_credits} crédits` : "", pr.demande_euros > 0 ? `${pr.demande_euros} €` : ""].filter(Boolean).join(" et ")} :
+                      si vous acceptez, rien n'est versé automatiquement ; la contrepartie se suit au cas par cas.</p>
                   )}
+                  <details class="plus">
+                    <summary>Plus d'infos</summary>
+                    {pr.description ? <p class="texte">{pr.description}</p> : <p class="doux">Pas de précisions.</p>}
+                    <p class="doux">Proposée le {new Date(pr.cree_le).toLocaleDateString("fr-BE")}
+                      {pr.nom && pr.profil_id && <> · profil de <a href={profilCtg(pr.profil_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">{pr.nom} sur ChangeTheGame</a></>}
+                      {quete && adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde) && <> · <a href={adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde)!} rel="noopener">échanger sur la quête</a></>}</p>
+                    {pr.contrepartie_a_suivre && <p class="doux">Contrepartie demandée : {pr.demande_credits > 0 ? `${pr.demande_credits} crédits $CTG` : ""}{pr.demande_credits > 0 && pr.demande_euros > 0 ? " et " : ""}{pr.demande_euros > 0 ? `${pr.demande_euros} €` : ""}. À convenir avec la personne (et la coordination pour les euros), puis à régler à part.</p>}
+                  </details>
+                  <form method="post" class="rangee">
+                    <input type="hidden" name="proposition" value={pr.id} />
+                    <button type="submit" name="action" value="proposition_accepter">Accepter</button>
+                    <button type="submit" name="action" value="proposition_refuser" class="bouton creux">Ne pas retenir</button>
+                  </form>
                 </li>
               ))}
             </ul>
@@ -511,7 +518,9 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
   .besoin .rangee { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .besoin .rangee input[name=titre] { flex: 1 1 18rem; width: auto; }
   .besoin .rangee select { flex: 0 0 auto; width: auto; }
-  .propositions li { margin-bottom: 10px; }
+  .propositions li { margin-bottom: 14px; }
+  .propositions .plus { margin: 4px 0 8px; }
+  .propositions .plus summary { cursor: pointer; color: var(--doux); }
   .nouvelle { border-top: 1px solid var(--trait, #ddd); padding-top: 10px; margin-top: 10px; }
   .nouvelle .texte { max-width: 70ch; white-space: pre-wrap; }
   .enjeux { max-width: 70ch; color: var(--doux); }
