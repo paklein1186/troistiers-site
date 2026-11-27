@@ -1,0 +1,76 @@
+---
+// Fil de commentaires de la quête ChangeTheGame, affiché sur la fiche du projet (un seul fil : celui de la quête).
+import { enFil, type Discussion } from "../lib/discussion-ctg";
+import { profilCtg } from "../lib/base";
+import { chargerContenu } from "../lib/contenu";
+interface Props { discussion: Discussion | null; erreur?: boolean; connecte: boolean; ici: string; lienQuete: string | null }
+const { discussion, erreur = false, connecte, ici, lienQuete } = Astro.props;
+const lienGuilde = chargerContenu().liens.changethegame_guilde;
+const quand = (d: string) => new Date(d).toLocaleString("fr-BE", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Brussels" });
+const fil = discussion ? enFil(discussion.commentaires) : [];
+---
+<section class="panneau bloc discussion" id="discussion">
+  <h2>Discussion</h2>
+  <p class="doux">Le fil de la quête sur ChangeTheGame, le même des deux côtés{lienQuete && <> · <a href={lienQuete} rel="noopener">ouvrir la quête</a></>}. Ce qui est sensible reste dans les notes de l'équipe, jamais ici.</p>
+  {erreur ? (
+    <p class="avertissement" role="alert">La discussion n'a pas pu être chargée. Réessayez dans un instant.</p>
+  ) : !discussion ? null : (
+    <>
+      {fil.length === 0 ? <p class="doux">Pas encore de message.</p> : (
+        <ol class="fil">
+          {fil.map(({ c, reponses }) => (
+            <li>
+              <div class="message">
+                <p class="auteur"><strong>{c.auteur.id && profilCtg(c.auteur.id, lienGuilde) ? <a href={profilCtg(c.auteur.id, lienGuilde)!} rel="noopener">{c.auteur.nom ?? "Membre"}</a> : (c.auteur.nom ?? "Membre")}</strong> <span class="doux">· {quand(c.cree_le)}</span></p>
+                <p class="texte">{c.contenu}</p>
+              </div>
+              {reponses.length > 0 && (
+                <ol class="reponses">
+                  {reponses.map((r) => (
+                    <li class="message">
+                      <p class="auteur"><strong>{r.auteur.nom ?? "Membre"}</strong> <span class="doux">· {quand(r.cree_le)}</span></p>
+                      <p class="texte">{r.contenu}</p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {discussion.peut_ecrire && (
+                <details class="repondre">
+                  <summary>Répondre</summary>
+                  <form method="post" action={`${ici}#discussion`} class="formulaire">
+                    <input type="hidden" name="action" value="commenter" />
+                    <input type="hidden" name="parent" value={c.id} />
+                    <textarea name="contenu" rows="2" maxlength="4000" required aria-label="Votre réponse"></textarea>
+                    <div><button type="submit" class="bouton creux">Répondre</button></div>
+                  </form>
+                </details>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+      {discussion.peut_ecrire ? (
+        <form method="post" action={`${ici}#discussion`} class="formulaire">
+          <input type="hidden" name="action" value="commenter" />
+          <label for="contenu-discussion">Votre message <span class="doux">(publié sur ChangeTheGame à votre nom)</span></label>
+          <textarea id="contenu-discussion" name="contenu" rows="3" maxlength="4000" required></textarea>
+          <div><button type="submit">Publier</button></div>
+        </form>
+      ) : connecte ? (
+        <p class="doux">Pour écrire ici, rejoignez la quête sur ChangeTheGame{lienQuete && <> : <a href={lienQuete} rel="noopener">demander à rejoindre</a></>}.</p>
+      ) : (
+        <p class="doux"><a href={`/connexion?suite=${encodeURIComponent(ici)}`}>Connectez-vous</a> pour participer à la discussion.</p>
+      )}
+    </>
+  )}
+</section>
+
+<style>
+  .fil, .reponses { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .reponses { margin: 8px 0 0 18px; padding-left: 12px; border-left: 2px solid var(--trait); gap: 8px; }
+  .message .auteur { margin: 0; font-size: .92rem; }
+  .message .texte { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 70ch; }
+  .repondre summary { cursor: pointer; color: var(--doux); font-size: .9rem; margin-top: 4px; }
+  .discussion .formulaire { display: grid; gap: 6px; margin-top: 12px; max-width: 640px; }
+  .discussion textarea { width: 100%; }
+</style>
