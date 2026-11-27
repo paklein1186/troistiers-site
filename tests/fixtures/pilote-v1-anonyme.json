@@ -1,0 +1,1780 @@
+{
+  "schema_version": "1.0",
+  "exported_at": "2026-11-25T15:59:54.413Z",
+  "contrat": {
+    "version": "1.0",
+    "decision": "Texte",
+    "regles": {},
+    "taches": 7,
+    "suppressions_signalees": 1
+  },
+  "tasks": [
+    {
+      "chantier": "C1",
+      "contributors": [],
+      "created_at": "2026-11-09T08:05:14.202Z",
+      "deps": [],
+      "end": "2026-11-06",
+      "estimate_h": null,
+      "id": "57ac10a0d35b",
+      "milestone": false,
+      "mission": "9520a3db6bfe",
+      "notes": "Texte 1",
+      "pilot": "P1",
+      "source": {
+        "doc": "Texte 2",
+        "key": "Texte 3",
+        "label": "Texte 4",
+        "section": "Texte 5",
+        "url": "Texte 6"
+      },
+      "start": "2026-11-05",
+      "status": "doing",
+      "subtasks": [
+        {
+          "d": false,
+          "t": "Texte 7",
+          "id": "1d3bef5fb3fb",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 8",
+          "id": "be079e296e37",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 9",
+          "id": "150c2205b8b4",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 10",
+          "id": "dd72c8f45f24",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 11",
+          "id": "c47f2ab4ddea",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 12",
+          "id": "ccb21b445c7d",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 13",
+          "id": "953d04c5fe33",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        }
+      ],
+      "title": "Texte 14",
+      "updated_at": "2026-11-18T11:43:18.820Z",
+      "updated_by": "P1",
+      "maj_le": "2026-11-18T11:43:18.820Z",
+      "maj_par": "P1",
+      "provenance": "artefact",
+      "supprime": false,
+      "notes_liste": [
+        {
+          "id": "ca533b35790c",
+          "texte": "Texte 15",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "id": "153191afa2fc",
+          "texte": "Texte 16",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "id": "e9e439b25328",
+          "texte": "Texte 17",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "id": "d3ca07da3fce",
+          "texte": "Texte 18",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "id": "221736312e99",
+          "texte": "Texte 19",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        },
+        {
+          "id": "d6e428179ab9",
+          "texte": "Texte 20",
+          "maj_le": "2026-11-18T11:43:18.820Z"
+        }
+      ]
+    },
+    {
+      "chantier": "C2",
+      "contributors": [],
+      "created_at": "2026-11-05T13:39:50.583Z",
+      "deps": [],
+      "end": null,
+      "estimate_h": null,
+      "id": "42228de6894d",
+      "milestone": false,
+      "mission": "3fd61f458d07",
+      "notes": "Texte 21",
+      "pilot": "P2",
+      "source": {
+        "label": "Texte 22",
+        "url": "Texte 23"
+      },
+      "start": "2026-11-05",
+      "status": "done",
+      "subtasks": [
+        {
+          "d": true,
+          "t": "Texte 24",
+          "id": "69b42cf6eaab",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 25",
+          "id": "675f02943206",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 26",
+          "id": "be6cc1054c96",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 27",
+          "id": "5a09f5c12c33",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 28",
+          "id": "3a56bb502411",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 29",
+          "id": "9f22c96f5537",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 30",
+          "id": "5a59277f16a0",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 31",
+          "id": "c2bd8ac69afa",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 32",
+          "id": "8d99c2129276",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 33",
+          "id": "4389017a7b80",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 34",
+          "id": "69c554e65b70",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 35",
+          "id": "982da41cb598",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 36",
+          "id": "67b259f4187b",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 37",
+          "id": "62fa992b46cc",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 38",
+          "id": "cb433bb6c8f3",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 39",
+          "id": "765051cfd92b",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 40",
+          "id": "0c90cac6844f",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        }
+      ],
+      "title": "Texte 41",
+      "updated_at": "2026-11-24T08:29:08.693Z",
+      "updated_by": "P2",
+      "maj_le": "2026-11-24T08:29:08.693Z",
+      "maj_par": "P2",
+      "provenance": "artefact",
+      "supprime": false,
+      "notes_liste": [
+        {
+          "id": "9f6bb437c0e2",
+          "texte": "Texte 42",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "c566db539bae",
+          "texte": "Texte 43",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "2e0d44d59acd",
+          "texte": "Texte 44",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "127295d6839e",
+          "texte": "Texte 45",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "d4cfa5ca161d",
+          "texte": "Texte 46",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "c2339cb6dd42",
+          "texte": "Texte 47",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "89d977a6f6e0",
+          "texte": "Texte 48",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "770011f2cca2",
+          "texte": "Texte 49",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "0f3070809775",
+          "texte": "Texte 50",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "c6da34d2d740",
+          "texte": "Texte 51",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "783902c62a16",
+          "texte": "Texte 52",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "07f54544d3f7",
+          "texte": "Texte 53",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "842da9694653",
+          "texte": "Texte 54",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        },
+        {
+          "id": "6be380384755",
+          "texte": "Texte 55",
+          "maj_le": "2026-11-24T08:29:08.693Z"
+        }
+      ]
+    },
+    {
+      "chantier": "C2",
+      "contributors": [],
+      "created_at": "2026-11-09T08:04:57.252Z",
+      "deps": [],
+      "end": null,
+      "estimate_h": null,
+      "id": "6e546a0f0aea",
+      "milestone": false,
+      "mission": "7e91e77285f5",
+      "notes": "Texte 56",
+      "pilot": "P1",
+      "source": {
+        "doc": "Texte 57",
+        "key": "Texte 58",
+        "label": "Texte 59",
+        "section": "Texte 60",
+        "url": "Texte 61"
+      },
+      "start": null,
+      "status": "doing",
+      "subtasks": [
+        {
+          "d": false,
+          "t": "Texte 62",
+          "id": "2fc82110ab11",
+          "maj_le": "2026-11-16T09:01:18.988Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 63",
+          "id": "297964985e96",
+          "maj_le": "2026-11-16T09:01:18.988Z"
+        }
+      ],
+      "title": "Texte 64",
+      "updated_at": "2026-11-16T09:01:18.988Z",
+      "updated_by": "P1",
+      "maj_le": "2026-11-16T09:01:18.988Z",
+      "maj_par": "P1",
+      "provenance": "artefact",
+      "supprime": false,
+      "notes_liste": [
+        {
+          "id": "1d511034eda3",
+          "texte": "Texte 65",
+          "maj_le": "2026-11-16T09:01:18.988Z"
+        },
+        {
+          "id": "6366109f136d",
+          "texte": "Texte 66",
+          "maj_le": "2026-11-16T09:01:18.988Z"
+        },
+        {
+          "id": "366f5749b0db",
+          "texte": "Texte 67",
+          "maj_le": "2026-11-16T09:01:18.988Z"
+        }
+      ]
+    },
+    {
+      "chantier": "C3",
+      "contributors": [],
+      "created_at": "2026-11-09T08:04:44.686Z",
+      "deps": [],
+      "end": null,
+      "estimate_h": null,
+      "id": "31eff5b759cb",
+      "milestone": false,
+      "mission": "462732f3b621",
+      "notes": "Texte 68",
+      "pilot": "P2",
+      "source": {
+        "label": "Texte 69",
+        "url": "Texte 70"
+      },
+      "start": "2026-11-04",
+      "status": "doing",
+      "subtasks": [
+        {
+          "d": true,
+          "t": "Texte 71",
+          "id": "69ac13173fe5",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 72",
+          "id": "61d9eac9f2b3",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 73",
+          "id": "8f5d8c2d172b",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 74",
+          "id": "922cfd52386d",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 75",
+          "id": "603e75f5ce82",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 76",
+          "id": "e398ea7aac85",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 77",
+          "id": "1a244e2693a7",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 78",
+          "id": "ab8c5f92cbfe",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        }
+      ],
+      "title": "Texte 79",
+      "updated_at": "2026-11-23T13:22:42.568Z",
+      "updated_by": "P2",
+      "maj_le": "2026-11-23T13:22:42.568Z",
+      "maj_par": "P2",
+      "provenance": "artefact",
+      "supprime": false,
+      "notes_liste": [
+        {
+          "id": "1721bff1480d",
+          "texte": "Texte 80",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "id": "3c92afee6800",
+          "texte": "Texte 81",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "id": "696ea0c956c2",
+          "texte": "Texte 82",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "id": "86d0a66f2405",
+          "texte": "Texte 83",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "id": "3de9c6d347ef",
+          "texte": "Texte 84",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "id": "240d1f369646",
+          "texte": "Texte 85",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "id": "12b7ead93eb8",
+          "texte": "Texte 86",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        },
+        {
+          "id": "9df5fd92390e",
+          "texte": "Texte 87",
+          "maj_le": "2026-11-23T13:22:42.568Z"
+        }
+      ]
+    },
+    {
+      "chantier": "C4",
+      "contributors": [
+        "P1"
+      ],
+      "created_at": "2026-11-03T12:10:00Z",
+      "deps": [],
+      "end": "2026-12-31",
+      "estimate_h": null,
+      "id": "b1a0c7835ecd",
+      "milestone": false,
+      "notes": "Texte 88",
+      "pilot": "P2",
+      "source": {
+        "label": "Texte 89",
+        "url": "Texte 90"
+      },
+      "start": "2026-10-01",
+      "status": "doing",
+      "subtasks": [
+        {
+          "d": false,
+          "t": "Texte 91",
+          "id": "220cb091c31f",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 92",
+          "id": "106541dfea7d",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 93",
+          "id": "06a2ce1ebffb",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 94",
+          "id": "22196e406dfb",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 95",
+          "id": "5f458b8102a0",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 96",
+          "id": "533135d32c49",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 97",
+          "id": "6c7b17fc7d8f",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 98",
+          "id": "92d708de98c4",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 99",
+          "id": "905301ba4d69",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 100",
+          "id": "62af52120d94",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 101",
+          "id": "20e9f995067b",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 102",
+          "id": "77917b11d1af",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 103",
+          "id": "17f322ab2fbf",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 104",
+          "id": "8a3b55a6de48",
+          "maj_le": "2026-11-23T17:20:00Z"
+        }
+      ],
+      "title": "Texte 105",
+      "updated_at": "2026-11-23T17:20:00Z",
+      "updated_by": "P3",
+      "maj_le": "2026-11-23T17:20:00Z",
+      "maj_par": "P3",
+      "provenance": "artefact",
+      "supprime": false,
+      "notes_liste": [
+        {
+          "id": "c84894335bab",
+          "texte": "Texte 106",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "5be311be4519",
+          "texte": "Texte 107",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "f338e5b73c35",
+          "texte": "Texte 108",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "eaf3b6f09deb",
+          "texte": "Texte 109",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "75e0bd88de42",
+          "texte": "Texte 110",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "ee732b1b13d9",
+          "texte": "Texte 111",
+          "maj_le": "2026-11-23T17:20:00Z"
+        }
+      ]
+    },
+    {
+      "chantier": "C4",
+      "contributors": [],
+      "created_at": "2026-11-03T12:10:00Z",
+      "deps": [],
+      "end": "2027-02-28",
+      "estimate_h": null,
+      "id": "3fa4a0d52db6",
+      "milestone": false,
+      "notes": "",
+      "pilot": "P2",
+      "source": {
+        "label": "Texte 112",
+        "url": "Texte 113"
+      },
+      "start": "2026-10-01",
+      "status": "todo",
+      "subtasks": [
+        {
+          "d": false,
+          "t": "Texte 114",
+          "id": "661402b6b387",
+          "maj_le": "2026-11-03T12:10:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 115",
+          "id": "b316701de45c",
+          "maj_le": "2026-11-03T12:10:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 116",
+          "id": "ac180159d367",
+          "maj_le": "2026-11-03T12:10:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 117",
+          "id": "7e40deb16404",
+          "maj_le": "2026-11-03T12:10:00Z"
+        }
+      ],
+      "title": "Texte 118",
+      "updated_at": "2026-11-03T12:10:00Z",
+      "updated_by": "P4",
+      "maj_le": "2026-11-03T12:10:00Z",
+      "maj_par": "P4",
+      "provenance": "artefact",
+      "supprime": false,
+      "notes_liste": []
+    },
+    {
+      "chantier": "C4",
+      "contributors": [],
+      "created_at": "2026-11-03T12:10:00Z",
+      "deps": [],
+      "end": "2028-06-30",
+      "estimate_h": null,
+      "id": "6d4464f67541",
+      "milestone": false,
+      "notes": "Texte 119",
+      "pilot": "P2",
+      "source": {
+        "label": "Texte 120",
+        "url": "Texte 121"
+      },
+      "start": "2026-10-01",
+      "status": "doing",
+      "subtasks": [
+        {
+          "d": false,
+          "t": "Texte 122",
+          "id": "2ca4be4638b9",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 123",
+          "id": "863f9ddb533e",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 124",
+          "id": "fc6f245bb152",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 125",
+          "id": "8384f3ec5d35",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 126",
+          "id": "6bd4bc2d40dc",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 127",
+          "id": "f9bd8f03ec8f",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 128",
+          "id": "0cb5c5c2b157",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": true,
+          "t": "Texte 129",
+          "id": "62cf480968bf",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 130",
+          "id": "272b3965f55d",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 131",
+          "id": "2de3995a93cd",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 132",
+          "id": "3b8f7146da6f",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 133",
+          "id": "c186279c6fd9",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 134",
+          "id": "63c8836e0fd7",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 135",
+          "id": "cbb8d0ae4fc3",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 136",
+          "id": "c5d3e6d32529",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "d": false,
+          "t": "Texte 137",
+          "id": "a12dbf2a1d6a",
+          "maj_le": "2026-11-23T17:20:00Z"
+        }
+      ],
+      "title": "Texte 138",
+      "updated_at": "2026-11-23T17:20:00Z",
+      "updated_by": "P3",
+      "maj_le": "2026-11-23T17:20:00Z",
+      "maj_par": "P3",
+      "provenance": "artefact",
+      "supprime": false,
+      "notes_liste": [
+        {
+          "id": "00879a5a8ae7",
+          "texte": "Texte 139",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "0f81179521f1",
+          "texte": "Texte 140",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "8cbe3f0d5ab0",
+          "texte": "Texte 141",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "c5eade712134",
+          "texte": "Texte 142",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "be6bfa23fa7d",
+          "texte": "Texte 143",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "d372240f1ad6",
+          "texte": "Texte 144",
+          "maj_le": "2026-11-23T17:20:00Z"
+        },
+        {
+          "id": "5689ffc4229b",
+          "texte": "Texte 145",
+          "maj_le": "2026-11-23T17:20:00Z"
+        }
+      ]
+    },
+    {
+      "id": "53b778e96e5b",
+      "supprime": true,
+      "maj_le": "2026-11-25T15:59:54.413Z",
+      "maj_par": "P1",
+      "provenance": "artefact",
+      "motif": "fusion",
+      "fusionnee_dans": "57ac10a0d35b",
+      "dernier_journal": null
+    }
+  ],
+  "missions": [
+    {
+      "aliases": [
+        "Texte 146",
+        "Texte 147",
+        "Texte 148",
+        "Texte 149",
+        "Texte 150",
+        "Texte 151"
+      ],
+      "context_md": "Texte 152",
+      "created_at": "2026-11-04T06:50:54Z",
+      "last_activity": "2026-11-19",
+      "lieu": "Texte 153",
+      "name": "Texte 154",
+      "next_actions": [
+        "Texte 155",
+        "Texte 156",
+        "Texte 157",
+        "Texte 158"
+      ],
+      "referent": "P2",
+      "requests_md": "Texte 159",
+      "sources": [
+        {
+          "date": "2026-11-03",
+          "kind": "drive",
+          "label": "Texte 160",
+          "url": "Texte 161"
+        },
+        {
+          "date": "2026-10-27",
+          "kind": "mail",
+          "label": "Texte 162",
+          "url": "Texte 163"
+        },
+        {
+          "date": "2026-11-10",
+          "kind": "mail",
+          "label": "Texte 164",
+          "url": "Texte 165"
+        },
+        {
+          "date": "2026-11-10",
+          "kind": "mail",
+          "label": "Texte 166",
+          "url": "Texte 167"
+        },
+        {
+          "date": "2026-11-17",
+          "kind": "mail",
+          "label": "Texte 168",
+          "url": "Texte 169"
+        },
+        {
+          "date": "2026-11-19",
+          "kind": "mail",
+          "label": "Texte 170",
+          "url": "Texte 171"
+        },
+        {
+          "date": "2026-11-19",
+          "kind": "whatsapp",
+          "label": "Texte 172",
+          "url": null
+        }
+      ],
+      "statut": "active",
+      "type": "marche-public",
+      "updated_at": "2026-11-23T08:04:00Z",
+      "updated_by": "P5",
+      "id": "462732f3b621",
+      "maj_le": "2026-11-23T08:04:00Z",
+      "maj_par": "P5",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "aliases": [
+        "Texte 173",
+        "Texte 174",
+        "Texte 175",
+        "Texte 176",
+        "Texte 177",
+        "Texte 178"
+      ],
+      "context_md": "Texte 179",
+      "created_at": "2026-11-10T11:55:00Z",
+      "last_activity": "2026-11-13",
+      "lieu": "Texte 180",
+      "name": "Texte 181",
+      "next_actions": [
+        "Texte 182",
+        "Texte 183",
+        "Texte 184"
+      ],
+      "referent": "P1",
+      "requests_md": "Texte 185",
+      "sources": [
+        {
+          "date": "2026-10-14",
+          "kind": "mail",
+          "label": "Texte 186",
+          "url": "Texte 187"
+        },
+        {
+          "date": "2026-11-13",
+          "kind": "mail",
+          "label": "Texte 188",
+          "url": "Texte 189"
+        }
+      ],
+      "statut": "active",
+      "type": "autre",
+      "updated_at": "2026-11-16T07:05:00Z",
+      "updated_by": "P6",
+      "id": "7e91e77285f5",
+      "maj_le": "2026-11-16T07:05:00Z",
+      "maj_par": "P6",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "aliases": [
+        "Texte 190",
+        "Texte 191",
+        "Texte 192",
+        "Texte 193",
+        "Texte 194"
+      ],
+      "context_md": "Texte 195",
+      "created_at": "2026-11-05T06:55:00Z",
+      "last_activity": "2026-11-17",
+      "lieu": "Texte 196",
+      "name": "Texte 197",
+      "next_actions": [
+        "Texte 198",
+        "Texte 199",
+        "Texte 200",
+        "Texte 201"
+      ],
+      "referent": "P2",
+      "requests_md": "Texte 202",
+      "sources": [
+        {
+          "date": "2026-11-04",
+          "kind": "drive",
+          "label": "Texte 203",
+          "url": "Texte 204"
+        },
+        {
+          "date": "2026-11-03",
+          "kind": "mail",
+          "label": "Texte 205",
+          "url": "Texte 206"
+        },
+        {
+          "date": "2026-11-10",
+          "kind": "mail",
+          "label": "Texte 207",
+          "url": "Texte 208"
+        },
+        {
+          "date": "2026-11-12",
+          "kind": "element",
+          "label": "Texte 209",
+          "url": "Texte 210"
+        },
+        {
+          "date": "2026-11-12",
+          "kind": "mail",
+          "label": "Texte 211",
+          "url": "Texte 212"
+        },
+        {
+          "date": "2026-11-17",
+          "kind": "mail",
+          "label": "Texte 213",
+          "url": "Texte 214"
+        },
+        {
+          "date": "2026-11-17",
+          "kind": "drive",
+          "label": "Texte 215",
+          "url": "Texte 216"
+        },
+        {
+          "date": "2026-11-17",
+          "kind": "whatsapp",
+          "label": "Texte 217",
+          "url": null
+        }
+      ],
+      "statut": "active",
+      "type": "autre",
+      "updated_at": "2026-11-19T13:45:00Z",
+      "updated_by": "P5",
+      "id": "3fd61f458d07",
+      "maj_le": "2026-11-19T13:45:00Z",
+      "maj_par": "P5",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "aliases": [
+        "Texte 218",
+        "Texte 219",
+        "Texte 220"
+      ],
+      "context_md": "Texte 221",
+      "created_at": "2026-11-05T06:55:00Z",
+      "last_activity": "2026-11-04",
+      "lieu": null,
+      "name": "Texte 222",
+      "next_actions": [
+        "Texte 223",
+        "Texte 224",
+        "Texte 225",
+        "Texte 226"
+      ],
+      "referent": "P1",
+      "requests_md": "Texte 227",
+      "sources": [
+        {
+          "date": "2026-11-04",
+          "kind": "drive",
+          "label": "Texte 228",
+          "url": "Texte 229"
+        },
+        {
+          "date": "2026-11-04",
+          "kind": "drive",
+          "label": "Texte 230",
+          "url": "Texte 231"
+        }
+      ],
+      "statut": "active",
+      "type": "autre",
+      "updated_at": "2026-11-05T06:55:00Z",
+      "updated_by": "P6",
+      "id": "9520a3db6bfe",
+      "maj_le": "2026-11-05T06:55:00Z",
+      "maj_par": "P6",
+      "provenance": "artefact",
+      "supprime": false
+    }
+  ],
+  "absences": [
+    {
+      "created_by": "P7",
+      "end": "2026-11-11",
+      "label": "Texte 232",
+      "source": "Texte 233",
+      "start": "2026-11-11",
+      "synced_at": "2026-11-03T11:58:15Z",
+      "who": "P8",
+      "id": "380d3246094c",
+      "maj_le": "2026-11-03T11:58:15Z",
+      "maj_par": "P8",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "created_by": "P7",
+      "end": "2026-12-25",
+      "label": "Texte 234",
+      "source": "Texte 235",
+      "start": "2026-12-25",
+      "synced_at": "2026-11-03T11:58:15Z",
+      "who": "P8",
+      "id": "b1641f7a38b6",
+      "maj_le": "2026-11-03T11:58:15Z",
+      "maj_par": "P8",
+      "provenance": "artefact",
+      "supprime": false
+    }
+  ],
+  "proposals": [
+    {
+      "adjusted": false,
+      "author": "P9",
+      "confidence": "moyenne",
+      "created_at": "2026-11-18T17:16:00Z",
+      "decided_at": "2026-11-23T08:06:10.214Z",
+      "decided_by": "P1",
+      "drop_id": "281dd35c8e86",
+      "excerpt": "",
+      "keep_id": "080d86622575",
+      "kind": "merge",
+      "mission": null,
+      "patch": {},
+      "reason": "Texte 236",
+      "result_task": "080d86622575",
+      "status": "accepted",
+      "id": "0ea4bba7c965",
+      "maj_le": "2026-11-23T08:06:10.214Z",
+      "maj_par": "P1",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "adjusted": false,
+      "author": "P6",
+      "confidence": "moyenne",
+      "created_at": "2026-11-16T07:05:00Z",
+      "decided_at": "2026-11-16T07:31:54.371Z",
+      "decided_by": "P2",
+      "dedup_key": "Texte 237",
+      "excerpt": "Texte 238",
+      "kind": "update",
+      "mission": "3fd61f458d07",
+      "patch": {
+        "notes_append": "Texte 239",
+        "subtasks_add": [
+          "Texte 240"
+        ]
+      },
+      "priority": 2,
+      "reason": "Texte 241",
+      "result_task": "42228de6894d",
+      "source": {
+        "label": "Texte 242",
+        "url": "Texte 243"
+      },
+      "status": "accepted",
+      "task_id": "42228de6894d",
+      "id": "ca0742a73d39",
+      "maj_le": "2026-11-16T07:31:54.371Z",
+      "maj_par": "P2",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "adjusted": false,
+      "author": "P6",
+      "confidence": "moyenne",
+      "created_at": "2026-11-16T07:05:00Z",
+      "decided_at": "2026-11-16T07:12:24.353Z",
+      "decided_by": "P1",
+      "dedup_key": "Texte 244",
+      "excerpt": "Texte 245",
+      "kind": "update",
+      "mission": "7e91e77285f5",
+      "patch": {
+        "notes_append": "Texte 246",
+        "pilot": "P1",
+        "subtasks_add": [
+          "Texte 247"
+        ]
+      },
+      "priority": 2,
+      "reason": "Texte 248",
+      "result_task": "6e546a0f0aea",
+      "source": {
+        "label": "Texte 249",
+        "url": "Texte 250"
+      },
+      "status": "accepted",
+      "task_id": "6e546a0f0aea",
+      "id": "90c7a6378661",
+      "maj_le": "2026-11-16T07:12:24.353Z",
+      "maj_par": "P1",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "adjusted": false,
+      "author": "P10",
+      "confidence": "moyenne",
+      "created_at": "2026-11-12T12:35:30Z",
+      "decided_at": "2026-11-12T16:22:11.347Z",
+      "decided_by": "P2",
+      "excerpt": "Texte 251",
+      "kind": "update",
+      "mission": "3fd61f458d07",
+      "patch": {
+        "notes_append": "Texte 252",
+        "subtasks_add": [
+          "Texte 253"
+        ]
+      },
+      "reason": "Texte 254",
+      "result_task": "42228de6894d",
+      "source": {
+        "label": "Texte 255",
+        "url": "Texte 256"
+      },
+      "status": "accepted",
+      "task_id": "42228de6894d",
+      "id": "6f7031ff2b72",
+      "maj_le": "2026-11-12T16:22:11.347Z",
+      "maj_par": "P2",
+      "provenance": "artefact",
+      "supprime": false
+    }
+  ],
+  "journal": [
+    {
+      "source": {
+        "label": "Texte 257",
+        "url": "Texte 258"
+      },
+      "summary": "Texte 259",
+      "task_id": null,
+      "ts": "2026-11-24T08:30:00Z",
+      "type": "decision",
+      "who": "P10",
+      "id": "f822bc4ee526",
+      "maj_le": "2026-11-24T08:30:00Z",
+      "maj_par": "P10",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "after": {
+        "status": "done"
+      },
+      "before": {
+        "status": "doing"
+      },
+      "op": "update",
+      "source": null,
+      "summary": "Texte 260",
+      "task_id": "42228de6894d",
+      "ts": "2026-11-24T08:29:09.090Z",
+      "type": "modif",
+      "who": "P2",
+      "id": "394b8468e380",
+      "maj_le": "2026-11-24T08:29:09.090Z",
+      "maj_par": "P2",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "source": {
+        "label": "Texte 261",
+        "url": "Texte 262"
+      },
+      "summary": "Texte 263",
+      "task_id": null,
+      "ts": "2026-11-24T06:55:00Z",
+      "type": "decision",
+      "who": "P6",
+      "id": "bf08f0425648",
+      "maj_le": "2026-11-24T06:55:00Z",
+      "maj_par": "P6",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "after": {
+        "notes": "Texte 264",
+        "subtasks": [
+          {
+            "d": true,
+            "t": "Texte 265"
+          },
+          {
+            "d": false,
+            "t": "Texte 266"
+          },
+          {
+            "d": true,
+            "t": "Texte 267"
+          },
+          {
+            "d": true,
+            "t": "Texte 268"
+          },
+          {
+            "d": true,
+            "t": "Texte 269"
+          },
+          {
+            "d": false,
+            "t": "Texte 270"
+          },
+          {
+            "d": false,
+            "t": "Texte 271"
+          },
+          {
+            "d": false,
+            "t": "Texte 272"
+          },
+          {
+            "d": false,
+            "t": "Texte 273"
+          },
+          {
+            "d": false,
+            "t": "Texte 274"
+          },
+          {
+            "d": false,
+            "t": "Texte 275"
+          },
+          {
+            "d": false,
+            "t": "Texte 276"
+          },
+          {
+            "d": false,
+            "t": "Texte 277"
+          },
+          {
+            "d": false,
+            "t": "Texte 278"
+          },
+          {
+            "d": false,
+            "t": "Texte 279"
+          },
+          {
+            "d": false,
+            "t": "Texte 280"
+          },
+          {
+            "d": false,
+            "t": "Texte 281"
+          }
+        ]
+      },
+      "before": {
+        "notes": "Texte 282",
+        "subtasks": [
+          {
+            "d": true,
+            "t": "Texte 283"
+          },
+          {
+            "d": false,
+            "t": "Texte 284"
+          },
+          {
+            "d": true,
+            "t": "Texte 285"
+          },
+          {
+            "d": true,
+            "t": "Texte 286"
+          },
+          {
+            "d": true,
+            "t": "Texte 287"
+          },
+          {
+            "d": false,
+            "t": "Texte 288"
+          },
+          {
+            "d": false,
+            "t": "Texte 289"
+          },
+          {
+            "d": false,
+            "t": "Texte 290"
+          },
+          {
+            "d": false,
+            "t": "Texte 291"
+          },
+          {
+            "d": false,
+            "t": "Texte 292"
+          },
+          {
+            "d": false,
+            "t": "Texte 293"
+          },
+          {
+            "d": false,
+            "t": "Texte 294"
+          },
+          {
+            "d": false,
+            "t": "Texte 295"
+          },
+          {
+            "d": false,
+            "t": "Texte 296"
+          },
+          {
+            "d": false,
+            "t": "Texte 297"
+          },
+          {
+            "d": false,
+            "t": "Texte 298"
+          }
+        ]
+      },
+      "op": "update",
+      "source": {
+        "label": "Texte 299",
+        "url": "Texte 300"
+      },
+      "summary": "Texte 301",
+      "task_id": "42228de6894d",
+      "ts": "2026-11-23T17:20:00Z",
+      "type": "auto",
+      "who": "P3",
+      "id": "f58be7e77782",
+      "maj_le": "2026-11-23T17:20:00Z",
+      "maj_par": "P3",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "after": {
+        "notes": "Texte 302",
+        "subtasks": [
+          {
+            "d": false,
+            "t": "Texte 303"
+          },
+          {
+            "d": false,
+            "t": "Texte 304"
+          },
+          {
+            "d": false,
+            "t": "Texte 305"
+          },
+          {
+            "d": false,
+            "t": "Texte 306"
+          },
+          {
+            "d": false,
+            "t": "Texte 307"
+          },
+          {
+            "d": false,
+            "t": "Texte 308"
+          },
+          {
+            "d": false,
+            "t": "Texte 309"
+          },
+          {
+            "d": true,
+            "t": "Texte 310"
+          },
+          {
+            "d": false,
+            "t": "Texte 311"
+          },
+          {
+            "d": false,
+            "t": "Texte 312"
+          },
+          {
+            "d": false,
+            "t": "Texte 313"
+          },
+          {
+            "d": false,
+            "t": "Texte 314"
+          },
+          {
+            "d": false,
+            "t": "Texte 315"
+          },
+          {
+            "d": false,
+            "t": "Texte 316"
+          }
+        ]
+      },
+      "before": {
+        "notes": "Texte 317",
+        "subtasks": [
+          {
+            "d": false,
+            "t": "Texte 318"
+          },
+          {
+            "d": false,
+            "t": "Texte 319"
+          },
+          {
+            "d": false,
+            "t": "Texte 320"
+          },
+          {
+            "d": false,
+            "t": "Texte 321"
+          },
+          {
+            "d": false,
+            "t": "Texte 322"
+          },
+          {
+            "d": false,
+            "t": "Texte 323"
+          },
+          {
+            "d": false,
+            "t": "Texte 324"
+          },
+          {
+            "d": true,
+            "t": "Texte 325"
+          },
+          {
+            "d": false,
+            "t": "Texte 326"
+          },
+          {
+            "d": false,
+            "t": "Texte 327"
+          },
+          {
+            "d": false,
+            "t": "Texte 328"
+          }
+        ]
+      },
+      "op": "update",
+      "source": {
+        "label": "Texte 329",
+        "url": "Texte 330"
+      },
+      "summary": "Texte 331",
+      "task_id": "b1a0c7835ecd",
+      "ts": "2026-11-23T17:20:00Z",
+      "type": "auto",
+      "who": "P3",
+      "id": "89fb5d02f13b",
+      "maj_le": "2026-11-23T17:20:00Z",
+      "maj_par": "P3",
+      "provenance": "artefact",
+      "supprime": false
+    },
+    {
+      "after": {
+        "notes": "Texte 332",
+        "subtasks": [
+          {
+            "d": false,
+            "t": "Texte 333"
+          },
+          {
+            "d": false,
+            "t": "Texte 334"
+          },
+          {
+            "d": false,
+            "t": "Texte 335"
+          },
+          {
+            "d": false,
+            "t": "Texte 336"
+          },
+          {
+            "d": false,
+            "t": "Texte 337"
+          },
+          {
+            "d": false,
+            "t": "Texte 338"
+          },
+          {
+            "d": false,
+            "t": "Texte 339"
+          },
+          {
+            "d": true,
+            "t": "Texte 340"
+          },
+          {
+            "d": false,
+            "t": "Texte 341"
+          },
+          {
+            "d": false,
+            "t": "Texte 342"
+          },
+          {
+            "d": false,
+            "t": "Texte 343"
+          },
+          {
+            "d": false,
+            "t": "Texte 344"
+          },
+          {
+            "d": false,
+            "t": "Texte 345"
+          },
+          {
+            "d": false,
+            "t": "Texte 346"
+          },
+          {
+            "d": false,
+            "t": "Texte 347"
+          },
+          {
+            "d": false,
+            "t": "Texte 348"
+          }
+        ]
+      },
+      "before": {
+        "notes": "Texte 349",
+        "subtasks": [
+          {
+            "d": false,
+            "t": "Texte 350"
+          },
+          {
+            "d": false,
+            "t": "Texte 351"
+          },
+          {
+            "d": false,
+            "t": "Texte 352"
+          },
+          {
+            "d": false,
+            "t": "Texte 353"
+          },
+          {
+            "d": false,
+            "t": "Texte 354"
+          },
+          {
+            "d": false,
+            "t": "Texte 355"
+          },
+          {
+            "d": false,
+            "t": "Texte 356"
+          },
+          {
+            "d": true,
+            "t": "Texte 357"
+          },
+          {
+            "d": false,
+            "t": "Texte 358"
+          },
+          {
+            "d": false,
+            "t": "Texte 359"
+          },
+          {
+            "d": false,
+            "t": "Texte 360"
+          },
+          {
+            "d": false,
+            "t": "Texte 361"
+          },
+          {
+            "d": false,
+            "t": "Texte 362"
+          },
+          {
+            "d": false,
+            "t": "Texte 363"
+          }
+        ]
+      },
+      "op": "update",
+      "source": {
+        "label": "Texte 364",
+        "url": "Texte 365"
+      },
+      "summary": "Texte 366",
+      "task_id": "6d4464f67541",
+      "ts": "2026-11-23T17:20:00Z",
+      "type": "auto",
+      "who": "P3",
+      "id": "886ad5d8e998",
+      "maj_le": "2026-11-23T17:20:00Z",
+      "maj_par": "P3",
+      "provenance": "artefact",
+      "supprime": false
+    }
+  ],
+  "hebdo_points": [],
+  "config": {
+    "members": [
+      {
+        "k": "P1",
+        "n": "Personne 1"
+      },
+      {
+        "k": "P2",
+        "n": "Personne 2"
+      }
+    ],
+    "chantiers": [
+      {
+        "k": "C1",
+        "n": "Chantier 1"
+      },
+      {
+        "k": "C2",
+        "n": "Chantier 2"
+      },
+      {
+        "k": "C3",
+        "n": "Chantier 3"
+      },
+      {
+        "k": "C4",
+        "n": "Chantier 4"
+      }
+    ]
+  },
+  "artefact": "https://claude.ai/artifact/exemple-anonyme"
+}

@@ -25,9 +25,35 @@ export function messageBase(e: unknown, defaut = "L'action n'a pas abouti. Rées
 
 /** Actions communes sur les tâches (statut, sous-tâche cochée), depuis un formulaire. Renvoie true si traité. */
 export async function actionTache(acteur: string, f: FormData): Promise<boolean> {
-  const { cocherSousTache, modifierTache, STATUTS_TACHE } = await import("./base");
+  const { cocherSousTache, envoyerRetour, modifierTache, STATUTS_TACHE } = await import("./base");
   const action = String(f.get("action") ?? "");
   const tache = String(f.get("tache") ?? "");
+  // Copie du Pilote (lecture seule) : le geste devient un retour pour l'artefact (étape 4 de la décision D).
+  const projet = String(f.get("projet") ?? "");
+  if (f.get("vers_artefact") === "1" && /^[0-9a-f-]{36}$/i.test(projet)) {
+    if (action === "proposition") {
+      const titre = String(f.get("titre") ?? "").trim().slice(0, 300);
+      if (!titre) return false;
+      await envoyerRetour(acteur, projet, "proposition", { titre, texte: String(f.get("texte") ?? "").trim().slice(0, 4000) || undefined });
+      return true;
+    }
+    if (!/^[0-9a-f-]{36}$/i.test(tache)) return false;
+    if (action === "statut" && STATUTS_TACHE[String(f.get("statut") ?? "")]) {
+      await envoyerRetour(acteur, projet, "statut_tache", { tache, valeur: { statut: String(f.get("statut")) } });
+      return true;
+    }
+    if (action === "sous_tache" && /^[0-9a-f-]{36}$/i.test(String(f.get("sous_tache") ?? ""))) {
+      await envoyerRetour(acteur, projet, "sous_tache", { tache, sousTache: String(f.get("sous_tache")), valeur: { fait: f.get("fait") === "1" } });
+      return true;
+    }
+    if (action === "commentaire") {
+      const texte = String(f.get("texte") ?? "").trim().slice(0, 4000);
+      if (!texte) return false;
+      await envoyerRetour(acteur, projet, "commentaire", { tache, texte });
+      return true;
+    }
+    return false;
+  }
   if (!/^[0-9a-f-]{36}$/i.test(tache)) return false;
   if (action === "statut") {
     const statut = String(f.get("statut") ?? "");

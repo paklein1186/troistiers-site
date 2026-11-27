@@ -22,6 +22,12 @@ export interface Lieu {
   projets?: Champ;
   enjeux?: Champ;
   besoins?: Champ;
+  // Ajoutés au flux le 27/11 (space2#12) : version publique, comme les autres rubriques.
+  gouvernance?: Champ;
+  ressources?: Champ;
+  modele_economique?: Champ;
+  nombre_contributeurs?: number | null;
+  ctg_entity_id?: string | null;
   updated_at?: string | null;
   commune?: string | null;
   region?: string | null;
@@ -237,6 +243,48 @@ export function enListe(c: Champ): string[] {
   if (Array.isArray(c)) return c.map(String).map((x) => x.trim()).filter(Boolean);
   if (!c) return [];
   return String(c).split(/\n|;\s*/).map((x) => x.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
+}
+
+/** Comme enListe, et une suite de phrases devient une liste (comme les fiches de Space2). */
+export function enPoints(c: Champ): string[] {
+  const items = enListe(c);
+  if (items.length !== 1) return items;
+  // Coupe après un mot d'au moins 4 lettres, un chiffre ou une parenthèse (pas après « env. », « ex. », « M. »).
+  const phrases = items[0].split(/(?<=(?:\p{L}{4,}|\d|[)»"])[.!?])\s+(?=[\p{Lu}0-9«"])/u).map((x) => x.trim()).filter(Boolean);
+  return phrases.length > 1 ? phrases : items;
+}
+
+/** Rubriques de la fiche d'un lieu, dans l'ordre de Space2 (clé de la synthèse → titre). */
+export const RUBRIQUES_LIEU: [string, string][] = [
+  ["activites", "Activités"], ["publics", "Publics"], ["territoire", "Ancrage territorial"],
+  ["gouvernance", "Gouvernance"], ["ressources", "Ressources"], ["besoins", "Besoins"],
+  ["modele_economique", "Modèle économique"], ["partenaires", "Partenaires"], ["competences", "Compétences présentes"],
+  ["projets", "Projets"], ["enjeux", "Enjeux"],
+];
+
+export interface SyntheseInterne { space2_id: string; tiers_lieu: string; sections: Record<string, string>; genere_le: string | null }
+const cacheInterne = new Map<string, { quand: number; valeur: SyntheseInterne | null }>();
+
+/**
+ * Synthèse INTERNE d'un lieu (toutes les réponses, confidentielles comprises ; décision de PA du 27/11), pour les
+ * membres actifs et plus : le site vérifie le badge (espace « fiche_lieu_interne ») AVANT d'appeler. Space2 exige en
+ * plus le jeton CTG de la personne et journalise la lecture. null si fermée (SITE_LIEUX_INTERNE) ou indisponible.
+ */
+export async function syntheseInterne(jetonCtg: string, id: string): Promise<SyntheseInterne | null> {
+  const enCache = cacheInterne.get(id);
+  if (enCache && Date.now() - enCache.quand < DUREE_CACHE_MS) return enCache.valeur;
+  try {
+    const valeur = await appelPersonnel<SyntheseInterne>(jetonCtg, `/lieux/${encodeURIComponent(id)}/interne`, { delai: 15_000 });
+    cacheInterne.set(id, { quand: Date.now(), valeur });
+    return valeur;
+  } catch (e) {
+    if (e instanceof ErreurEntretien && (e.statut === 403 || e.statut === 404)) {
+      cacheInterne.set(id, { quand: Date.now(), valeur: null });
+      return null;
+    }
+    console.error("Synthèse interne du lieu :", e);
+    return null;
+  }
 }
 
 export interface MessageAssistant { role: "user" | "assistant"; content: string }

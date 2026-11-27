@@ -11,10 +11,12 @@
 import { createHash } from "node:crypto";
 import { ctgConfiguree, urlFonctionsCtg } from "./ctg";
 import { baseConfiguree, facesASynchroniser, noterSynchroCtg, type FaceCtg } from "./base";
+import { estBacASable } from "./bac-a-sable";
 
 const env = (k: string) => { const v = import.meta.env?.[k] ?? process.env[k]; return v === undefined || v === "" ? undefined : String(v); };
 
-export const publicationAutoActive = () =>
+// Jamais dans le bac à sable (docs/pilote/bac-a-sable.md), même si c'est réglé.
+export const publicationAutoActive = () => !estBacASable() &&
   // Vite peut lire « true » comme un booléen : on compare le texte.
   String(env("CTG_PUBLICATION_AUTO")) === "true" && (env("CTG_SITE_SYNC_KEY")?.length ?? 0) >= 32 && ctgConfiguree() && baseConfiguree();
 

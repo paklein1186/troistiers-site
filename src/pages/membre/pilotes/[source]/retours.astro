@@ -1,0 +1,114 @@
+---
+import Base from "../../../../layouts/Base.astro";
+import { acteurConnecte, messageBase } from "../../../../lib/acteur";
+import {
+  baseConfiguree, journalRetoursPilote, retoursPilote, SOURCE_PILOTE, STATUTS_TACHE, type RetourPilote,
+} from "../../../../lib/base";
+
+// Étape 4 de la décision D du 27/11 : journal des retours provisoire. Tant que l'artefact écrit par fichier, ce qui
+// est fait sur le site (statuts, sous-tâches, commentaires, propositions, candidatures) lui revient par ce journal,
+// que la coordination copie puis colle dans l'artefact. À l'import suivant, la base vérifie qu'il a été intégré.
+const source = Astro.params.source ?? "";
+const ici = `/membre/pilotes/${source}/retours`;
+const u = Astro.locals.utilisateur;
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree() || !SOURCE_PILOTE.test(source)) return Astro.redirect("/membre");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+
+let message = "";
+let journal: string | null = null;
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  try {
+    journal = JSON.stringify(await journalRetoursPilote(source, acteur), null, 2);
+  } catch (e) {
+    message = messageBase(e, "Le journal n'a pas pu être produit.");
+  }
+}
+let etat: Awaited<ReturnType<typeof retoursPilote>> | null = null;
+try {
+  etat = await retoursPilote(source, acteur);
+} catch (e) {
+  message ||= (e as { code?: string })?.code === "42501" ? "Cette page est réservée à la coordination." : messageBase(e, "La liste n'a pas pu être chargée.");
+}
+const date = (d: string | null) => (d ? new Date(d).toLocaleString("fr-BE", { dateStyle: "short", timeStyle: "short" }) : "");
+const quoi = (r: RetourPilote) =>
+  r.action === "statut_tache" ? `Statut → ${STATUTS_TACHE[String(r.valeur?.statut)] ?? r.valeur?.statut}`
+  : r.action === "sous_tache" ? `Sous-tâche ${r.rang} ${r.valeur?.fait ? "cochée" : "décochée"}`
+  : r.action === "commentaire" ? `Commentaire : ${r.texte ?? ""}`
+  : `Tâche proposée : ${r.titre ?? ""}${r.texte ? ` (${r.texte})` : ""}`;
+const etatDe = (r: RetourPilote) =>
+  r.integre_le ? ["ok", `intégré le ${date(r.integre_le)}`]
+  : r.ecart ? ["ecart", r.ecart]
+  : r.transmis_le ? ["transmis", `transmis le ${date(r.transmis_le)}`]
+  : ["nouveau", "à transmettre"];
+const aTransmettre = etat ? etat.retours.filter((r) => !r.integre_le).length + etat.candidatures : 0;
+---
+<Base titre="Journal des retours">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href={`/membre/pilotes/${source}`}>Pilote</a> · Retours</p>
+  <section class="hero">
+    <h1>Journal des retours vers l'artefact</h1>
+    <p class="lead">Ce que l'équipe a fait sur le site depuis la copie du Pilote : statuts, sous-tâches, commentaires, tâches proposées, et les candidatures en attente. Copiez le journal et collez-le dans l'artefact ; le prochain import vérifiera qu'il a été intégré.</p>
+  </section>
+  {message && <p class="avertissement" role="alert">{message}</p>}
+
+  {etat && (
+    <>
+      <section class="panneau bloc">
+        <p>{aTransmettre} retour(s) pas encore intégré(s){etat.candidatures ? `, dont ${etat.candidatures} candidature(s) en attente` : ""}.
+          {etat.dernier_import && <> Dernier import du Pilote : {date(etat.dernier_import)}.</>}</p>
+        <form method="post">
+          <button class="bouton" disabled={aTransmettre === 0}>Copier le journal depuis le dernier import</button>
+        </form>
+        {journal && (
+          <div class="journal">
+            <p class="doux">Le journal est prêt : il est copié dans le presse-papiers si votre navigateur l'autorise ; sinon, sélectionnez-le ci-dessous. Collez-le dans l'artefact Pilote (conversation de l'artefact sur le Mac de l'équipe).</p>
+            <textarea id="journal" readonly rows="14">{journal}</textarea>
+            <button type="button" class="bouton creux" id="copier">Copier à nouveau</button>
+          </div>
+        )}
+      </section>
+
+      <section class="bloc">
+        <h2>Retours</h2>
+        {etat.retours.length === 0 ? <p class="doux">Aucun retour pour l'instant.</p> : (
+          <div class="defile">
+            <table>
+              <thead><tr><th>Quand</th><th>Projet, tâche</th><th>Quoi</th><th>Qui</th><th>État</th></tr></thead>
+              <tbody>
+                {etat.retours.map((r) => {
+                  const [cls, lib] = etatDe(r);
+                  return (
+                    <tr>
+                      <td>{date(r.cree_le)}</td>
+                      <td><a href={`/membre/projets/${r.projet_id}#taches`}>{r.projet}</a>{r.tache && <><br /><span class="doux">{r.tache}{r.tache_ref ? ` (${r.tache_ref})` : ""}</span></>}</td>
+                      <td>{quoi(r)}</td>
+                      <td>{r.auteur ?? "—"}</td>
+                      <td><span class={`etat ${cls}`}>{lib}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  )}
+</Base>
+
+<style>
+  .journal { display: grid; gap: 8px; margin-top: 12px; }
+  .journal textarea { width: 100%; font: .85rem/1.4 var(--mono, monospace); padding: 10px; border: 1px solid var(--trait); border-radius: 6px; }
+  .etat { font-size: .85rem; white-space: nowrap; }
+  .etat.ok { color: var(--accent); } .etat.ecart { color: #b4472e; white-space: normal; } .etat.nouveau { font-weight: 600; }
+</style>
+
+<script>
+  const zone = document.getElementById("journal") as HTMLTextAreaElement | null;
+  const copier = () => zone && navigator.clipboard?.writeText(zone.value).catch(() => zone.select());
+  if (zone) copier();
+  document.getElementById("copier")?.addEventListener("click", copier);
+</script>

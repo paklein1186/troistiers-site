@@ -74,3 +74,15 @@ describe("publication automatique des quêtes", () => {
     expect(fx).not.toHaveBeenCalled();
   });
 });
+
+describe("publication automatique et bac à sable", () => {
+  it("jamais active dans le bac à sable", async () => {
+    const { publicationAutoActive } = await import("../src/lib/publication-ctg");
+    process.env.CTG_PUBLICATION_AUTO = "true";
+    process.env.CTG_SITE_SYNC_KEY = "k".repeat(40);
+    expect(publicationAutoActive()).toBe(true);
+    process.env.BAC_A_SABLE = "true";
+    expect(publicationAutoActive()).toBe(false);
+    delete process.env.BAC_A_SABLE;
+  });
+});

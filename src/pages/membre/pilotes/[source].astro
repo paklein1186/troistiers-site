@@ -160,7 +160,7 @@ const titre = tableau?.racine.titre ?? (source === "pilote-33" ? "Pilote 3/3" : 
           <div id="view-attente" hidden></div>
           <div id="view-journal" hidden></div>
           <div id="fiche"></div>
-          <p class="foot">Copie synchronisée de l'artefact Pilote : missions, tâches, absences, journal et propositions des agents. Les modifications, validations et analyses de PV se font encore dans l'artefact ; « Synchroniser » (onglet Agents &amp; journal) met cette copie à jour.</p>
+          <p class="foot">Copie synchronisée de l'artefact Pilote : missions, tâches, absences, journal et propositions des agents. Les modifications, validations et analyses de PV se font encore dans l'artefact ; « Synchroniser » (onglet Agents &amp; journal) met cette copie à jour. Ce que l'équipe fait sur le site part à l'artefact par le <a href={`/membre/pilotes/${source}/retours`}>journal des retours</a> (coordination).</p>
         </>
       ) : premiereFois && (
         <div class="section" style="margin-top:22px">

@@ -62,7 +62,15 @@ export interface Communaute {
     /** Présentation de chaque formule sur la page « Adhérer ». */
     choix?: Record<string, ChoixFormule>;
   };
+  /**
+   * Pilote (étape 3 de la décision D du 27/11) : version du contrat de données et interrupteurs des fonctions ajoutées
+   * par paquet (docs/pilote/NOUVEAUTES.md). Une fonction absente ou à false est désactivée.
+   */
+  pilote?: { contrat?: string; fonctions?: Record<string, boolean> };
 }
+
+/** Une fonction du Pilote ajoutée par paquet est-elle active pour cette communauté ? (désactivée par défaut) */
+export const fonctionPilote = (c: Communaute, id: string): boolean => c.pilote?.fonctions?.[id] === true;
 
 let cache: Communaute | null = null;
 
@@ -89,6 +97,11 @@ export function valider(c: Communaute): void {
   for (const [id, p] of Object.entries(c.profils)) {
     for (const b of p.badges) if (!c.badges[b]) erreurs.push(`profil ${id} : badge inconnu « ${b} »`);
   }
+  for (const [id, v] of Object.entries(c.pilote?.fonctions ?? {})) {
+    if (!/^[a-z0-9-]{3,60}$/.test(id)) erreurs.push(`pilote.fonctions : identifiant invalide « ${id} »`);
+    if (typeof v !== "boolean") erreurs.push(`pilote.fonctions.${id} : true ou false attendu`);
+  }
+  if (c.pilote?.contrat && !/^1\.[0-9]+$/.test(String(c.pilote.contrat))) erreurs.push(`pilote.contrat : « ${c.pilote.contrat} » (attendu 1.x)`);
   for (const [id, e] of Object.entries(c.espaces)) {
     const { tous, badges = {}, profils = {} } = e.acces;
     if (tous && !NIVEAUX.includes(tous)) erreurs.push(`espace ${id} : niveau inconnu « ${tous} »`);

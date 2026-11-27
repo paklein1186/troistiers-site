@@ -5,7 +5,7 @@ import ListeTaches from "../../../components/ListeTaches.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, retoursProjet, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
@@ -27,7 +27,7 @@ if (Astro.request.method === "POST" && acteur) {
   const f = await Astro.request.formData();
   const action = String(f.get("action") ?? "");
   try {
-    if (await actionTache(acteur, f)) return Astro.redirect(`${ici}#taches`, 303);
+    if (await actionTache(acteur, f)) return Astro.redirect(f.get("vers_artefact") === "1" ? `${ici}?fait=retour#taches` : `${ici}#taches`, 303);
     if (action === "candidater") {
       await candidater(acteur, id, String(f.get("role") ?? "membre_equipe"), String(f.get("message") ?? "").slice(0, 2000));
     } else if (action === "etape") {
@@ -68,6 +68,8 @@ let libellesTypes: Record<string, string> = {};
 let apercu: ProjetVu | null = null;
 let taches: Tache[] = [];
 let publication: FaceCtg | null = null;
+// Copie du Pilote : retours vers l'artefact (étape 4 de la décision D).
+let retours: Awaited<ReturnType<typeof retoursProjet>> | null = null;
 const niveauApercu = Astro.url.searchParams.get("en_tant_que");
 try {
   [p, droits, listeEtapes, libellesTypes] = await Promise.all([
@@ -77,7 +79,9 @@ try {
     typesContenu().then((l) => Object.fromEntries(l.map((t) => [t.code, t.libelle]))),
   ]);
   if (droits && droits.niveau >= 4 && acteur) {
-    [taches, publication] = await Promise.all([tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null)]);
+    [taches, publication, retours] = await Promise.all([
+      tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null), retoursProjet(id, acteur).catch(() => null),
+    ]);
   }
   // Aperçu en tant que : réservé à l'équipe du projet et à la coordination, jamais au-dessus de son niveau.
   const n = Number(niveauApercu);
@@ -91,6 +95,7 @@ try {
 if (!p && !message) return Astro.redirect("/membre/projets");
 const libEtape = (c: string | null) => (c ? listeEtapes.find((e) => e.code === c)?.libelle ?? c : null);
 const FAITS: Record<string, string> = {
+  retour: "Envoyé à l'artefact : appliqué ici au prochain import du Pilote.",
   candidater: "Candidature envoyée : l'équipe du projet va l'examiner.",
   statut: "Statut enregistré.",
   etape: "Étape changée. Elle est verrouillée : les agents ne feront plus que proposer.",
@@ -156,7 +161,25 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
       {taches.length > 0 && (
         <section class="bloc" id="taches">
           <h2>Tâches <span class="doux" style="font-size:1rem">({taches.filter((t) => t.statut === "fait").length}/{taches.filter((t) => !t.absence).length} faites)</span></h2>
-          <ListeTaches taches={taches} retour={ici} />
+          {retours?.peut && (
+            <p class="doux">Ce projet est une copie du Pilote : vos changements partent à l'artefact et s'appliquent ici au prochain import.</p>
+          )}
+          <ListeTaches taches={taches} retour={ici} versArtefact={retours?.peut ? { projet: id, enAttente: retours.en_attente } : undefined} />
+          {retours?.peut && (
+            <details class="proposer">
+              <summary>Proposer une tâche à l'artefact</summary>
+              <form method="post" class="formulaire">
+                <input type="hidden" name="action" value="proposition" /><input type="hidden" name="vers_artefact" value="1" />
+                <input type="hidden" name="projet" value={id} />
+                <label>Titre <input name="titre" required maxlength="300" /></label>
+                <label>Pourquoi, détails (facultatif) <textarea name="texte" rows="3" maxlength="4000"></textarea></label>
+                <button class="bouton creux">Envoyer la proposition</button>
+              </form>
+              {retours.en_attente.filter((r) => r.action === "proposition").length > 0 && (
+                <p class="doux">En attente dans l'artefact : {retours.en_attente.filter((r) => r.action === "proposition").map((r) => r.titre).join(" · ")}</p>
+              )}
+            </details>
+          )}
         </section>
       )}
 

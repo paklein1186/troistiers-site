@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { baseConfiguree, rpc, type BilanImport } from "./base";
+import { estBacASable } from "./bac-a-sable";
 
 const env = (k: string) => ((import.meta.env?.[k] as string | undefined) || process.env[k]) || undefined;
 const ETAT = resolve(process.cwd(), ".donnees/synchro-pilote-33.json");
@@ -37,11 +38,12 @@ function lireEtat(): EtatSynchro {
 function ecrireEtat(e: EtatSynchro) {
   try { mkdirSync(dirname(ETAT), { recursive: true }); writeFileSync(ETAT, JSON.stringify(e, null, 2)); } catch (err) { console.error("Synchro Pilote (état) :", err); }
 }
-export const etatSynchroPilote = () => ({ ...lireEtat(), fichier: env("PILOTE_33_EXPORT") ?? null });
+export const etatSynchroPilote = () => ({ ...lireEtat(), fichier: estBacASable() ? null : env("PILOTE_33_EXPORT") ?? null });
 
 /** Relit le fichier d'export et synchronise s'il a changé (ou si force). Ne jette jamais. */
 export async function synchroniserDepuisFichier(force = false): Promise<EtatSynchro> {
-  const chemin = env("PILOTE_33_EXPORT");
+  // Bac à sable : jamais d'export réel du Pilote (seulement l'export anonymisé chargé par scripts/bac-a-sable.sh).
+  const chemin = estBacASable() ? undefined : env("PILOTE_33_EXPORT");
   const etat = lireEtat();
   const essai_le = new Date().toISOString();
   if (!chemin || !baseConfiguree()) return etat;
@@ -57,7 +59,8 @@ export async function synchroniserDepuisFichier(force = false): Promise<EtatSync
     const bilan = await rpc<BilanImport>("importer_pilote_missions", { p_source: SOURCE, p_export: donnees, p_acteur: null });
     const nouvel: EtatSynchro = { empreinte, le: essai_le, essai_le, bilan, fichier_lu: fichier };
     ecrireEtat(nouvel);
-    console.log(`Synchro Pilote 3/3 : ${bilan.missions} missions, ${bilan.taches} tâches, ${bilan.retirees} retirée(s).`);
+    console.log(`Synchro Pilote 3/3 : ${bilan.missions} missions, ${bilan.taches} tâches, ${bilan.retirees} retirée(s), contrat ${bilan.version ?? "?"}` +
+      (bilan.champs_ignores?.length ? `, champs ignorés : ${bilan.champs_ignores.join(", ")}` : "") + ".");
     return nouvel;
   } catch (err) {
     const erreur = err instanceof Error ? err.message : String(err);
@@ -70,7 +73,7 @@ export async function synchroniserDepuisFichier(force = false): Promise<EtatSync
 /** Démarre la relecture périodique, une seule fois par processus. */
 export function demarrerSynchroPilote() {
   const g = globalThis as { __synchroPilote?: boolean };
-  if (g.__synchroPilote || !env("PILOTE_33_EXPORT")) return;
+  if (g.__synchroPilote || !env("PILOTE_33_EXPORT") || estBacASable()) return;
   g.__synchroPilote = true;
   const minutes = Math.max(15, Number(env("PILOTE_33_INTERVALLE_MIN") ?? 120) || 120);
   setTimeout(() => void synchroniserDepuisFichier(), 30_000).unref?.();
