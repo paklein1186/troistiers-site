@@ -320,6 +320,21 @@ recopié en badges (`lecteur_quete` N3, `membre_equipe`, `referent_mission`), bo
 Prévu au départ après le vote du 7 décembre :
 publication automatique, commentaires synchronisés, besoins dans les deux sens, tâches partagées, personnes sur la quête.
 
+## Niveaux de guilde ChangeTheGame (chantier Lovable du 28/11, en cours)
+
+CTG passe à des catégories cumulables : plusieurs rôles et plusieurs formules par personne, un niveau par rôle ou
+formule, le plus haut l'emporte (`guild_member_level`) ; achats multiples (`user_guild_plans`) ; rôles par défaut
+(observateur 1, adherent 2, actif 3 avec date de fin, effectif 3, partenaire 3, Source, fondateur) ; menu « modèle de la
+guilde ». Décisions de PA du 28/11 :
+- **1A, lieux en N3 partout** : toutes les formules de Trois-Tiers au niveau 3 sauf citoyen = 2 (aligné sur le badge
+  « Membre lieu » = N3 de la base) ; demandé à Lovable.
+- **2B, rôles actif et effectif tenus par ChangeTheGame** (attribués par les admins de la guilde) ; le site les recopie.
+  Demandé à Lovable : `guild-member-profile` renvoie `roles: [{code, level, expires_at, scope_type, scope_id}]` (non
+  expirés, avec code), en plus de `membership` (inchangé), `plans` et `niveau`.
+- À faire côté site quand le chantier sera en production : lire `plans`, `niveau`, `roles` ; recopier tous les badges de
+  statut (plus un seul) ; badges `actif` et `effectif` (N3, maître changethegame, fin recopiée) dans la base ; « Adhérer »
+  peut ajouter une formule à une adhésion existante ; vérifier les contrôles du point 6 de Lovable.
+
 ## Avant d'ouvrir les paiements réels
 
 - Fenêtre de test (décision du 19/11) : après les essais, **désactiver le paiement en euros** de la guilde jusqu'à
