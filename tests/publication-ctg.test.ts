@@ -4,11 +4,17 @@ const notes: unknown[][] = [];
 let faces: unknown[] = [];
 let aPublier: unknown[] = [];
 const publiees: unknown[][] = [];
+const fusions: unknown[][] = [];
+const pousses: unknown[][] = [];
+let aPousser: unknown[] = [];
 vi.mock("../src/lib/base", () => ({
   baseConfiguree: () => true,
   facesASynchroniser: async () => faces,
   noterSynchroCtg: async (...a: unknown[]) => { notes.push(a); },
   nouvellesAPublier: async () => aPublier,
+  projetsBesoinsASynchroniser: async () => [{ projet: "p1", quete: "q1" }],
+  fusionnerBesoinsCtg: async (...a: unknown[]) => { fusions.push(a); return aPousser; },
+  noterBesoinsPousses: async (...a: unknown[]) => { pousses.push(a); },
   noterNouvellePubliee: async (...a: unknown[]) => { publiees.push(a); },
 }));
 vi.mock("../src/lib/ctg", () => ({ ctgConfiguree: () => true, urlFonctionsCtg: () => "https://ctg.test/functions/v1" }));
@@ -160,5 +166,41 @@ describe("publication automatique des quêtes (visibilité)", () => {
     const { fx } = fauxCtg(true);
     expect(await m.publierNouvelles(fx as any)).toEqual({ envoyees: 0, erreurs: 0 });
     expect(fx).not.toHaveBeenCalled();
+  });
+
+  it("besoins (B4) : lecture CTG → fusion par la base → envoi de ce qu'elle retient, noté ensuite", async () => {
+    fusions.length = 0; pousses.length = 0;
+    aPousser = [{ id: "b1", titre: "Bénévoles", categorie: "VOLUNTEER", statut: "OPEN" }];
+    const ctg = { quest_id: "q1", besoins: [{ need_id: "n1", external_id: null, titre: "Salle" }], propositions_sans_besoin: 0 };
+    const { fx, appels } = fauxCtg(true, (c) => ({ status: 200, body: c.action === "needs" ? ctg
+      : { quest_id: "q1", besoins: [{ id: "b1", need_id: "n2", maj_le: "2026-11-28T10:00:00Z" }] } }));
+    expect(await m.synchroniserBesoins(fx as any)).toEqual({ envoyes: 1, erreurs: 0 });
+    expect(appels.map((a) => a.corps.action)).toEqual(["needs", "needs_push"]);
+    expect((fusions[0][1] as any).besoins[0].need_id).toBe("n1");
+    expect(appels[1].corps.besoins).toEqual(aPousser);
+    expect(pousses[0]).toEqual(["p1", aPousser, [{ id: "b1", need_id: "n2", maj_le: "2026-11-28T10:00:00Z" }]]);
+  });
+
+  it("besoins : rien à envoyer → pas d'appel needs_push ; interrupteur fermé → aucun appel", async () => {
+    aPousser = [];
+    let { fx, appels } = fauxCtg(true, () => ({ status: 200, body: { quest_id: "q1", besoins: [] } }));
+    expect(await m.synchroniserBesoins(fx as any)).toEqual({ envoyes: 0, erreurs: 0 });
+    expect(appels.map((a) => a.corps.action)).toEqual(["needs"]);
+    process.env.CTG_PUBLICATION_AUTO = "false";
+    ({ fx } = fauxCtg(true));
+    await m.synchroniserBesoins(fx as any);
+    expect(await m.propositionsAide("p1", "q1", fx as any)).toEqual([]);
+    expect(fx).not.toHaveBeenCalled();
+  });
+
+  it("propositions : décision envoyée avec l'auteur, puis compteurs relus ; refus de CTG remonté", async () => {
+    aPousser = [];
+    const { fx, appels } = fauxCtg(true, (c) => c.action === "proposal_decide" && c.decision === "accept" && c.proposal_id === "x2"
+      ? { status: 409, body: { error: "needs_ctg", detail: "à accepter sur ChangeTheGame" } }
+      : { status: 200, body: { quest_id: "q1", besoins: [], statut: "ACCEPTED" } });
+    await m.deciderProposition("p1", "q1", "x1", "accept", "u1", fx as any);
+    expect(appels[0].corps).toEqual({ action: "proposal_decide", projet_id: "p1", quest_id: "q1", proposal_id: "x1", decision: "accept", auteur: "u1" });
+    expect(appels[1].corps.action).toBe("needs");
+    await expect(m.deciderProposition("p1", "q1", "x2", "accept", "u1", fx as any)).rejects.toMatchObject({ code: "needs_ctg" });
   });
 });

@@ -1,7 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import { acteurConnecte } from "../../lib/acteur";
-import { adresseQueteCtg, apercuProjet, baseConfiguree, etapes, NATURES, profilCtg, queteDuProjet, type ProjetVu } from "../../lib/base";
+import { adresseQueteCtg, apercuProjet, baseConfiguree, besoinsDuProjet, CATEGORIES_BESOIN, etapes, NATURES, profilCtg, queteDuProjet, type BesoinProjet, type ProjetVu } from "../../lib/base";
 import { chargerContenu } from "../../lib/contenu";
 
 // Fiche d'un projet ouverte à tous : c'est l'adresse que porte la quête ChangeTheGame (website_url, étape A4).
@@ -18,9 +18,13 @@ let libelles: Record<string, string> = {};
 let erreur = false;
 // Quête CTG reliée, seulement à partir de son niveau minimum (en dessous, CTG répond qu'elle n'existe pas).
 let quete: Awaited<ReturnType<typeof queteDuProjet>> = null;
+// Besoins ouverts visibles à ce niveau (palier 2, B4) : la porte d'entrée de l'extérieur.
+let besoins: BesoinProjet[] = [];
 try {
-  const [vu, l, q] = await Promise.all([apercuProjet(id, acteur), etapes(), queteDuProjet(id, acteur).catch(() => null)]);
+  const [vu, l, q, b] = await Promise.all([apercuProjet(id, acteur), etapes(), queteDuProjet(id, acteur).catch(() => null),
+    besoinsDuProjet(id, acteur).catch(() => null)]);
   quete = q;
+  besoins = (b?.besoins ?? []).filter((x) => x.statut === "OPEN");
   p = vu;
   libelles = Object.fromEntries(l.map((e) => [e.code, e.libelle]));
 } catch (e) {
@@ -74,6 +78,15 @@ const profil = (pid: string | null | undefined) => (pid ? profilCtg(pid, k.liens
         <section class="bloc">
           <h2>Nouvelles et contenus</h2>
           <ul class="simple">{p.elements.map((e) => <li>{e.texte}</li>)}</ul>
+        </section>
+      )}
+      {besoins.length > 0 && (
+        <section class="bloc">
+          <h2>Besoins</h2>
+          <ul class="simple">{besoins.map((b) => <li><strong>{b.titre}</strong> <span class="doux">· {CATEGORIES_BESOIN[b.categorie] ?? b.categorie}</span>{b.description && <><br />{b.description}</>}</li>)}</ul>
+          {quete && adresseQueteCtg(quete.quete, k.liens.changethegame_guilde) && (
+            <p><a class="bouton creux" href={adresseQueteCtg(quete.quete, k.liens.changethegame_guilde)!} rel="noopener">Proposer mon aide sur ChangeTheGame</a></p>
+          )}
         </section>
       )}
       {quete && adresseQueteCtg(quete.quete, k.liens.changethegame_guilde) && (

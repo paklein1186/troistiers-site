@@ -10,7 +10,8 @@
  */
 import { createHash } from "node:crypto";
 import { ctgConfiguree, urlFonctionsCtg } from "./ctg";
-import { baseConfiguree, facesASynchroniser, noterNouvellePubliee, noterSynchroCtg, nouvellesAPublier, type FaceCtg } from "./base";
+import { baseConfiguree, facesASynchroniser, fusionnerBesoinsCtg, noterBesoinsPousses, noterNouvellePubliee, noterSynchroCtg, nouvellesAPublier,
+  projetsBesoinsASynchroniser, type FaceCtg } from "./base";
 import { estBacASable } from "./bac-a-sable";
 
 const env = (k: string) => { const v = import.meta.env?.[k] ?? process.env[k]; return v === undefined || v === "" ? undefined : String(v); };
@@ -62,7 +63,8 @@ export const derniereProtection = () => protection?.valeur ?? null;
 /** Pour les tests : oublier la dernière protection lue. */
 export const oublierProtection = () => { protection = null; };
 
-async function appeler(corps: Record<string, unknown>, jeton?: string, f: typeof fetch = fetch): Promise<{ quest_id?: string; update_id?: string }> {
+type Reponse = { quest_id?: string; update_id?: string; besoins?: unknown[]; propositions?: unknown[]; [k: string]: unknown };
+async function appeler(corps: Record<string, unknown>, jeton?: string, f: typeof fetch = fetch): Promise<Reponse> {
   const r = await f(`${urlFonctionsCtg()}/guild-quest-sync`, {
     method: "POST",
     headers: {
@@ -74,7 +76,7 @@ async function appeler(corps: Record<string, unknown>, jeton?: string, f: typeof
     signal: AbortSignal.timeout(15000),
   });
   const d = (await r.json().catch(() => null)) as
-    { quest_id?: string; update_id?: string; error?: string; detail?: string; visibilite_appliquee_par_la_base?: boolean } | null;
+    (Reponse & { error?: string; detail?: string; visibilite_appliquee_par_la_base?: boolean }) | null;
   if (typeof d?.visibilite_appliquee_par_la_base === "boolean") protection = { valeur: d.visibilite_appliquee_par_la_base, le: Date.now() };
   if (r.status === 422 && d?.error === "visibility_not_enforced") {
     throw new ErreurPublication(422, "ChangeTheGame ne protège pas encore les quêtes réservées aux membres : rien n'a été publié.", "visibility_not_enforced");
@@ -85,7 +87,7 @@ async function appeler(corps: Record<string, unknown>, jeton?: string, f: typeof
   if (!r.ok || (corps.action !== "status" && corps.action !== "news" && !d?.quest_id)) {
     throw new ErreurPublication(r.status, d?.detail ?? d?.error ?? `CTG ${r.status}`, d?.error);
   }
-  return { quest_id: d?.quest_id, update_id: d?.update_id };
+  return d ?? {};
 }
 
 /** ChangeTheGame applique-t-il la visibilité des quêtes dans sa base ? (mesuré par CTG à chaque appel ; gardé 5 min) */
@@ -164,6 +166,46 @@ export async function publierNouvelles(fx: typeof fetch = fetch): Promise<{ envo
   return bilan;
 }
 
+/**
+ * Palier 2, B4 : besoins d'un projet ↔ besoins de sa quête. On lit ceux de CTG, la base fusionne (la dernière
+ * modification l'emporte ; un besoin né sur CTG est repris), puis on envoie à CTG ce que la base a retenu.
+ */
+export async function synchroniserBesoinsProjet(projet: string, quete: string, fx: typeof fetch = fetch): Promise<number> {
+  const ctg = await appeler({ action: "needs", projet_id: projet, quest_id: quete }, undefined, fx);
+  const envoi = await fusionnerBesoinsCtg(projet, ctg);
+  if (!envoi.length) return 0;
+  const r = await appeler({ action: "needs_push", projet_id: projet, quest_id: quete, besoins: envoi }, undefined, fx);
+  await noterBesoinsPousses(projet, envoi, r.besoins ?? []);
+  return envoi.length;
+}
+export async function synchroniserBesoins(fx: typeof fetch = fetch): Promise<{ envoyes: number; erreurs: number }> {
+  const bilan = { envoyes: 0, erreurs: 0 };
+  if (!publicationAutoActive()) return bilan;
+  for (const { projet, quete } of await projetsBesoinsASynchroniser()) {
+    try { bilan.envoyes += await synchroniserBesoinsProjet(projet, quete, fx); }
+    catch (e) { console.error(`Besoins CTG (${projet}) :`, e); bilan.erreurs++; }
+  }
+  return bilan;
+}
+
+/** Proposition d'aide faite sur CTG, lue en direct pour le référent : jamais enregistrée par le site. */
+export interface PropositionAide {
+  id: string; need_id: string | null; titre: string; description: string | null; nom: string | null; profil_id: string | null;
+  demande_credits: number; demande_euros: number; cree_le: string; acceptable_depuis_le_site: boolean;
+}
+export async function propositionsAide(projet: string, quete: string, fx: typeof fetch = fetch): Promise<PropositionAide[]> {
+  if (!publicationAutoActive()) return [];
+  return ((await appeler({ action: "proposals", projet_id: projet, quest_id: quete }, undefined, fx)).propositions ?? []) as PropositionAide[];
+}
+/** Accepter ou refuser sur CTG (la personne est prévenue), puis relire les compteurs. */
+export async function deciderProposition(projet: string, quete: string, proposition: string, decision: "accept" | "reject",
+  auteur: string, fx: typeof fetch = fetch) {
+  if (!publicationAutoActive()) throw new ErreurPublication(503, "La liaison automatique avec ChangeTheGame n'est pas ouverte.");
+  const r = await appeler({ action: "proposal_decide", projet_id: projet, quest_id: quete, proposal_id: proposition, decision, auteur }, undefined, fx);
+  await synchroniserBesoinsProjet(projet, quete, fx).catch((e) => console.error("Besoins CTG :", e));
+  return r;
+}
+
 export function demarrerSynchroQuetes() {
   const g = globalThis as { __synchroQuetes?: boolean };
   if (g.__synchroQuetes || !publicationAutoActive()) return;
@@ -174,6 +216,8 @@ export function demarrerSynchroQuetes() {
     // Les nouvelles après les faces : une quête retirée ne reçoit plus rien (nouvelles_a_publier vérifie la visibilité).
     .then(() => publierNouvelles())
     .then((b) => b.envoyees || b.erreurs ? console.log(`Nouvelles de quête CTG : ${b.envoyees} publiée(s), ${b.erreurs} erreur(s).`) : undefined)
+    .then(() => synchroniserBesoins())
+    .then((b) => b.envoyes || b.erreurs ? console.log(`Besoins CTG : ${b.envoyes} envoyé(s), ${b.erreurs} erreur(s).`) : undefined)
     .catch((e) => console.error("Synchro quêtes CTG :", e));
   setTimeout(tour, 45_000).unref?.();
   setInterval(tour, minutes * 60_000).unref?.();
