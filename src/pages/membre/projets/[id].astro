@@ -5,10 +5,11 @@ import ListeTaches from "../../../components/ListeTaches.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, retoursProjet, nouvellesProjet, reglerNouvelle, type NouvelleQuete, queteDuProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, retoursProjet, besoinsDuProjet, ecrireBesoin, peutDeciderPropositions, CATEGORIES_BESOIN, STATUTS_BESOIN, type BesoinsDuProjet, nouvellesProjet, reglerNouvelle, type NouvelleQuete, queteDuProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
+import { deciderProposition, propositionsAide, publicationAutoActive, type PropositionAide } from "../../../lib/publication-ctg";
 
 // Fiche d'un projet : ce que la personne en voit (filtré par la base), et les actions permises
 // (candidater, régler la diffusion, changer l'étape, valider la diffusion, aperçu en tant que).
@@ -53,6 +54,20 @@ if (Astro.request.method === "POST" && acteur) {
       await enregistrerQueteCtg(acteur, id, action === "retirer_ctg" ? "" : String(f.get("adresse") ?? "").trim().slice(0, 500));
     } else if (action === "valider" || action === "refuser") {
       await validerDiffusion(acteur, id, action === "valider");
+    } else if (action === "besoin_ajouter" || action === "besoin_modifier" || action === "besoin_retirer") {
+      // Palier 2, B4 : besoins du projet (partagés avec la quête s'ils sont publics).
+      const b = String(f.get("besoin") ?? "") || null;
+      await ecrireBesoin(acteur, id, action === "besoin_ajouter" ? null : b, {
+        titre: String(f.get("titre") ?? "").slice(0, 200), description: String(f.get("description") ?? "").slice(0, 2000),
+        categorie: String(f.get("categorie") ?? "GENERAL"), statut: String(f.get("statut") ?? "OPEN"), public: f.get("public") === "on",
+      }, action === "besoin_retirer");
+      return Astro.redirect(`${ici}?fait=${encodeURIComponent(action)}#besoins`, 303);
+    } else if (action === "proposition_accepter" || action === "proposition_refuser") {
+      // Décidé sur ChangeTheGame (la personne est prévenue) ; la base n'en garde qu'un compteur.
+      const d = await peutDeciderPropositions(id, acteur);
+      if (!d?.peut || !d.quete) throw Object.assign(new Error("réservé au référent du projet ou à la coordination"), { code: "23514" });
+      await deciderProposition(id, d.quete, String(f.get("proposition") ?? ""), action === "proposition_accepter" ? "accept" : "reject", acteur);
+      return Astro.redirect(`${ici}?fait=${encodeURIComponent(action)}#besoins`, 303);
     } else if (action === "nouvelle_valider" || action === "nouvelle_ecarter" || action === "nouvelle_copiee") {
       // Palier 2, B3 : nouvelle de quête préparée à un changement d'étape.
       await reglerNouvelle(acteur, String(f.get("nouvelle") ?? ""), action.slice(9) as "valider" | "ecarter" | "copiee",
@@ -78,6 +93,9 @@ let retours: Awaited<ReturnType<typeof retoursProjet>> | null = null;
 let suppressions: SuppressionPilote[] = [];
 // Nouvelles de la quête préparées aux changements d'étape (palier 2, B3).
 let nouvelles: NouvelleQuete[] = [];
+// Besoins (palier 2, B4) et propositions d'aide lues en direct chez ChangeTheGame (jamais enregistrées ici).
+let besoins: BesoinsDuProjet | null = null;
+let propositions: PropositionAide[] | null = null;
 // Projet relié à une quête CTG que la personne peut voir : « Rejoindre » mène à la quête (docs/quetes/visibilite.md).
 let quete: Awaited<ReturnType<typeof queteDuProjet>> = null;
 const niveauApercu = Astro.url.searchParams.get("en_tant_que");
@@ -94,6 +112,11 @@ try {
       tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null), retoursProjet(id, acteur).catch(() => null),
       suppressionsProjet(id, acteur).catch(() => []), nouvellesProjet(id, acteur).catch(() => []),
     ]);
+    besoins = await besoinsDuProjet(id, acteur).catch(() => null);
+    if (publicationAutoActive() && (besoins?.propositions_en_attente ?? 0) > 0) {
+      const d = await peutDeciderPropositions(id, acteur).catch(() => null);
+      if (d?.peut && d.quete) propositions = await propositionsAide(id, d.quete).catch((e) => { console.error("Propositions CTG :", e); return null; });
+    }
   }
   // Aperçu en tant que : réservé à l'équipe du projet et à la coordination, jamais au-dessus de son niveau.
   const n = Number(niveauApercu);
@@ -105,6 +128,7 @@ try {
   message ||= "Le projet n'a pas pu être chargé.";
 }
 if (!p && !message) return Astro.redirect("/membre/projets");
+const vb: BesoinsDuProjet = besoins ?? { equipe: false, besoins: [] };
 const libEtape = (c: string | null) => (c ? listeEtapes.find((e) => e.code === c)?.libelle ?? c : null);
 const FAITS: Record<string, string> = {
   retour: "Envoyé à l'artefact : appliqué ici au prochain import du Pilote.",
@@ -168,6 +192,82 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
 
       {droits && droits.niveau >= 4 && (
         <p class="rangee"><a class="bouton" href={`/membre/projets/${encodeURIComponent(id)}/pilote`}>Ouvrir le Pilote</a> <span class="doux">tableau par couloirs et planning, comme l'artefact</span></p>
+      )}
+
+      {vb.equipe && (
+        <section class="panneau bloc" id="besoins">
+          <h2>Besoins</h2>
+          <p class="doux">Ce dont le projet a besoin (bénévoles, compétences, lieu, matériel…). Un besoin public circule hors de l'équipe
+            {vb.besoins_publics ? " et, si le projet est une quête reliée, sur ChangeTheGame, où l'on peut proposer son aide." : " dès que l'équipe accepte que les besoins soient publics (réglage de diffusion)."}
+            Jamais un obstacle tel quel : reformulez-le en besoin.</p>
+          {(vb.propositions_en_attente ?? 0) > 0 && (
+            <p><strong>{vb.propositions_en_attente} proposition{(vb.propositions_en_attente ?? 0) > 1 ? "s" : ""} d'aide en attente</strong> sur ChangeTheGame
+              {quete && adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde) && <> · <a href={adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde)!} rel="noopener">voir la quête</a></>}</p>
+          )}
+          {propositions && propositions.length > 0 && (
+            <ul class="simple propositions">
+              {propositions.map((pr) => (
+                <li>
+                  <p><strong>{pr.titre}</strong>{pr.nom && <> · {pr.profil_id ? <a href={profilCtg(pr.profil_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">{pr.nom}</a> : pr.nom}</>}
+                    {pr.need_id && vb.besoins.some((b) => b.ctg_need_id === pr.need_id) && <span class="doux"> · pour « {vb.besoins.find((b) => b.ctg_need_id === pr.need_id)!.titre} »</span>}</p>
+                  {(pr.demande_credits > 0 || pr.demande_euros > 0) && (
+                    <p class="doux">Demande {[pr.demande_credits > 0 ? `${pr.demande_credits} crédits $CTG, versés par ChangeTheGame si vous acceptez` : "",
+                      pr.demande_euros > 0 ? `${pr.demande_euros} €, à régler directement avec la personne` : ""].filter(Boolean).join(" ; ")}.</p>
+                  )}
+                  <details class="plus">
+                    <summary>Plus d'infos</summary>
+                    {pr.description ? <p class="texte">{pr.description}</p> : <p class="doux">Pas de précisions.</p>}
+                    <p class="doux">Proposée le {new Date(pr.cree_le).toLocaleDateString("fr-BE")}
+                      {pr.nom && pr.profil_id && <> · profil de <a href={profilCtg(pr.profil_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">{pr.nom} sur ChangeTheGame</a></>}
+                      {quete && adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde) && <> · <a href={adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde)!} rel="noopener">échanger sur la quête</a></>}</p>
+                    {pr.demande_euros > 0 && <p class="doux">Les euros ne sont pas versés par ChangeTheGame : à convenir avec la personne (et la coordination), puis à régler à part.</p>}
+                  </details>
+                  <form method="post" class="rangee">
+                    <input type="hidden" name="proposition" value={pr.id} />
+                    <button type="submit" name="action" value="proposition_accepter">Accepter</button>
+                    <button type="submit" name="action" value="proposition_refuser" class="bouton creux">Ne pas retenir</button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          {vb.besoins.map((b) => (
+            vb.peut_ecrire ? (
+              <form method="post" class="formulaire besoin">
+                <input type="hidden" name="besoin" value={b.id} />
+                <div class="rangee">
+                  <input name="titre" maxlength="200" value={b.titre} aria-label="Besoin" required />
+                  <select name="categorie" aria-label="Catégorie">{Object.entries(CATEGORIES_BESOIN).map(([c, l]) => <option value={c} selected={b.categorie === c}>{l}</option>)}</select>
+                  <select name="statut" aria-label="Statut">{Object.entries(STATUTS_BESOIN).map(([c, l]) => <option value={c} selected={b.statut === c}>{l}</option>)}</select>
+                </div>
+                <textarea name="description" rows="2" maxlength="2000" aria-label="Précisions">{b.description ?? ""}</textarea>
+                <div class="rangee">
+                  <label class="option"><input type="checkbox" name="public" checked={b.public} /> Public</label>
+                  <span class="doux">{[b.origine === "ctg" ? "venu de ChangeTheGame" : null, b.sur_ctg && b.partage ? "sur la quête" : null,
+                    b.propositions_en_attente ? `${b.propositions_en_attente} proposition(s)` : null].filter(Boolean).join(" · ")}</span>
+                  <button type="submit" name="action" value="besoin_modifier" class="bouton creux">Enregistrer</button>
+                  <button type="submit" name="action" value="besoin_retirer" class="bouton creux">Retirer</button>
+                </div>
+              </form>
+            ) : (
+              <p class="besoin"><strong>{b.titre}</strong> · {CATEGORIES_BESOIN[b.categorie] ?? b.categorie} · {STATUTS_BESOIN[b.statut] ?? b.statut}{b.public ? " · public" : ""}{b.description && <><br />{b.description}</>}</p>
+            )
+          ))}
+          {vb.peut_ecrire && (
+            <form method="post" class="formulaire besoin">
+              <h3>Ajouter un besoin</h3>
+              <div class="rangee">
+                <input name="titre" maxlength="200" placeholder="Ex. : 10 bénévoles pour l'accueil" aria-label="Besoin" required />
+                <select name="categorie" aria-label="Catégorie">{Object.entries(CATEGORIES_BESOIN).map(([c, l]) => <option value={c}>{l}</option>)}</select>
+              </div>
+              <textarea name="description" rows="2" maxlength="2000" placeholder="Précisions (facultatif)" aria-label="Précisions"></textarea>
+              <div class="rangee">
+                <label class="option"><input type="checkbox" name="public" /> Public</label>
+                <button type="submit" name="action" value="besoin_ajouter">Ajouter</button>
+              </div>
+            </form>
+          )}
+        </section>
       )}
 
       {taches.length > 0 && (
@@ -414,6 +514,13 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
 
 <style>
   .titre { overflow-wrap: anywhere; }
+  .besoin { border-top: 1px solid var(--trait, #ddd); padding-top: 10px; margin-top: 10px; }
+  .besoin .rangee { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .besoin .rangee input[name=titre] { flex: 1 1 18rem; width: auto; }
+  .besoin .rangee select { flex: 0 0 auto; width: auto; }
+  .propositions li { margin-bottom: 14px; }
+  .propositions .plus { margin: 4px 0 8px; }
+  .propositions .plus summary { cursor: pointer; color: var(--doux); }
   .nouvelle { border-top: 1px solid var(--trait, #ddd); padding-top: 10px; margin-top: 10px; }
   .nouvelle .texte { max-width: 70ch; white-space: pre-wrap; }
   .enjeux { max-width: 70ch; color: var(--doux); }

@@ -119,7 +119,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison", "nouvelles_projet",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison", "nouvelles_projet", "besoins_du_projet", "peut_decider_propositions",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -439,6 +439,32 @@ export const facesASynchroniser = () =>
   rpc<{ projet: string; quete: string; empreinte: string | null; face: FaceCtg }[]>("faces_ctg_a_synchroniser", {});
 export const noterSynchroCtg = (projet: string, empreinte: string, erreur: string | null) =>
   rpc<null>("noter_synchro_ctg", { p_projet: projet, p_empreinte: empreinte, p_erreur: erreur });
+/** Palier 2, B4 : besoins du projet, partagés avec la quête dans les deux sens. */
+export const CATEGORIES_BESOIN: Record<string, string> = {
+  GENERAL: "Général", SKILLS: "Compétences", TOOLS: "Outils, matériel", PLACE: "Lieu", FUNDING: "Financement",
+  MENTORSHIP: "Accompagnement", VISIBILITY: "Visibilité", PARTNERSHIPS: "Partenariats", VOLUNTEER: "Bénévoles",
+};
+export const STATUTS_BESOIN: Record<string, string> = { OPEN: "Ouvert", MET: "Pourvu", CLOSED: "Fermé" };
+export interface BesoinProjet {
+  id: string; titre: string; description: string | null; categorie: string; statut: string;
+  public?: boolean; origine?: "site" | "ctg"; maj_le?: string; sur_ctg?: boolean; ctg_need_id?: string | null; partage?: boolean; propositions_en_attente?: number;
+}
+export interface BesoinsDuProjet {
+  equipe: boolean; peut_ecrire?: boolean; besoins_publics?: boolean; propositions_en_attente?: number; besoins: BesoinProjet[];
+}
+export const besoinsDuProjet = (projet: string, acteur: string | null) =>
+  rpc<BesoinsDuProjet | null>("besoins_du_projet", { p_projet: projet, p_acteur: acteur });
+export const ecrireBesoin = (acteur: string, projet: string, besoin: string | null,
+  b: { titre?: string; description?: string; categorie?: string; statut?: string; public?: boolean }, retirer = false) =>
+  rpc<string>("ecrire_besoin", { p_projet: projet, p_besoin: besoin, p_titre: b.titre ?? null, p_description: b.description ?? null,
+    p_categorie: b.categorie ?? null, p_statut: b.statut ?? null, p_public: b.public ?? null, p_retirer: retirer, p_acteur: acteur });
+export const projetsBesoinsASynchroniser = () => rpc<{ projet: string; quete: string }[]>("projets_besoins_a_synchroniser", {});
+export const fusionnerBesoinsCtg = (projet: string, ctg: unknown) =>
+  rpc<Record<string, unknown>[]>("fusionner_besoins_ctg", { p_projet: projet, p_ctg: ctg });
+export const noterBesoinsPousses = (projet: string, envoyes: unknown, reponse: unknown) =>
+  rpc<null>("noter_besoins_pousses", { p_projet: projet, p_envoyes: envoyes, p_reponse: reponse });
+export const peutDeciderPropositions = (projet: string, acteur: string) =>
+  rpc<{ peut: boolean; quete: string | null } | null>("peut_decider_propositions", { p_projet: projet, p_acteur: acteur });
 /** Palier 2, B3 : nouvelles de quête préparées à chaque étape, validées par le référent ou la coordination. */
 export interface NouvelleQuete {
   id: string; titre: string; texte: string; statut: "brouillon" | "validee" | "publiee" | "ecartee";
