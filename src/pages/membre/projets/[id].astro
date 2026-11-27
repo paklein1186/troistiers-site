@@ -310,14 +310,14 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
       )}
 
       {quete && adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde) && droits && droits.niveau < 4 && (
-        <section class="panneau bloc">
+        <section id="rejoindre" class="panneau bloc">
           <h2>Rejoindre ce projet</h2>
           <p>Ce projet est une quête de la guilde Trois-Tiers sur ChangeTheGame : c'est là que l'équipe accueille les nouvelles personnes. Demandez à rejoindre la quête ; ses admins sont prévenus et vous donnent accès.</p>
           <p><a class="bouton" href={adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde)!} rel="noopener">Rejoindre sur ChangeTheGame</a></p>
         </section>
       )}
       {!quete && droits?.candidater && (
-        <form method="post" class="panneau bloc formulaire">
+        <form method="post" class="panneau bloc formulaire" id="rejoindre">
           <h2>Rejoindre ce projet</h2>
           <input type="hidden" name="action" value="candidater" />
           <label for="role">Rôle souhaité</label>
@@ -327,7 +327,7 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
           <div><button type="submit">Je veux en être</button></div>
         </form>
       )}
-      {droits?.candidature_en_attente && <p class="avertissement">Votre candidature est en attente de réponse de l'équipe.</p>}
+      {droits?.candidature_en_attente && <p class="avertissement" id={droits?.candidater ? undefined : "rejoindre"}>Votre candidature est en attente de réponse de l'équipe.</p>}
 
       {droits?.valider_diffusion && droits.reglages && (
         <form method="post" class="panneau bloc">

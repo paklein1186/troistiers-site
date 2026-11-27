@@ -3,6 +3,7 @@ import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
 import { baseConfiguree, creerProjet, etapes, NATURES, pilotesVisibles, profilCtg, projetsVisibles, type PiloteVisible, type ProjetVu } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
+import VignettesProjets from "../../../components/VignettesProjets.astro";
 
 // Projets et missions de la base Trois-Tiers, tels que la personne connectée a le droit de les voir
 // (niveaux N0 à N5, sensibilité, étape : tout est filtré par la base).
@@ -85,6 +86,7 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
   <section class="hero">
     <h1>Projets et missions</h1>
     <p class="lead">Les projets du réseau que vous pouvez voir, selon votre adhésion et votre rôle dans chacun. Ce qui est réservé à une équipe le reste.</p>
+    {acteur && baseConfiguree() && <p><a class="bouton" href={`${ici}?proposer=1#proposer`}>Proposer un projet, une mission ou une idée</a> <span class="doux">· pour rejoindre une équipe, ouvrez son projet</span></p>}
   </section>
 
   {!baseConfiguree() ? (
@@ -132,30 +134,7 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
       ) : filtres.length === 0 ? (
         <p class="doux">Aucun projet dans ce filtre.</p>
       ) : vue === "vignettes" ? (
-        <ul class="vignettes">
-          {filtres.map((p) => (
-            <li class="vignette">
-              <p class="famille">{etiquetteFamille(p)}</p>
-              <h2><a href={`${ici}/${encodeURIComponent(p.id)}`}>{p.titre}</a></h2>
-              <p class="meta">
-                {[p.territoire, p.etape ? libellesEtapes[p.etape] ?? p.etape : null].filter(Boolean).join(" · ")}
-                {p.niveau >= 4 && <span class="pastille">Votre équipe</span>}
-              </p>
-              {p.resume ? <p class="resume">{p.resume}{p.niveau >= 4 && !p.resume_valide && <span class="brouillon">brouillon</span>}</p> : p.phrase && <p class="resume">{p.phrase}</p>}
-              {p.enjeux && (
-                <p class="enjeux"><strong>Enjeux</strong> {p.enjeux}{p.niveau >= 4 && !p.enjeux_valide && <span class="brouillon">brouillon</span>}</p>
-              )}
-              {p.lead && profil(p) && (
-                <p class="lead-contact">Pilotage : <a href={profil(p)!} rel="noopener">{p.lead.nom ?? "profil"} sur ChangeTheGame</a></p>
-              )}
-              {(p.personnes ?? []).length > 0 && (
-                <p class="lead-contact">Avec : {p.personnes!.map((x, i) => (
-                  <>{i > 0 && ", "}{x.id && profilCtg(x.id, lienGuilde) ? <a href={profilCtg(x.id, lienGuilde)!} rel="noopener" title={x.role}>{x.nom}</a> : <span title={x.role}>{x.nom}</span>}</>
-                ))}</p>
-              )}
-            </li>
-          ))}
-        </ul>
+        <VignettesProjets projets={filtres} libellesEtapes={libellesEtapes} />
       ) : (
         <ul class="projets">
           {filtres.map((p) => (
@@ -174,7 +153,7 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
       )}
 
       {acteur && (
-        <details class="panneau bloc" open={!!message && saisie.titre !== ""}>
+        <details class="panneau bloc" id="proposer" open={(!!message && saisie.titre !== "") || q.get("proposer") === "1"}>
           <summary><strong>Proposer un projet, une mission ou une idée</strong></summary>
           <form method="post" class="formulaire">
             <label for="nature">Nature</label>
@@ -204,17 +183,6 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
   .puces.sous a { min-height: 34px; font-weight: 500; font-size: .88rem; }
   .vues a { border-radius: 8px; }
   .puces a[aria-current="true"], .vues a[aria-current="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
-  .vignettes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
-  .vignette { display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--trait); border-radius: 10px; background: var(--surface); min-width: 0; overflow-wrap: anywhere; }
-  .vignette .famille { margin: 0; font: 500 .72rem var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
-  .vignette h2 { margin: 0; font-size: 1.12rem; line-height: 1.25; }
-  .vignette h2 a { color: var(--encre); text-decoration: none; }
-  .vignette h2 a:hover { text-decoration: underline; }
-  .vignette .meta { margin: 0; font-size: .88rem; color: var(--doux); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .vignette .resume { margin: 0; font-size: .95rem; }
-  .vignette .enjeux { margin: 0; font-size: .9rem; color: var(--doux); border-top: 1px solid var(--trait); padding-top: 8px; }
-  .vignette .enjeux strong { display: block; font: 500 .72rem var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--encre); margin-bottom: 2px; }
-  .brouillon { margin-left: 6px; font: 500 .7rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--lier); }
   .lead-contact { margin: 0; font-size: .86rem; color: var(--doux); overflow-wrap: anywhere; }
   .ligne-resume { margin-top: 4px; font-size: .94rem; max-width: 75ch; }
   .pilotes { display: grid; gap: 10px; margin-bottom: 18px; }
