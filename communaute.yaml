@@ -244,3 +244,12 @@ correspondances_ctg:
         large_places: Lieux portés de 20 usagers réguliers ou plus
     lieu_moins_20:             { libelle: Moins de 20 usagers réguliers }
     lieu_20_et_plus:           { libelle: 20 usagers réguliers ou plus }
+
+# Pilote (décision D du 27/11) : l'artefact est le laboratoire, la base est la source de vérité.
+# contrat : version du contrat de données que cette communauté reçoit (docs/pilote/contrat-donnees.md).
+# fonctions : interrupteurs des fonctions ajoutées par paquet, une par identifiant de docs/pilote/NOUVEAUTES.md.
+#   true = active pour cette communauté ; absente ou false = désactivée. Une fonction nouvelle est active pour la
+#   communauté qui l'a demandée, désactivée chez les autres (chaque communauté a son propre communaute.yaml).
+pilote:
+  contrat: "1.0"
+  fonctions: {}

@@ -229,8 +229,9 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   titre : alignés par la migration `20261127150000_pilote_contrat_v1_alignement.sql` ; diffusion du contenu du Pilote : **option A
   du 27/11**, on garde le gradient du 25/11, pas « tout réservé à l'équipe par défaut ») ; 2 bac à sable (base `tt-bac-a-sable`,
   `scripts/bac-a-sable.sh`, `.env.bac-a-sable` seul lu, `npm run dev:bac-a-sable` sur le port 4322, bannière, production
-  refusée, synchro du Pilote réel et publication CTG coupées ; mode d'emploi `docs/pilote/bac-a-sable.md`) ; 3 paquets et `docs/pilote/NOUVEAUTES.md`, interrupteurs
-  `pilote.fonctions.<id>` dans `communaute.yaml` ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours`) ;
+  refusée, synchro du Pilote réel et publication CTG coupées ; mode d'emploi `docs/pilote/bac-a-sable.md`) ; 3 paquets (gabarit et parcours `docs/pilote/proposition.md`),
+  journal `docs/pilote/NOUVEAUTES.md` (socle / paquet, version du contrat), interrupteurs `pilote.fonctions.<id>` et
+  `pilote.contrat` dans `communaute.yaml` (`fonctionPilote()`, désactivé par défaut ; un test vérifie la cohérence) ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours`) ;
   5 bascule après mise en ligne (connecteur MCP `pilote_lire` / `pilote_agir`, la base l'emporte) ; 6 Pilote commun
   (après le 7/12 ; copies CTG et Poiethic du Pilote figées dès maintenant). Points avec PA : fin de l'étape 1, bac à sable
   en marche, avant la bascule.
