@@ -214,7 +214,21 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   retenue (26/11)** : une tâche planifiée du compte Trois-Tiers (Mac mini, propriétaire de l'artefact) écrit l'export toutes
   les 2 heures dans le Drive (« synchro par le Mac » : la page du Pilote, ouverte sur le Mac mini, exporte elle-même ;
   dossier `Trois-Tiers 3/3 / Synchro site`) ; le site relit le dossier toutes les 2 heures, fichier `pilote….json` le plus récent (`PILOTE_33_EXPORT`,
-  `src/lib/synchro-pilote.ts`, mode d'emploi `docs/synchro-pilote.md`) ; le dépôt manuel reste possible. **Familles** (25/11) : fonction socle (stratégie,
+  `src/lib/synchro-pilote.ts`, mode d'emploi `docs/synchro-pilote.md`) ; le dépôt manuel reste possible. **Décision du 27/11 : option D, « l'artefact laboratoire, la base source de vérité »** (rapport :
+  https://claude.ai/artifact/QAo2jA2scqsTW8dGgUz98i). L'artefact Pilote innove sur la forme et sur ce qu'on extrait des
+  comptes rendus ; la base Trois-Tiers est l'endroit où ces données vivent, s'affichent et se mettent à jour. L'artefact
+  ne garde aucune donnée propre : il écrit dans la base et la relit. Changement de **forme** de l'artefact : libre.
+  Changement de **structure** : bac à sable, puis paquet versionné, puis le site ; chez les autres communautés, désactivé.
+  **Gel immédiat** : plus aucune nouvelle fonction du Pilote côté site (tableau, missions, planning, tâches) avant la
+  bascule, sauf ce qui sert à la diffusion (gradient, résumés publics, enjeux, personnes affichées) ; une fonction
+  demandée par PA est proposée comme **paquet** (étape 3). Étapes, une branche et une PR chacune : 1 contrat de données v1
+  (`docs/pilote/contrat-donnees.md`, `schemas/pilote-v1.json`) ; 2 bac à sable (base `tt-bac-a-sable`,
+  `scripts/bac-a-sable.sh`, `.env.bac-a-sable`, bannière) ; 3 paquets et `docs/pilote/NOUVEAUTES.md`, interrupteurs
+  `pilote.fonctions.<id>` dans `communaute.yaml` ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours`) ;
+  5 bascule après mise en ligne (connecteur MCP `pilote_lire` / `pilote_agir`, la base l'emporte) ; 6 Pilote commun
+  (après le 7/12 ; copies CTG et Poiethic du Pilote figées dès maintenant). Points avec PA : fin de l'étape 1, bac à sable
+  en marche, avant la bascule.
+  **Familles** (25/11) : fonction socle (stratégie,
   admin, finances, instruments, **volet animation**), coordination (marché public wallon), groupes de travail (SDC, AMO et
   réseau d'accompagnants, réseaux européens, tiers-lieux en maison de retraite, **réseau territoires**, **institut
   recherche et données**, **pistes à dispatcher** par la coordination) ; classement propre au site, corrigeable dans le
