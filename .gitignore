@@ -9,3 +9,4 @@ dist/
 .ctg-client.json
 .donnees/
 .donnees-bac-a-sable/
+.ctg-client-bac-a-sable.json
