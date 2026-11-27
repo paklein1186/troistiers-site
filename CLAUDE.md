@@ -296,6 +296,12 @@ automatiquement » sur `/membre/quetes/a-publier`, relecture des faces toutes le
 `CTG_PUBLICATION_AUTO`, `CTG_SITE_SYNC_KEY`), retrait (brouillon privé) si la face n'est plus publique ; seuls les projets
 transparents ; migration `20261126234000_quetes_b1_publication_auto.sql`. Restent B3 (étapes → nouvelles), B4 (besoins),
 fil de commentaires unique, B5 (entrée automatique des quêtes nées sur CTG), puis palier 3.
+**Visibilité des quêtes (décisions de PA du 27/11)**, contrat commun `docs/quetes/visibilite.md` : les missions et groupes de
+travail deviennent des quêtes de la guilde avec la visibilité de leur sensibilité (transparent → publique ; semi-sensible →
+membres cotisants : titre, résumé, enjeux ; hors guilde et « galaxie » : rien) ; **les missions sensibles ne deviennent
+jamais des quêtes** ; CTG construit un système de visibilité des quêtes appliqué par sa base de données (autre session) ;
+**les accès individuels se donnent sur CTG**, le site les recopie comme badges sur le projet ; le site ne publie une quête
+réservée qu'après que CTG a confirmé `visibilite_appliquee_par_la_base`.
 Prévu au départ après le vote du 7 décembre :
 publication automatique, commentaires synchronisés, besoins dans les deux sens, tâches partagées, personnes sur la quête.
 
