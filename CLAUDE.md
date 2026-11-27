@@ -231,7 +231,9 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   `scripts/bac-a-sable.sh`, `.env.bac-a-sable` seul lu, `npm run dev:bac-a-sable` sur le port 4322, bannière, production
   refusée, synchro du Pilote réel et publication CTG coupées ; mode d'emploi `docs/pilote/bac-a-sable.md`) ; 3 paquets (gabarit et parcours `docs/pilote/proposition.md`),
   journal `docs/pilote/NOUVEAUTES.md` (socle / paquet, version du contrat), interrupteurs `pilote.fonctions.<id>` et
-  `pilote.contrat` dans `communaute.yaml` (`fonctionPilote()`, désactivé par défaut ; un test vérifie la cohérence) ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours`) ;
+  `pilote.contrat` dans `communaute.yaml` (`fonctionPilote()`, désactivé par défaut ; un test vérifie la cohérence) ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours` ; la copie reste en
+  lecture seule, les gestes de l'équipe sur la fiche d'une mission deviennent des retours en file, table `pilote_retours`,
+  vérifiés à l'import ; migration `20261127170000_pilote_retours.sql`) ;
   5 bascule après mise en ligne (connecteur MCP `pilote_lire` / `pilote_agir`, la base l'emporte) ; 6 Pilote commun
   (après le 7/12 ; copies CTG et Poiethic du Pilote figées dès maintenant). Points avec PA : fin de l'étape 1, bac à sable
   en marche, avant la bascule.

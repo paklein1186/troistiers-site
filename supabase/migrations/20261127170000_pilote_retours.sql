@@ -167,7 +167,29 @@ BEGIN
 END;
 $$;
 
+-- La file entière d'un Pilote, pour la page de la coordination (lecture seule, ne marque rien).
+CREATE FUNCTION public.retours_pilote(p_source text, p_acteur uuid DEFAULT NULL)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM public.exiger_coordination(p_acteur);
+  RETURN jsonb_build_object(
+    'dernier_import', (SELECT synchro_le FROM public.projets WHERE ref_externe = p_source),
+    'retours', (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+        'id', r.id, 'action', r.action, 'projet', p.titre, 'projet_id', p.id, 'tache', t.titre, 'tache_ref', r.tache_ref,
+        'rang', r.sous_tache_rang, 'valeur', r.valeur, 'titre', r.titre, 'texte', r.texte, 'auteur', pe.nom,
+        'cree_le', r.cree_le, 'transmis_le', r.transmis_le, 'integre_le', r.integre_le, 'ecart', r.ecart)
+        ORDER BY r.integre_le IS NOT NULL, r.cree_le DESC), '[]'::jsonb)
+      FROM public.pilote_retours r JOIN public.projets p ON p.id = r.projet_id
+      LEFT JOIN public.taches t ON t.id = r.tache_id LEFT JOIN public.personnes pe ON pe.id = r.auteur
+      WHERE r.source = p_source AND (r.integre_le IS NULL OR r.integre_le > now() - interval '14 days')),
+    'candidatures', (SELECT count(*) FROM public.revue rv JOIN public.projets p ON p.id = rv.projet_id
+      WHERE rv.type = 'candidature' AND rv.statut = 'en_attente'
+        AND p.parent_id = (SELECT id FROM public.projets WHERE ref_externe = p_source)));
+END;
+$$;
+
 REVOKE ALL ON FUNCTION public.verifier_retours_pilote(text, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.retours_pilote(text, uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.retour_pilote(uuid, text, uuid, uuid, jsonb, text, text, uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.retours_projet(uuid, uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.journal_retours_pilote(text, uuid) TO authenticated, service_role;

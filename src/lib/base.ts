@@ -93,7 +93,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "etat_liaison",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "etat_liaison",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -404,6 +404,24 @@ export const accueillirQueteCtg = (acteur: string, quete: string, titre: string,
   rpc<string>("accueillir_quete_ctg", { p_quete: quete, p_titre: titre, p_description: description, p_nature_ctg: nature, p_acteur: acteur });
 export const ecarterQueteCtg = (acteur: string, quete: string, titre: string, motif: string | null, ecarter: boolean) =>
   rpc<null>("ecarter_quete_ctg", { p_quete: quete, p_titre: titre, p_motif: motif, p_ecarter: ecarter, p_acteur: acteur });
+/** Pilote, étape 4 : retours du site vers l'artefact (la copie reste en lecture seule). */
+export type ActionRetour = "statut_tache" | "sous_tache" | "commentaire" | "proposition";
+export interface RetourAttente { tache: string | null; action: ActionRetour; valeur: Record<string, unknown> | null; rang: number | null; titre: string | null; transmis: boolean; ecart: string | null }
+export const retoursProjet = (projet: string, acteur: string) =>
+  rpc<{ peut: boolean; en_attente: RetourAttente[] }>("retours_projet", { p_projet: projet, p_acteur: acteur });
+export const envoyerRetour = (acteur: string, projet: string, action: ActionRetour,
+  o: { tache?: string; sousTache?: string; valeur?: Record<string, unknown>; texte?: string; titre?: string } = {}) =>
+  rpc<string>("retour_pilote", { p_projet: projet, p_action: action, p_tache: o.tache ?? null, p_sous_tache: o.sousTache ?? null,
+    p_valeur: o.valeur ?? null, p_texte: o.texte ?? null, p_titre: o.titre ?? null, p_acteur: acteur });
+export interface RetourPilote {
+  id: string; action: ActionRetour; projet: string; projet_id: string; tache: string | null; tache_ref: string | null; rang: number | null;
+  valeur: Record<string, unknown> | null; titre: string | null; texte: string | null; auteur: string | null;
+  cree_le: string; transmis_le: string | null; integre_le: string | null; ecart: string | null;
+}
+export const retoursPilote = (source: string, acteur: string) =>
+  rpc<{ dernier_import: string | null; retours: RetourPilote[]; candidatures: number }>("retours_pilote", { p_source: source, p_acteur: acteur });
+export const journalRetoursPilote = (source: string, acteur: string) =>
+  rpc<Record<string, unknown>>("journal_retours_pilote", { p_source: source, p_acteur: acteur });
 /** Changer la nature d'un projet (coordination) : décide de la nature de la quête ChangeTheGame. */
 export const changerNature = (acteur: string, projet: string, nature: string) =>
   rpc<null>("changer_nature", { p_projet: projet, p_nature: nature, p_acteur: acteur });

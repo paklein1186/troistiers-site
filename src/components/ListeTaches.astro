@@ -1,8 +1,15 @@
 ---
 // Tâches regroupées par couloir, avec statut modifiable et sous-tâches à cocher (si la base le permet).
-import { STATUTS_TACHE, type Tache } from "../lib/base";
-interface Props { taches: Tache[]; retour: string; avecProjet?: boolean }
-const { taches, retour, avecProjet = false } = Astro.props;
+import { STATUTS_TACHE, type RetourAttente, type Tache } from "../lib/base";
+// versArtefact : copie du Pilote (lecture seule). Les mêmes gestes deviennent des retours pour l'artefact (étape 4).
+interface Props { taches: Tache[]; retour: string; avecProjet?: boolean; versArtefact?: { projet: string; enAttente: RetourAttente[] } }
+const { taches, retour, avecProjet = false, versArtefact } = Astro.props;
+const viaArtefact = (t: Tache) => Boolean(versArtefact) && t.modifiable === false && !t.absence;
+const agir = (t: Tache) => (t.modifiable !== false && !t.absence) || viaArtefact(t);
+const attente = (t: Tache) => versArtefact?.enAttente.filter((r) => r.tache === t.id) ?? [];
+const statutAttendu = (t: Tache) => attente(t).find((r) => r.action === "statut_tache")?.valeur?.statut as string | undefined;
+const cocheAttendue = (t: Tache, rang: number) =>
+  attente(t).find((r) => r.action === "sous_tache" && r.rang === rang)?.valeur?.fait as boolean | undefined;
 const couloirs = [...new Set(taches.map((t) => (avecProjet ? t.projet : t.couloir) ?? "Sans couloir"))];
 const date = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "");
 ---
@@ -21,33 +28,58 @@ const date = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateSt
                 {t.absence && " · indisponibilité"}
               </span>
             </div>
-            {t.modifiable !== false && !t.absence ? (
+            {agir(t) ? (
               <form method="post" class="statut">
                 <input type="hidden" name="action" value="statut" /><input type="hidden" name="tache" value={t.id} /><input type="hidden" name="retour" value={retour} />
+                {viaArtefact(t) && <><input type="hidden" name="vers_artefact" value="1" /><input type="hidden" name="projet" value={versArtefact!.projet} /></>}
                 <select name="statut" aria-label={`Statut de « ${t.titre} »`} data-envoi>
-                  {Object.entries(STATUTS_TACHE).map(([k, l]) => <option value={k} selected={k === t.statut}>{l}</option>)}
+                  {Object.entries(STATUTS_TACHE).map(([k, l]) => <option value={k} selected={k === (statutAttendu(t) ?? t.statut)}>{l}</option>)}
                 </select>
                 <noscript><button type="submit">OK</button></noscript>
               </form>
             ) : <span class="etiquette">{STATUTS_TACHE[t.statut]}</span>}
           </div>
+          {attente(t).length > 0 && (
+            <p class="attente">⏳ Envoyé à l'artefact, appliqué au prochain import :
+              {attente(t).map((r) => r.action === "statut_tache" ? ` statut « ${STATUTS_TACHE[String(r.valeur?.statut)] ?? r.valeur?.statut} »`
+                : r.action === "sous_tache" ? ` sous-tâche ${r.rang} ${r.valeur?.fait ? "cochée" : "décochée"}` : " commentaire").join(" ·")}
+              {attente(t).some((r) => r.ecart) && <span class="ecart"> · pas encore intégré par l'artefact</span>}
+            </p>
+          )}
           {t.sous_taches.length > 0 && (
             <details>
               <summary class="doux">{t.sous_taches.filter((s) => s.fait).length}/{t.sous_taches.length} sous-tâches</summary>
               <ul class="sous">
-                {t.sous_taches.map((s) => (
+                {t.sous_taches.map((s, i) => {
+                  // Sous-tâches importées dans l'ordre de l'artefact : le rang est leur position.
+                  const fait = cocheAttendue(t, i + 1) ?? s.fait;
+                  return (
                   <li>
-                    {t.modifiable !== false ? (
+                    {agir(t) ? (
                       <form method="post">
                         <input type="hidden" name="action" value="sous_tache" /><input type="hidden" name="tache" value={t.id} />
-                        <input type="hidden" name="sous_tache" value={s.id} /><input type="hidden" name="fait" value={s.fait ? "0" : "1"} />
+                        <input type="hidden" name="sous_tache" value={s.id} /><input type="hidden" name="fait" value={fait ? "0" : "1"} />
                         <input type="hidden" name="retour" value={retour} />
-                        <button type="submit" class="coche" aria-pressed={s.fait ? "true" : "false"}>{s.fait ? "☑" : "☐"}</button> <span class={s.fait ? "fait" : ""}>{s.texte}</span>
+                        {viaArtefact(t) && <><input type="hidden" name="vers_artefact" value="1" /><input type="hidden" name="projet" value={versArtefact!.projet} /></>}
+                        <button type="submit" class="coche" aria-pressed={fait ? "true" : "false"}>{fait ? "☑" : "☐"}</button> <span class={fait ? "fait" : ""}>{s.texte}</span>
                       </form>
                     ) : <span class={s.fait ? "fait" : ""}>{s.fait ? "☑" : "☐"} {s.texte}</span>}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
+            </details>
+          )}
+          {viaArtefact(t) && (
+            <details class="commenter">
+              <summary class="doux">Commenter pour l'artefact</summary>
+              <form method="post">
+                <input type="hidden" name="action" value="commentaire" /><input type="hidden" name="tache" value={t.id} />
+                <input type="hidden" name="retour" value={retour} /><input type="hidden" name="vers_artefact" value="1" />
+                <input type="hidden" name="projet" value={versArtefact!.projet} />
+                <textarea name="texte" rows="2" maxlength="4000" required aria-label={`Commentaire sur « ${t.titre} »`}></textarea>
+                <button type="submit" class="bouton creux">Envoyer</button>
+              </form>
             </details>
           )}
         </li>
@@ -71,6 +103,10 @@ const date = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateSt
   .sous form { display: flex; align-items: center; gap: 4px; }
   .coche { background: none; border: 0; color: var(--encre); padding: 0 4px; min-height: 32px; font-size: 1.1rem; cursor: pointer; }
   .fait { text-decoration: line-through; color: var(--doux); }
+  .attente { margin: 4px 0 0; font-size: .86rem; color: var(--doux); }
+  .attente .ecart { color: #b4472e; }
+  .commenter form { display: grid; gap: 6px; margin-top: 6px; max-width: 560px; }
+  .commenter textarea { width: 100%; font: inherit; padding: 8px; border: 1px solid var(--trait); border-radius: 6px; }
 </style>
 
 <script>
