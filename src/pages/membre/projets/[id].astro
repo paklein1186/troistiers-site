@@ -5,7 +5,7 @@ import ListeTaches from "../../../components/ListeTaches.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, retoursProjet, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, retoursProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
@@ -70,6 +70,7 @@ let taches: Tache[] = [];
 let publication: FaceCtg | null = null;
 // Copie du Pilote : retours vers l'artefact (étape 4 de la décision D).
 let retours: Awaited<ReturnType<typeof retoursProjet>> | null = null;
+let suppressions: SuppressionPilote[] = [];
 const niveauApercu = Astro.url.searchParams.get("en_tant_que");
 try {
   [p, droits, listeEtapes, libellesTypes] = await Promise.all([
@@ -79,8 +80,9 @@ try {
     typesContenu().then((l) => Object.fromEntries(l.map((t) => [t.code, t.libelle]))),
   ]);
   if (droits && droits.niveau >= 4 && acteur) {
-    [taches, publication, retours] = await Promise.all([
+    [taches, publication, retours, suppressions] = await Promise.all([
       tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null), retoursProjet(id, acteur).catch(() => null),
+      suppressionsProjet(id, acteur).catch(() => []),
     ]);
   }
   // Aperçu en tant que : réservé à l'équipe du projet et à la coordination, jamais au-dessus de son niveau.
@@ -165,6 +167,20 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
             <p class="doux">Ce projet est une copie du Pilote : vos changements partent à l'artefact et s'appliquent ici au prochain import.</p>
           )}
           <ListeTaches taches={taches} retour={ici} versArtefact={retours?.peut ? { projet: id, enAttente: retours.en_attente } : undefined} />
+          {suppressions.length > 0 && (
+            <details class="retires">
+              <summary class="doux">Retiré dans l'artefact ces 60 derniers jours · {suppressions.length}</summary>
+              <ul>
+                {suppressions.map((x) => (
+                  <li>
+                    {x.type === "mission" ? "Mission" : x.type === "absence" ? "Indisponibilité" : "Tâche"} « {x.titre ?? x.ref} »
+                    {x.motif === "fusion" && x.fusionnee_dans ? <> fusionnée dans {x.fusionnee_dans_titre ? `« ${x.fusionnee_dans_titre} »` : x.fusionnee_dans}</> : " supprimée"}
+                    <span class="doux"> le {new Date(x.maj_le).toLocaleDateString("fr-BE")}{x.maj_par ? ` par ${x.maj_par}` : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
           {retours?.peut && (
             <details class="proposer">
               <summary>Proposer une tâche à l'artefact</summary>

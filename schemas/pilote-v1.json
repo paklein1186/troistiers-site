@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://troistiers.space/schemas/pilote-v1.json",
-  "title": "Contrat de données du Pilote, version 1",
+  "title": "Contrat de données du Pilote, version 1 (1.0, 1.1)",
   "description": "Ce que l'artefact Pilote envoie à la base Trois-Tiers. Les champs inconnus sont acceptés (version mineure plus récente) : la base les ignore et les note. Voir docs/pilote/contrat-donnees.md.",
   "type": "object",
   "required": [
@@ -238,11 +238,12 @@
               },
               "id": {
                 "type": "string",
-                "description": "<ID de la tâche>~s<empreinte du texte> (change si le texte change)."
+                "description": "1.1 : identifiant stocké, gardé à vie (« st- » + 8 caractères), ou dérivé du texte (<ID>~s<empreinte>) pour une sous-tâche écrite par un agent qui ne le garde pas encore."
               },
               "maj_le": {
                 "type": "string",
-                "format": "date-time"
+                "format": "date-time",
+                "description": "1.1 : dernier changement de texte ou d'état de la sous-tâche."
               }
             },
             "required": [
@@ -321,6 +322,13 @@
               }
             }
           }
+        },
+        "titre": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Titre au moment de la suppression (1.1)."
         }
       },
       "if": {
@@ -347,8 +355,7 @@
       "required": [
         "id",
         "maj_le",
-        "provenance",
-        "name"
+        "provenance"
       ],
       "properties": {
         "id": {
@@ -442,7 +449,50 @@
             "null"
           ],
           "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
+        },
+        "motif": {
+          "enum": [
+            "suppression",
+            "fusion"
+          ]
+        },
+        "fusionnee_dans": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "titre": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Titre au moment de la suppression (1.1)."
+        },
+        "dernier_journal": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
+      },
+      "if": {
+        "properties": {
+          "supprime": {
+            "const": true
+          }
+        },
+        "required": [
+          "supprime"
+        ]
+      },
+      "then": {
+        "description": "Suppression signalée : l'objet n'a plus de contenu (titre au moment de la suppression dans « titre »)."
+      },
+      "else": {
+        "required": [
+          "name"
+        ]
       }
     },
     "absence": {
@@ -450,9 +500,7 @@
       "required": [
         "id",
         "maj_le",
-        "provenance",
-        "who",
-        "start"
+        "provenance"
       ],
       "properties": {
         "id": {
@@ -515,7 +563,45 @@
             "null"
           ],
           "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
+        },
+        "motif": {
+          "enum": [
+            "suppression",
+            "fusion"
+          ]
+        },
+        "fusionnee_dans": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "titre": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Titre au moment de la suppression (1.1)."
         }
+      },
+      "if": {
+        "properties": {
+          "supprime": {
+            "const": true
+          }
+        },
+        "required": [
+          "supprime"
+        ]
+      },
+      "then": {
+        "description": "Suppression signalée : l'objet n'a plus de contenu (titre au moment de la suppression dans « titre »)."
+      },
+      "else": {
+        "required": [
+          "who",
+          "start"
+        ]
       }
     },
     "proposition": {
@@ -617,6 +703,9 @@
             "null"
           ],
           "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
+        },
+        "reason_reject": {
+          "type": "string"
         }
       }
     },
@@ -707,5 +796,39 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "pattern": "^1\\.([1-9]|[0-9]{2,})$"
+          }
+        },
+        "required": [
+          "schema_version"
+        ]
+      },
+      "then": {
+        "properties": {
+          "tasks": {
+            "items": {
+              "properties": {
+                "subtasks": {
+                  "items": {
+                    "required": [
+                      "t",
+                      "id",
+                      "maj_le"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "À partir de 1.1, chaque sous-tâche porte id et maj_le."
+    }
+  ]
 }

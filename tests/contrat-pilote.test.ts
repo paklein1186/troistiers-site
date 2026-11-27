@@ -57,4 +57,17 @@ describe("contrat du Pilote v1", () => {
     e.tasks[1].provenance = "inconnue";
     expect(valider(e)).toBe(false);
   });
+
+  it("1.1 : l'exemple du bac à sable de l'artefact est conforme ; une sous-tâche sans id y est refusée", () => {
+    const e = JSON.parse(readFileSync(new URL("./fixtures/pilote-v1-1-exemple.json", import.meta.url), "utf8"));
+    expect(valider(e)).toBe(true);
+    delete e.tasks[0].subtasks[0].id;
+    expect(valider(e)).toBe(false);
+  });
+
+  it("1.1 : une mission ou une absence supprimée arrive sans nom", () => {
+    const e = JSON.parse(readFileSync(new URL("./fixtures/pilote-v1-1-exemple.json", import.meta.url), "utf8"));
+    expect(e.missions.find((m: { supprime?: boolean }) => m.supprime).name).toBeUndefined();
+    expect(valider(e)).toBe(true);
+  });
 });

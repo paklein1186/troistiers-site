@@ -233,7 +233,10 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   journal `docs/pilote/NOUVEAUTES.md` (socle / paquet, version du contrat), interrupteurs `pilote.fonctions.<id>` et
   `pilote.contrat` dans `communaute.yaml` (`fonctionPilote()`, désactivé par défaut ; un test vérifie la cohérence) ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours` ; la copie reste en
   lecture seule, les gestes de l'équipe sur la fiche d'une mission deviennent des retours en file, table `pilote_retours`,
-  vérifiés à l'import ; migration `20261127170000_pilote_retours.sql`) ;
+  vérifiés à l'import ; migration `20261127170000_pilote_retours.sql`) ; **contrat 1.1** (27/11, fiche de proposition de
+  l'artefact acceptée) : sous-tâches repérées par leur identifiant stable (`st-…`) et leur date, suppressions de missions et
+  d'absences signalées, traces `pilote_suppressions` affichées à l'équipe (« retiré dans l'artefact ») ; migration
+  `20261127190000_pilote_contrat_v1_1.sql`, `communaute.yaml` `pilote.contrat: "1.1"` ;
   5 bascule après mise en ligne (connecteur MCP `pilote_lire` / `pilote_agir`, la base l'emporte) ; 6 Pilote commun
   (après le 7/12 ; copies CTG et Poiethic du Pilote figées dès maintenant). Points avec PA : fin de l'étape 1, bac à sable
   en marche, avant la bascule.

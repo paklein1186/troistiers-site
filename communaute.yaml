@@ -258,5 +258,5 @@ correspondances_ctg:
 #   true = active pour cette communauté ; absente ou false = désactivée. Une fonction nouvelle est active pour la
 #   communauté qui l'a demandée, désactivée chez les autres (chaque communauté a son propre communaute.yaml).
 pilote:
-  contrat: "1.0"
+  contrat: "1.1"
   fonctions: {}

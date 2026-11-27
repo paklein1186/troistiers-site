@@ -93,7 +93,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "etat_liaison",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "etat_liaison",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -429,6 +429,13 @@ export const retoursPilote = (source: string, acteur: string) =>
   rpc<{ dernier_import: string | null; retours: RetourPilote[]; candidatures: number }>("retours_pilote", { p_source: source, p_acteur: acteur });
 export const journalRetoursPilote = (source: string, acteur: string) =>
   rpc<Record<string, unknown>>("journal_retours_pilote", { p_source: source, p_acteur: acteur });
+/** Ce que l'artefact a supprimé ou fusionné dans un projet (contrat 1.1), pour l'équipe : 60 derniers jours. */
+export interface SuppressionPilote {
+  type: "tache" | "mission" | "absence"; ref: string; titre: string | null; motif: string | null;
+  fusionnee_dans: string | null; fusionnee_dans_titre: string | null; maj_le: string; maj_par: string | null;
+}
+export const suppressionsProjet = (projet: string, acteur: string) =>
+  rpc<SuppressionPilote[]>("suppressions_projet", { p_projet: projet, p_acteur: acteur });
 /** Changer la nature d'un projet (coordination) : décide de la nature de la quête ChangeTheGame. */
 export const changerNature = (acteur: string, projet: string, nature: string) =>
   rpc<null>("changer_nature", { p_projet: projet, p_nature: nature, p_acteur: acteur });
