@@ -124,7 +124,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison", "nouvelles_projet", "besoins_du_projet", "peut_decider_propositions", "quetes_a_classer_liste", "nb_quetes_a_classer",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison", "nouvelles_projet", "besoins_du_projet", "peut_decider_propositions", "quetes_a_classer_liste", "nb_quetes_a_classer", "salle_attente_publication", "nb_salle_attente",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -412,7 +412,16 @@ export interface FaceCtg {
   peut_proposer?: boolean; coordination?: boolean; id?: string;
   /** Visibilité de la quête déduite du gradient (null = pas de quête) et niveau minimum où la fiche est visible. */
   visibilite?: { mode: "public" } | { mode: "membres"; niveau_minimum: "N2" | "N3" } | null; niveau_fiche?: number | null;
+  /** Présentation de la quête (28/11) : titre de quête (« Accompagnement · lieu · enjeu »), titre interne, type, taille 1 à 3. */
+  titre_projet?: string; type_quete?: TypeQuete; taille?: number; enjeu_court?: string | null;
 }
+export type TypeQuete = "accompagnement" | "groupe_travail" | "expedition" | "autre";
+export const TYPES_QUETE: Record<TypeQuete, string> = {
+  accompagnement: "Accompagnement (intervention dans un lieu)", groupe_travail: "Groupe de travail", expedition: "Expédition", autre: "Autre projet",
+};
+export const reglerPresentationQuete = (acteur: string, projet: string, type: string | null, taille: number | null, enjeuCourt: string) =>
+  rpc<{ type: TypeQuete; taille: number; titre: string }>("regler_presentation_quete",
+    { p_projet: projet, p_type: type, p_taille: taille, p_enjeu_court: enjeuCourt, p_acteur: acteur });
 export const publicationCtg = (projet: string, acteur: string) => rpc<FaceCtg | null>("publication_ctg", { p_projet: projet, p_acteur: acteur });
 export const proposerPublicationCtg = (acteur: string, projet: string, message: string) =>
   rpc<string>("proposer_publication_ctg", { p_projet: projet, p_message: message, p_acteur: acteur });
@@ -444,6 +453,27 @@ export const facesASynchroniser = () =>
   rpc<{ projet: string; quete: string; empreinte: string | null; face: FaceCtg }[]>("faces_ctg_a_synchroniser", {});
 export const noterSynchroCtg = (projet: string, empreinte: string, erreur: string | null) =>
   rpc<null>("noter_synchro_ctg", { p_projet: projet, p_empreinte: empreinte, p_erreur: erreur });
+/**
+ * Création automatique des quêtes (28/11) : transparent → quête publique (option C) ; semi-sensible validé → quête
+ * réservée aux membres ; semi-sensible nouveau → quête brouillon « en attente » (salle d'attente, des deux côtés).
+ */
+export interface ACreerAuto { projet: string; titre: string; territoire: string | null; face: FaceCtg; attente: string | null; en_attente: boolean }
+export const projetsACreerAuto = () => rpc<ACreerAuto[]>("projets_a_creer_auto", {});
+export const enregistrerCreationAuto = (projet: string, quete: string, empreinte: string, enAttente: boolean) =>
+  rpc<null>("enregistrer_creation_auto", { p_projet: projet, p_quete: quete, p_empreinte: empreinte, p_en_attente: enAttente });
+export const appliquerDecisionCtg = (quete: string, decision: "validated" | "private") =>
+  rpc<boolean>("appliquer_decision_ctg", { p_quete: quete, p_decision: decision });
+export interface SalleAttente {
+  en_attente: { projet: string; titre: string; resume: string | null; visibilite: FaceCtg["visibilite"]; famille: string | null; quete: string | null; sur_ctg: boolean }[];
+  validees: { projet: string; titre: string; source: string | null; le: string; quete: string | null }[];
+  privees: { projet: string; titre: string; le: string }[];
+}
+export const salleAttente = (acteur: string) => rpc<SalleAttente>("salle_attente_publication", { p_acteur: acteur });
+export const nbSalleAttente = (acteur: string) => rpc<number>("nb_salle_attente", { p_acteur: acteur });
+export const deciderPublication = (acteur: string, projet: string, decision: "valider" | "garder_prive") =>
+  rpc<string>("decider_publication", { p_projet: projet, p_decision: decision, p_acteur: acteur });
+export const noterAttentePublication = (projet: string, raison: string) =>
+  rpc<null>("noter_attente_publication", { p_projet: projet, p_raison: raison });
 /** Palier 2, B5 : quêtes nées sur ChangeTheGame, relevées automatiquement dans la file « à classer ». */
 export interface QueteAClasser {
   quete: string; titre: string; description: string | null; nature: string | null; statut: string | null;

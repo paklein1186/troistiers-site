@@ -5,7 +5,7 @@ import ListeTaches from "../../../components/ListeTaches.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, retoursProjet, besoinsDuProjet, ecrireBesoin, peutDeciderPropositions, CATEGORIES_BESOIN, STATUTS_BESOIN, type BesoinsDuProjet, nouvellesProjet, reglerNouvelle, type NouvelleQuete, queteDuProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, retoursProjet, reglerPresentationQuete, TYPES_QUETE, besoinsDuProjet, ecrireBesoin, peutDeciderPropositions, CATEGORIES_BESOIN, STATUTS_BESOIN, type BesoinsDuProjet, nouvellesProjet, reglerNouvelle, type NouvelleQuete, queteDuProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
@@ -63,6 +63,12 @@ if (Astro.request.method === "POST" && acteur) {
       if (!q || !jeton) throw Object.assign(new Error("discussion indisponible pour ce projet"), { code: "23514" });
       await commenter(q.quete, jeton, String(f.get("contenu") ?? ""), String(f.get("parent") ?? "") || null);
       return Astro.redirect(`${ici}?fait=commenter#discussion`, 303);
+    } else if (action === "presentation_quete") {
+      // Présentation de la quête sur ChangeTheGame (type, taille, enjeu en 2 mots) ; vide = valeur par défaut.
+      const taille = Number(f.get("taille"));
+      await reglerPresentationQuete(acteur, id, String(f.get("type_quete") ?? "") || null,
+        [1, 2, 3].includes(taille) ? taille : null, String(f.get("enjeu_court") ?? "").slice(0, 40));
+      return Astro.redirect(`${ici}?fait=presentation_quete#ctg`, 303);
     } else if (action === "besoin_ajouter" || action === "besoin_modifier" || action === "besoin_retirer") {
       // Palier 2, B4 : besoins du projet (partagés avec la quête s'ils sont publics).
       const b = String(f.get("besoin") ?? "") || null;
@@ -153,6 +159,7 @@ const FAITS: Record<string, string> = {
   retour: "Envoyé à l'artefact : appliqué ici au prochain import du Pilote.",
   candidater: "Candidature envoyée : l'équipe du projet va l'examiner.",
   commenter: "Message publié dans la discussion de la quête.",
+  presentation_quete: "Présentation de la quête enregistrée.",
   statut: "Statut enregistré.",
   etape: "Étape changée. Elle est verrouillée : les agents ne feront plus que proposer.",
   deverrouiller: "Étape déverrouillée.",
@@ -393,6 +400,32 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
       {publication && (
         <section class="panneau bloc" id="ctg">
           <h2>ChangeTheGame</h2>
+          {publication.visibilite && (
+            <p class="doux">Sur ChangeTheGame : <strong>{publication.titre}</strong>{publication.type_quete && <> · {TYPES_QUETE[publication.type_quete]}</>}{publication.taille && <> · taille {publication.taille} sur 3</>}</p>
+          )}
+          {publication.visibilite && droits?.fixer_sensibilite && (
+            <details class="presentation">
+              <summary>Présentation de la quête</summary>
+              <form method="post" class="formulaire">
+                <input type="hidden" name="action" value="presentation_quete" />
+                <label for="type-quete">Type</label>
+                <select id="type-quete" name="type_quete">
+                  <option value="">Par défaut</option>
+                  {Object.entries(TYPES_QUETE).map(([c, l]) => <option value={c}>{l}</option>)}
+                </select>
+                <label for="taille-quete">Taille</label>
+                <select id="taille-quete" name="taille">
+                  <option value="">Par défaut ({publication.taille ?? 2})</option>
+                  <option value="1">1 — intervention dans un lieu</option>
+                  <option value="2">2 — projet</option>
+                  <option value="3">3 — groupe de travail, expédition</option>
+                </select>
+                <label for="enjeu-court">Enjeu en 2 mots <span class="doux">(accompagnement : « Accompagnement · lieu · enjeu »)</span></label>
+                <input id="enjeu-court" name="enjeu_court" maxlength="40" value={publication.enjeu_court ?? ""} placeholder="Ex. : ouverture habitants" />
+                <div><button type="submit" class="bouton creux">Enregistrer</button></div>
+              </form>
+            </details>
+          )}
           {publication.ctg_quete_id ? (
             <>
               <p>Publié comme quête{publication.audience === "guilde" ? " réservée à la guilde" : ""} : <a href={adresseQueteCtg(publication.ctg_quete_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">voir sur ChangeTheGame</a>.</p>
@@ -414,6 +447,10 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
               <p>Pas encore publiable sur ChangeTheGame :</p>
               <ul>{publication.raisons.map((r) => <li>{r}</li>)}</ul>
             </>
+          ) : publication.publiable && publication.visibilite?.mode === "membres" && !publication.validee_le ? (
+            <p>Mission semi-sensible prête : elle attend dans la <a href="/membre/quetes/salle-attente">salle d'attente</a> que la coordination la valide (ici ou sur ChangeTheGame) ; elle deviendra alors une quête réservée aux membres de la guilde.</p>
+          ) : publicationAutoActive() && publication.publiable && publication.visibilite?.mode === "public" ? (
+            <p>Projet transparent au résumé validé : il deviendra <strong>automatiquement une quête publique</strong> de la guilde (relecture toutes les 15 minutes), sauf si une quête proche existe déjà ; la coordination décide alors (page « Quêtes à publier »).</p>
           ) : publication.peut_proposer ? (
             <form method="post" class="formulaire">
               <p>Ce projet peut devenir une quête {publication.audience === "public" ? "publique" : "réservée aux membres de la guilde"} de ChangeTheGame. Seuls le titre, le résumé validé, la nature, le territoire et les étiquettes y partent ; le détail reste ici.</p>

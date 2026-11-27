@@ -303,7 +303,7 @@ SELECT pg_temp.ok('A3 : le référent ne peut pas proposer un projet non publiab
   $q$SELECT public.proposer_publication_ctg((SELECT p FROM a3)::uuid)::text$q$), 'refusé');
 SELECT public.regler_resume((SELECT p FROM a3)::uuid, 'Un lieu accompagné à Namur.', true);
 SELECT pg_temp.ok('A3 : face publique d''un projet semi-sensible (quête réservée à la guilde)', pg_temp.en('service_role', NULL,
-  $q$SELECT (f->>'publiable') || ' ' || (f->>'audience') || ' ' || (f->>'nature') || ' ' || (f->>'resume') || ' ' || (f->>'lien_retour' LIKE 'https://troistiers.space/projets/%')::text
+  $q$SELECT (f->>'publiable') || ' ' || (f->>'audience') || ' ' || (f->>'nature') || ' ' || split_part(f->>'resume', E'\n', 1) || ' ' || (f->>'lien_retour' LIKE 'https://troistiers.space/projets/%')::text
      FROM (SELECT public.publication_ctg((SELECT p FROM a3)::uuid, '00000000-0000-0000-0000-0000000000a1') f) s$q$),
   'true guilde MISSION Un lieu accompagné à Namur. true');
 SELECT pg_temp.ok('A3 : un membre ne voit pas l''état de publication', pg_temp.en('service_role', NULL,

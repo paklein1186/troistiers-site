@@ -218,3 +218,17 @@ retiré comme avant. Ce passage sera fermé quand l'artefact enverra la v1.
 - Nouveau jeu de test : `node scripts/anonymiser-pilote.mjs <export réel.json> <sortie.json>` (échantillon) ou avec
   `--tout`. Textes, personnes, chantiers et identifiants sont remplacés ; seules la forme, les dates et les valeurs
   d'énumération restent. **Ne jamais déposer d'export réel dans le dépôt.**
+
+## Version 1.2 (prévue) : propositions de l'artefact sur la diffusion et la présentation
+
+Acceptée par PA le 27-28/11, à envoyer par l'artefact quand il sera prêt (le site l'accepte alors en 1.x) :
+
+| Champ (par mission) | Valeurs | Ce que le site en fait |
+|---|---|---|
+| `diffusion_proposee` | `sensible`, `semi_sensible`, `transparent` | Plus fermé que l'actuel : appliqué tout de suite. Plus ouvert : jamais sans validation de la coordination. |
+| `type_quete_propose` | `accompagnement`, `groupe_travail`, `expedition`, `autre` | Proposition ; la coordination valide (sinon le site garde sa valeur par défaut : mission liée à un lieu = accompagnement). |
+| `taille_proposee` | 1, 2, 3 | Proposition ; défaut du site : accompagnement 1, groupe de travail et expédition 3, autre 2. |
+| `enjeu_court_propose` | 2 mots, 40 caractères au plus | Proposition ; validée avec le résumé public. |
+
+Le site reste maître de ces informations (décision du 28/11) : elles servent à la diffusion, que le gel du 27/11 laisse
+ouverte. Un client sensible (ex. la mission « À Spa ») se signale par `diffusion_proposee: "sensible"`, appliqué tout de suite.

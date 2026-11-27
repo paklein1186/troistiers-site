@@ -307,7 +307,15 @@ d'un bloc, euros réglés à part ; corrige l'écran CTG qui ne versait rien) ; 
 changethegame#25 protège aussi les commentaires des quêtes réservées ; #58) ; B5 quêtes nées sur CTG relevées toutes les
 15 min dans la file `quetes_a_classer` (aucun projet créé automatiquement ; la coordination relie, accueille ou écarte).
 Onglet Projets de `/membre` : vignettes directes, « Rejoindre l'équipe » et « Proposer un projet » visibles (#57).
-Sauf la discussion, tout reste derrière l'interrupteur fermé `CTG_PUBLICATION_AUTO` jusqu'à la convention. Ensuite : palier 3.
+**Option C (28/11)** : un projet transparent au résumé validé devient une quête publique sans validation (action CTG
+`create_auto`, anti-doublon : quête proche → attente sur `/membre/quetes/a-publier`). **Salle d'attente (28/11)** : les
+semi-sensibles existantes sont **validées par la coordination (PA)**, retour en arrière possible ; une nouvelle
+semi-sensible attend sur `/membre/quetes/salle-attente` ET sur CTG (quête brouillon notifiée aux admins, onglet Travail,
+changethegame#28) ; valider d'un côté ou de l'autre (`docs/quetes/visibilite.md` §12). **Présentation (28/11)** : mission
+liée à un lieu = « Accompagnement · <lieu> · <enjeu en 2 mots> » (lieu toujours nommé), taille 1 à 3 en étiquette
+(accompagnement 1, groupe de travail / expédition 3, autre 2) ; le site tient ces champs, le Pilote les proposera en 1.2
+(§13). « Mission ASPA » = À Spa, **client sensible : à régler « sensible »** (jamais de quête).
+Sauf la discussion, tout reste derrière l'interrupteur `CTG_PUBLICATION_AUTO` (clé du site des deux côtés). Ensuite : palier 3.
 **Visibilité des quêtes (décisions de PA du 27/11)**, contrat commun `docs/quetes/visibilite.md` : les missions et groupes de
 travail deviennent des quêtes de la guilde avec la visibilité de leur sensibilité (transparent → publique ; semi-sensible →
 membres cotisants : titre, résumé, enjeux ; hors guilde et « galaxie » : rien) ; **les missions sensibles ne deviennent

@@ -1,0 +1,122 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { acteurConnecte, messageBase } from "../../../lib/acteur";
+import { adresseQueteCtg, baseConfiguree, deciderPublication, salleAttente, type SalleAttente } from "../../../lib/base";
+import { publicationAutoActive } from "../../../lib/publication-ctg";
+import { chargerContenu } from "../../../lib/contenu";
+
+// Salle d'attente des missions semi-sensibles (décisions de PA du 28/11). Une nouvelle mission semi-sensible publiable
+// attend ici, et sur ChangeTheGame (quête brouillon notifiée aux admins, onglet Travail) : Valider (quête publiée pour
+// les membres) ou Garder privée. Les missions déjà validées peuvent être gardées privées (retour en arrière).
+const u = Astro.locals.utilisateur;
+const ici = "/membre/quetes/salle-attente";
+if (!u) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+if (!baseConfiguree()) return Astro.redirect("/membre/projets");
+const acteur = await acteurConnecte(Astro.cookies);
+if (!acteur) return Astro.redirect(`/connexion?suite=${encodeURIComponent(ici)}`);
+
+let message = "";
+if (Astro.request.method === "POST") {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  const projet = String(f.get("projet") ?? "");
+  const decision = String(f.get("decision") ?? "");
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(projet) || (decision !== "valider" && decision !== "garder_prive")) throw new Error("demande invalide");
+    await deciderPublication(acteur, projet, decision);
+    return Astro.redirect(`${ici}?fait=${decision}`, 303);
+  } catch (e) {
+    message = messageBase(e);
+  }
+}
+let salle: SalleAttente | null = null;
+try {
+  salle = await salleAttente(acteur);
+} catch (e) {
+  message ||= (e as { code?: string })?.code === "42501" ? "Cette page est réservée à la coordination." : messageBase(e, "La salle d'attente n'a pas pu être chargée.");
+}
+const lienGuilde = chargerContenu().liens.changethegame_guilde;
+const auto = publicationAutoActive();
+const niveau = (v: unknown) => (v as { niveau_minimum?: string } | null)?.niveau_minimum ?? "N2";
+const jour = (d: string) => new Date(d).toLocaleDateString("fr-BE", { timeZone: "Europe/Brussels" });
+const SOURCES: Record<string, string> = { coordination: "par la coordination", ctg: "sur ChangeTheGame", decision_28_11: "décision du 28/11", automatique: "automatiquement" };
+const fait = Astro.url.searchParams.get("fait");
+---
+<Base titre="Salle d'attente">
+  <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/projets">Projets</a> · Salle d'attente</p>
+  <section class="hero">
+    <h1>Salle d'attente des missions</h1>
+    <p class="lead">Les nouvelles missions semi-sensibles, prêtes à devenir des quêtes réservées aux membres de la guilde. Validez-les ici ou sur ChangeTheGame (onglet Travail de la guilde) : la décision vaut des deux côtés.</p>
+  </section>
+  {fait && <p class="pastille" role="status">{fait === "valider" ? "Mission validée : la quête sera publiée pour les membres à la prochaine synchronisation." : "Mission gardée privée : elle ne sera pas publiée (sa quête reste en brouillon)."}</p>}
+  {message && <p class="avertissement" role="alert">{message}</p>}
+  {!auto && salle && <p class="doux">La publication automatique n'est pas encore ouverte : vos décisions sont enregistrées et s'appliqueront dès son ouverture.</p>}
+
+  {salle && (
+    <>
+      <section class="bloc">
+        <h2>En attente · {salle.en_attente.length}</h2>
+        {salle.en_attente.length === 0 ? <p class="doux">Aucune mission n'attend.</p> : (
+          <div class="liste">
+            {salle.en_attente.map((m) => (
+              <article class="panneau">
+                <h3><a href={`/membre/projets/${m.projet}`}>{m.titre}</a></h3>
+                <p class="doux">{[m.famille, `réservée aux membres à partir de ${niveau(m.visibilite)}`, m.sur_ctg ? "en brouillon sur ChangeTheGame" : null].filter(Boolean).join(" · ")}
+                  {m.quete && adresseQueteCtg(m.quete, lienGuilde) && <> · <a href={adresseQueteCtg(m.quete, lienGuilde)!} rel="noopener">voir la quête</a></>}</p>
+                {m.resume && <p>{m.resume}</p>}
+                <form method="post" class="rangee">
+                  <input type="hidden" name="projet" value={m.projet} />
+                  <button name="decision" value="valider">Valider</button>
+                  <button name="decision" value="garder_prive" class="bouton creux">Garder privée</button>
+                </form>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {salle.validees.length > 0 && (
+        <details class="bloc">
+          <summary><strong>Missions validées · {salle.validees.length}</strong> <span class="doux">(retour en arrière possible)</span></summary>
+          <ul class="simple">
+            {salle.validees.map((m) => (
+              <li>
+                <a href={`/membre/projets/${m.projet}`}>{m.titre}</a> <span class="doux">· validée {SOURCES[m.source ?? ""] ?? ""} le {jour(m.le)}</span>
+                <form method="post" class="enligne">
+                  <input type="hidden" name="projet" value={m.projet} />
+                  <button name="decision" value="garder_prive" class="bouton creux petit">Garder privée</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {salle.privees.length > 0 && (
+        <details class="bloc">
+          <summary><strong>Gardées privées · {salle.privees.length}</strong></summary>
+          <ul class="simple">
+            {salle.privees.map((m) => (
+              <li>
+                <a href={`/membre/projets/${m.projet}`}>{m.titre}</a> <span class="doux">· depuis le {jour(m.le)}</span>
+                <form method="post" class="enligne">
+                  <input type="hidden" name="projet" value={m.projet} />
+                  <button name="decision" value="valider" class="bouton creux petit">Valider</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </>
+  )}
+</Base>
+
+<style>
+  .liste { display: grid; gap: 14px; }
+  .liste h3 { margin: 0 0 6px; font-size: 1.1rem; }
+  .enligne { display: inline; margin-left: 8px; }
+  .petit { min-height: 30px; padding: 2px 10px; font-size: .85rem; }
+  details summary { cursor: pointer; }
+</style>
