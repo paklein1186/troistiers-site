@@ -30,5 +30,6 @@ lancer tt_test_contrat supabase/tests/pilote_contrat.sql $(ls supabase/migration
 lancer tt_test_retours supabase/tests/pilote_retours.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_v11 supabase/tests/pilote_v1_1.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_visibilite supabase/tests/quetes_visibilite.sql $(ls supabase/migrations/*.sql | sort)
+lancer tt_test_nouvelles supabase/tests/quetes_nouvelles.sql $(ls supabase/migrations/*.sql | sort)
 echo "$(grep -c '^OK' <<<"$total") vérifications réussies, $(grep -c -E '^KO|ERROR' <<<"$total") en échec."
 ! grep -q -E '^KO|ERROR' <<<"$total"

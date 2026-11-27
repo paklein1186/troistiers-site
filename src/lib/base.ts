@@ -119,7 +119,7 @@ export class ErreurBase extends Error {
 // Lectures sans effet : relancées une fois si la base en ligne tarde (réveil, charge passagère).
 const LECTURES = new Set([
   "projets_visibles", "pilotes_visibles", "mes_droits", "vue_projet", "apercu_de", "tableau_pilote", "historique_pilote",
-  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison",
+  "pilote_projet", "brouillons_a_valider", "taches_projet", "mes_taches", "ma_revue", "quetes_liees", "retours_projet", "retours_pilote", "suppressions_projet", "quete_du_projet", "etat_liaison", "nouvelles_projet",
 ]);
 const estDelai = (e: unknown) => (e as { name?: string })?.name === "TimeoutError" || (e as { name?: string })?.name === "AbortError";
 
@@ -439,6 +439,20 @@ export const facesASynchroniser = () =>
   rpc<{ projet: string; quete: string; empreinte: string | null; face: FaceCtg }[]>("faces_ctg_a_synchroniser", {});
 export const noterSynchroCtg = (projet: string, empreinte: string, erreur: string | null) =>
   rpc<null>("noter_synchro_ctg", { p_projet: projet, p_empreinte: empreinte, p_erreur: erreur });
+/** Palier 2, B3 : nouvelles de quête préparées à chaque étape, validées par le référent ou la coordination. */
+export interface NouvelleQuete {
+  id: string; titre: string; texte: string; statut: "brouillon" | "validee" | "publiee" | "ecartee";
+  de: string | null; vers: string | null; cree_le: string; valide_le: string | null; publie_le: string | null;
+  erreur: string | null; auto: boolean; peut_regler: boolean;
+}
+export const nouvellesProjet = (projet: string, acteur: string) =>
+  rpc<NouvelleQuete[]>("nouvelles_projet", { p_projet: projet, p_acteur: acteur });
+export const reglerNouvelle = (acteur: string, nouvelle: string, decision: "valider" | "ecarter" | "copiee", titre?: string, texte?: string) =>
+  rpc<string>("regler_nouvelle", { p_nouvelle: nouvelle, p_decision: decision, p_titre: titre ?? null, p_texte: texte ?? null, p_acteur: acteur });
+export const nouvellesAPublier = () =>
+  rpc<{ id: string; projet: string; quete: string; titre: string; texte: string; auteur: string | null }[]>("nouvelles_a_publier", {});
+export const noterNouvellePubliee = (nouvelle: string, update: string | null, erreur: string | null) =>
+  rpc<null>("noter_nouvelle_publiee", { p_nouvelle: nouvelle, p_update: update, p_erreur: erreur });
 /** Pilote, étape 4 : retours du site vers l'artefact (la copie reste en lecture seule). */
 export type ActionRetour = "statut_tache" | "sous_tache" | "commentaire" | "proposition";
 export interface RetourAttente { tache: string | null; action: ActionRetour; valeur: Record<string, unknown> | null; rang: number | null; titre: string | null; transmis: boolean; ecart: string | null }
