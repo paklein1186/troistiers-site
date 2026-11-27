@@ -99,6 +99,22 @@
           }
         }
       }
+    },
+    "contrat": {
+      "type": "object",
+      "description": "Ce que l'artefact déclare de son export : version, decision, regles, taches (nombre), suppressions_signalees, allegement (palier appliqué si l'export a été allégé).",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "allegement": {
+          "type": [
+            "string",
+            "object",
+            "null"
+          ]
+        }
+      }
     }
   },
   "$defs": {
@@ -107,8 +123,7 @@
       "required": [
         "id",
         "maj_le",
-        "provenance",
-        "title"
+        "provenance"
       ],
       "properties": {
         "id": {
@@ -220,6 +235,14 @@
               },
               "d": {
                 "type": "boolean"
+              },
+              "id": {
+                "type": "string",
+                "description": "<ID de la tâche>~s<empreinte du texte> (change si le texte change)."
+              },
+              "maj_le": {
+                "type": "string",
+                "format": "date-time"
               }
             },
             "required": [
@@ -248,7 +271,75 @@
         },
         "updated_by": {
           "type": "string"
+        },
+        "maj_par": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
+        },
+        "motif": {
+          "enum": [
+            "suppression",
+            "fusion"
+          ],
+          "description": "Pour une suppression : supprimée, ou fusionnée dans une autre tâche."
+        },
+        "fusionnee_dans": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Si motif = fusion : identifiant de la tâche qui la remplace."
+        },
+        "dernier_journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identifiant de la dernière entrée de journal de la tâche supprimée."
+        },
+        "notes_liste": {
+          "type": "array",
+          "description": "Une entrée par ligne de notes (le texte brut reste dans notes).",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "texte"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "texte": {
+                "type": "string"
+              },
+              "maj_le": {
+                "type": "string"
+              }
+            }
+          }
         }
+      },
+      "if": {
+        "properties": {
+          "supprime": {
+            "const": true
+          }
+        },
+        "required": [
+          "supprime"
+        ]
+      },
+      "then": {
+        "description": "Suppression signalée : l'objet n'a plus de titre, il sera retiré (jamais affiché)."
+      },
+      "else": {
+        "required": [
+          "title"
+        ]
       }
     },
     "mission": {
@@ -344,6 +435,13 @@
         },
         "updated_by": {
           "type": "string"
+        },
+        "maj_par": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
         }
       }
     },
@@ -410,6 +508,13 @@
         "synced_at": {
           "type": "string",
           "format": "date-time"
+        },
+        "maj_par": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
         }
       }
     },
@@ -505,6 +610,13 @@
         },
         "decided_by": {
           "type": "string"
+        },
+        "maj_par": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
         }
       }
     },
@@ -571,6 +683,27 @@
             "agent"
           ],
           "description": "Qui a créé l'objet. « agent » = proposition tant qu'un humain ne l'a pas validée."
+        },
+        "maj_le": {
+          "type": "string",
+          "format": "date-time",
+          "description": "undone_at, sinon ts."
+        },
+        "maj_par": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Qui a fait la dernière modification (code de personne ou d'agent)."
+        },
+        "supprime": {
+          "type": "boolean"
+        },
+        "undone_at": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     }

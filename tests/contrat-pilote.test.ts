@@ -41,6 +41,15 @@ describe("contrat du Pilote v1", () => {
     expect(manques).toEqual(expect.arrayContaining(["schema_version", "maj_le", "provenance"]));
   });
 
+  it("une suppression arrive sans titre ; une tâche active sans titre est refusée", () => {
+    const e = exemple();
+    const sup = e.tasks.find((t: { supprime?: boolean }) => t.supprime);
+    expect(sup?.title).toBeUndefined();
+    expect(valider(e)).toBe(true);
+    delete e.tasks[0].title;
+    expect(valider(e)).toBe(false);
+  });
+
   it("une suppression se signale par supprime: true, et la provenance est une valeur connue", () => {
     const e = exemple();
     e.tasks[0].supprime = true;

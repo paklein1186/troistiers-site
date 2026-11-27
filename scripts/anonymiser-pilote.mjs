@@ -21,8 +21,8 @@ if (!entree || !sortie) {
 const brut = JSON.parse(readFileSync(entree, "utf8"));
 const tout = opt === "--tout";
 
-const ENUMS = new Set(["status", "statut", "type", "kind", "op", "confidence", "provenance"]);
-const PERSONNES = new Set(["pilot", "who", "author", "referent", "decided_by", "updated_by", "created_by"]);
+const ENUMS = new Set(["status", "statut", "type", "kind", "op", "confidence", "provenance", "motif"]);
+const PERSONNES = new Set(["pilot", "who", "author", "referent", "decided_by", "updated_by", "created_by", "maj_par"]);
 const LISTE_PERSONNES = new Set(["contributors"]);
 const IDS = new Set(["id", "mission", "task_id", "result_task", "keep_id", "drop_id"]);
 const LISTE_IDS = new Set(["deps"]);
@@ -65,19 +65,35 @@ const pris = (liste, k) => (tout ? liste ?? [] : (liste ?? []).slice(0, k));
 const propositions = tout ? brut.proposals ?? [] : (brut.proposals ?? []).filter((p) => !p.task_id || refTaches.has(p.task_id)).slice(0, 4);
 const journal = tout ? brut.journal ?? [] : (brut.journal ?? []).filter((j) => !j.task_id || refTaches.has(j.task_id)).slice(0, 6);
 
-const v1 = (o, prov = "artefact") => ({ ...o, maj_le: o.updated_at ?? o.synced_at ?? o.decided_at ?? o.created_at ?? brut.exported_at, provenance: prov });
+// Champs du contrat v1, tels que l'artefact les produit (message de la session de l'artefact du 27/11).
+const v1 = (o, prov = "artefact") => ({ ...o, maj_le: o.maj_le ?? o.updated_at ?? o.synced_at ?? o.decided_at ?? o.created_at ?? brut.exported_at,
+  maj_par: o.maj_par ?? o.updated_by ?? o.decided_by ?? o.author ?? o.who ?? "P1", provenance: o.provenance ?? prov, supprime: o.supprime ?? false });
+const tacheV1 = (t) => {
+  const o = v1(t);
+  o.subtasks = (t.subtasks ?? []).map((st, i) => ({ ...st, id: `${t.id}~s${i + 1}`, maj_le: o.maj_le }));
+  o.notes_liste = (t.notes ?? "").split("\n").filter(Boolean).map((l, i) => ({ id: `${t.id}~n${i + 1}`, texte: l, maj_le: o.maj_le }));
+  return o;
+};
 const sortieJson = {
   schema_version: "1.0",
   exported_at: brut.exported_at,
-  tasks: taches.map((t) => anon(v1({ ...t, deps: (t.deps ?? []).filter((d) => tout || refTaches.has(d)) }))),
+  contrat: { version: "1.0", decision: "Texte", regles: {}, taches: taches.length, suppressions_signalees: 1 },
+  tasks: [
+    ...taches.map((t) => anon(tacheV1({ ...t, deps: (t.deps ?? []).filter((d) => tout || refTaches.has(d)) }))),
+    // Une suppression signalée, comme l'artefact les envoie : sans titre.
+    { id: randomBytes(6).toString("hex"), supprime: true, maj_le: brut.exported_at, maj_par: "P1", provenance: "artefact",
+      motif: "fusion", fusionnee_dans: null, dernier_journal: null },
+  ],
   missions: missions.map((m) => anon(v1(m))),
   absences: pris(brut.absences, 2).map((a) => anon(v1(a))),
   proposals: propositions.map((p) => anon(v1(p, p.auto ? "agent" : "artefact"))),
-  journal: journal.map((j) => anon({ ...j, provenance: "artefact" })),
+  journal: journal.map((j) => anon({ ...j, maj_le: j.ts, maj_par: j.who, provenance: "artefact", supprime: false })),
   hebdo_points: [],
   config: {},
 };
 // Tâches et missions déclarent leurs personnes et chantiers dans config, comme l'artefact.
+sortieJson.tasks.at(-1).fusionnee_dans = sortieJson.tasks[0].id;
+sortieJson.artefact = "https://claude.ai/artifact/exemple-anonyme";
 sortieJson.config = {
   members: [...new Set(sortieJson.tasks.flatMap((t) => [t.pilot, ...(t.contributors ?? [])]).filter(Boolean))]
     .map((k) => ({ k, n: `Personne ${k.slice(1)}` })),
