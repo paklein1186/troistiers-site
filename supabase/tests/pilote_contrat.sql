@@ -37,8 +37,10 @@ CREATE TEMP TABLE bilan (b jsonb);
 -- 1. L'export réel anonymisé, au format v1, passe.
 INSERT INTO bilan SELECT public.importer_pilote_missions('pilote-c', (SELECT e FROM t_export), NULL);
 SELECT pg_temp.ok('v1 : importé, version lue', (SELECT b ->> 'version' FROM bilan), '1.0');
-SELECT pg_temp.ok('v1 : toutes les tâches', (SELECT (b ->> 'taches') FROM bilan),
-  (SELECT jsonb_array_length(e -> 'tasks')::text FROM t_export));
+SELECT pg_temp.ok('v1 : toutes les tâches (hors suppressions signalées)', (SELECT (b ->> 'taches') FROM bilan),
+  (SELECT count(*)::text FROM t_export, jsonb_array_elements(e -> 'tasks') x WHERE (x ->> 'supprime')::boolean IS NOT TRUE));
+SELECT pg_temp.ok('v1 : la suppression signalée (sans titre) est comprise, rien n''est ignoré',
+  (SELECT (b ->> 'champs_ignores') FROM bilan), '[]');
 SELECT pg_temp.ok('v1 : toutes les missions', (SELECT count(*)::text FROM projets WHERE ref_externe LIKE 'pilote-c:mission:%'),
   (SELECT jsonb_array_length(e -> 'missions')::text FROM t_export));
 SELECT pg_temp.ok('v1 : aucun champ ignoré', (SELECT b ->> 'champs_ignores' FROM bilan), '[]');
@@ -59,7 +61,7 @@ SELECT pg_temp.ok('suppression : la tâche signalée a disparu',
   (SELECT count(*)::text FROM taches WHERE ref_externe = (SELECT e -> 'tasks' -> 0 ->> 'id' FROM t_export)), '0');
 SELECT pg_temp.ok('suppression : les tâches absentes de l''export restent',
   (SELECT count(*)::text FROM taches t JOIN projets p ON p.id = t.projet_id WHERE p.source_pilote = 'pilote-c' AND NOT t.absence),
-  (SELECT (jsonb_array_length(e -> 'tasks') - 1)::text FROM t_export));
+  (SELECT (count(*) - 1)::text FROM t_export, jsonb_array_elements(e -> 'tasks') x WHERE (x ->> 'supprime')::boolean IS NOT TRUE));
 
 -- 3. Une mission supprimée est close, jamais effacée.
 SELECT public.importer_pilote_missions('pilote-c', (SELECT e || jsonb_build_object('tasks', '[]'::jsonb, 'missions', jsonb_build_array(

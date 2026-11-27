@@ -224,7 +224,9 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   demandée par PA est proposée comme **paquet** (étape 3). Étapes, une branche et une PR chacune : 1 contrat de données v1
   (`docs/pilote/contrat-donnees.md`, `schemas/pilote-v1.json`, migration `20261127100000_pilote_contrat_v1.sql`, #45 :
   export sans `schema_version` encore accepté pendant la transition, v2 refusée, `supprime: true`, champs inconnus
-  journalisés ; jeu de test anonymisé par `scripts/anonymiser-pilote.mjs`) ; 2 bac à sable (base `tt-bac-a-sable`,
+  journalisés ; jeu de test anonymisé par `scripts/anonymiser-pilote.mjs`) ; **l'artefact envoie la v1.0 depuis le 27/11** (fichier
+  `pilote-33-export.json`, lun.-ven. 9 h 52, 11 h 52, 13 h 52, 15 h 52 ; champs `contrat`, `maj_par`, `notes_liste`, suppressions sans
+  titre : alignés par la migration `20261127150000_pilote_contrat_v1_alignement.sql`) ; 2 bac à sable (base `tt-bac-a-sable`,
   `scripts/bac-a-sable.sh`, `.env.bac-a-sable` seul lu, `npm run dev:bac-a-sable` sur le port 4322, bannière, production
   refusée, synchro du Pilote réel et publication CTG coupées ; mode d'emploi `docs/pilote/bac-a-sable.md`) ; 3 paquets et `docs/pilote/NOUVEAUTES.md`, interrupteurs
   `pilote.fonctions.<id>` dans `communaute.yaml` ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours`) ;
