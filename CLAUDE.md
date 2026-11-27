@@ -288,7 +288,15 @@ adresse de la quête créée ; liste `/membre/quetes/a-publier` ; migration `202
 site) ; A5 lecture des quêtes (fonction CTG `guild-quests`, changethegame#21 : sans jeton, quêtes « Public » seulement ; avec le
 jeton d'un·e admin, toutes ; site : section « Quêtes ouvertes sur ChangeTheGame » de `/projets`, sans les quêtes déjà reliées,
 migration `20261126220000_quetes_liees.sql`). A4 : fiche publique `/projets/<id>` (#39). Point avec PA quand
-A3 fonctionne de bout en bout sur un projet de test. Pas maintenant (paliers 2 et 3, après le vote du 7 décembre) :
+A3 fonctionne de bout en bout sur un projet de test. **Palier 2 commencé le 26/11** (go de PA). Décisions : écriture **mixte** (création au nom de la personne de la
+coordination, mises à jour par une clé réservée au serveur du site), **codé mais fermé en production jusqu'à la
+convention** Trois-Tiers × ChangeTheGame. B1 : fonction CTG `guild-quest-sync` (changethegame#22, table
+`quest_external_links`, secrets `SITE_SYNC_KEY`, `SITE_SYNC_GUILD_ID`, `SITE_SYNC_ORIGINS`) ; site : bouton « Publier
+automatiquement » sur `/membre/quetes/a-publier`, relecture des faces toutes les 15 min (`src/lib/publication-ctg.ts`,
+`CTG_PUBLICATION_AUTO`, `CTG_SITE_SYNC_KEY`), retrait (brouillon privé) si la face n'est plus publique ; seuls les projets
+transparents ; migration `20261126234000_quetes_b1_publication_auto.sql`. Restent B3 (étapes → nouvelles), B4 (besoins),
+fil de commentaires unique, B5 (entrée automatique des quêtes nées sur CTG), puis palier 3.
+Prévu au départ après le vote du 7 décembre :
 publication automatique, commentaires synchronisés, besoins dans les deux sens, tâches partagées, personnes sur la quête.
 
 ## Avant d'ouvrir les paiements réels
