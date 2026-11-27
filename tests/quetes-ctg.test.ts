@@ -15,3 +15,23 @@ describe("quêtes de la guilde sur la page Projets", () => {
     expect(r.map((x) => x.id)).toEqual(["libre", "ailleurs"]);
   });
 });
+
+import { quetesProches } from "../src/lib/quetes-ctg";
+describe("rapprochement avant création", () => {
+  const qs = [
+    { ...q("a"), title: "Offre SDC : schémas de développement communal avec Trois-Tiers" },
+    { ...q("b"), title: "Atlas des tiers-lieux de Famenne", description: "Cartographie en Famenne" },
+    { ...q("c"), title: "Fête de la musique" },
+  ];
+  it("trouve la quête au titre proche, ignore les autres", () => {
+    const r = quetesProches({ titre: "Offre Trois-Tiers × schémas de développement communal (SDC)" }, qs);
+    expect(r.map((c) => c.quete.id)).toEqual(["a"]);
+  });
+  it("le même territoire rapproche", () => {
+    const r = quetesProches({ titre: "Cartographie des lieux", territoire: "Famenne" }, qs);
+    expect(r[0]?.quete.id).toBe("b");
+  });
+  it("rien de proche : liste vide", () => {
+    expect(quetesProches({ titre: "Comptabilité 2027" }, qs)).toEqual([]);
+  });
+});

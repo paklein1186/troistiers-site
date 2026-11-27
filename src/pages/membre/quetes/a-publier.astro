@@ -2,7 +2,10 @@
 import Base from "../../../layouts/Base.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
-import { baseConfiguree, enregistrerQueteCtg, projetsAPublier, type FaceCtg } from "../../../lib/base";
+import { baseConfiguree, enregistrerQueteCtg, projetsAPublier, quetesLiees, type FaceCtg } from "../../../lib/base";
+import { jetonsValides } from "../../../lib/ctg";
+import { lireJetons } from "../../../lib/jetons";
+import { quetesAdmin, quetesProches, type QueteCtgAdmin } from "../../../lib/quetes-ctg";
 import { chargerContenu } from "../../../lib/contenu";
 
 // Projets dont la publication sur ChangeTheGame est validée et dont la quête reste à créer (coordination).
@@ -37,6 +40,23 @@ try {
   message ||= messageBase(e, "La liste n'a pas pu être chargée.");
 }
 const lienGuilde = chargerContenu().liens.changethegame_guilde;
+
+// Rapprochement avant création (palier 2, B2) : quêtes de la guilde, pas encore reliées, qui ressemblent au projet.
+// Lues avec le jeton CTG de la personne (admin de la guilde) ; si CTG ne répond pas, la page reste utilisable sans.
+let proches = new Map<string, { quete: QueteCtgAdmin; score: number }[]>();
+if (liste.length) {
+  try {
+    const jetons = await jetonsValides(lireJetons(Astro.cookies));
+    const [quetes, liees] = jetons ? await Promise.all([quetesAdmin(jetons.acces), quetesLiees()]) : [null, []];
+    if (quetes) {
+      const prises = new Set(liees.map((l) => l.quete));
+      const libres = quetes.filter((q) => !prises.has(q.id));
+      proches = new Map(liste.map((f) => [f.id!, quetesProches(f, libres)]));
+    }
+  } catch (e) {
+    console.error("Rapprochement des quêtes :", e);
+  }
+}
 ---
 <Base titre="Quêtes à publier">
   <p class="surtitre"><a href="/membre">Espace membres</a> · <a href="/membre/projets">Projets</a> · Quêtes à publier</p>
@@ -53,6 +73,23 @@ const lienGuilde = chargerContenu().liens.changethegame_guilde;
       {liste.map((f) => (
         <section class="panneau">
           <h2><a href={`/membre/projets/${f.id}`}>{f.titre}</a></h2>
+          {(proches.get(f.id!) ?? []).length > 0 && (
+            <div class="proches">
+              <p><strong>Avant de créer :</strong> cette quête existe peut-être déjà dans la guilde. Reliez-la plutôt que d'en créer une seconde.</p>
+              <ul>
+                {proches.get(f.id!)!.map(({ quete }) => (
+                  <li>
+                    <a href={quete.url} rel="noopener">{quete.title}</a>{quete.is_draft && <span class="doux"> (brouillon)</span>}
+                    <form method="post" action={ici}>
+                      <input type="hidden" name="projet" value={f.id} />
+                      <input type="hidden" name="adresse" value={quete.url} />
+                      <button class="bouton creux">Relier à cette quête</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <FaceCtgBloc face={f} projet={f.id!} action={ici} lienGuilde={lienGuilde} />
         </section>
       ))}
@@ -63,4 +100,8 @@ const lienGuilde = chargerContenu().liens.changethegame_guilde;
 <style>
   .a-publier { display: grid; gap: 16px; }
   .a-publier h2 { font-size: 1.15rem; margin: 0 0 8px; }
+  .proches { border-left: 3px solid var(--accent, #2f6b47); padding: 4px 0 4px 12px; margin: 0 0 14px; }
+  .proches ul { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 8px; }
+  .proches li { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .proches form { margin: 0; }
 </style>

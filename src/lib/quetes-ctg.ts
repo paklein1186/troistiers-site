@@ -52,3 +52,30 @@ export const LIBELLE_STATUT: Record<string, string> = {
   OPEN: "Ouverte", OPEN_FOR_PROPOSALS: "Propositions ouvertes", IN_PROGRESS: "En cours", ACTIVE: "En cours",
   COMPLETED: "Terminée", IDEA: "Idée",
 };
+
+// ——— Rapprochement avant création (palier 2, B2) ———
+const VIDES = new Set(["les", "des", "une", "pour", "avec", "sur", "dans", "par", "aux", "est", "son", "ses", "leur", "leurs",
+  "qui", "que", "trois", "tiers", "lieu", "lieux", "projet", "mission", "quete"]);
+const mots = (t: string | null | undefined) =>
+  new Set((t ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/)
+    .filter((m) => m.length >= 3 && !VIDES.has(m)));
+
+/** Quêtes de la guilde qui ressemblent à un projet (titre proche, même territoire), les plus proches d'abord. */
+export function quetesProches<Q extends QueteCtg>(
+  projet: { titre: string; territoire?: string | null; territoires?: string[] }, quetes: Q[], n = 3,
+): { quete: Q; score: number }[] {
+  const a = mots(projet.titre);
+  const lieux = mots([projet.territoire ?? "", ...(projet.territoires ?? [])].join(" "));
+  return quetes
+    .map((quete) => {
+      const recouvre = (b: Set<string>) => (a.size && b.size ? [...a].filter((m) => b.has(m)).length / Math.min(a.size, b.size) : 0);
+      const texte = mots(`${quete.title} ${quete.description ?? ""} ${(quete.web_tags ?? []).join(" ")}`);
+      // Le titre compte pleinement ; la description et les étiquettes un peu moins.
+      let score = Math.max(recouvre(mots(quete.title)), 0.6 * recouvre(texte));
+      if ([...lieux].some((m) => texte.has(m))) score += 0.25;
+      return { quete, score: Math.min(1, Math.round(score * 100) / 100) };
+    })
+    .filter((c) => c.score >= 0.4)
+    .sort((x, y) => y.score - x.score)
+    .slice(0, n);
+}
