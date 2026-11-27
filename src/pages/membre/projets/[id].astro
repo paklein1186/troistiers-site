@@ -9,6 +9,8 @@ import {
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
+import DiscussionQuete from "../../../components/DiscussionQuete.astro";
+import { commenter, discussionActive, jetonDe, lireDiscussion, type Discussion } from "../../../lib/discussion-ctg";
 import { deciderProposition, propositionsAide, publicationAutoActive, type PropositionAide } from "../../../lib/publication-ctg";
 
 // Fiche d'un projet : ce que la personne en voit (filtré par la base), et les actions permises
@@ -54,6 +56,13 @@ if (Astro.request.method === "POST" && acteur) {
       await enregistrerQueteCtg(acteur, id, action === "retirer_ctg" ? "" : String(f.get("adresse") ?? "").trim().slice(0, 500));
     } else if (action === "valider" || action === "refuser") {
       await validerDiffusion(acteur, id, action === "valider");
+    } else if (action === "commenter") {
+      // Un seul fil : celui de la quête ChangeTheGame, au nom de la personne (son compte ChangeTheGame).
+      const q = await queteDuProjet(id, acteur);
+      const jeton = await jetonDe(Astro.cookies);
+      if (!q || !jeton) throw Object.assign(new Error("discussion indisponible pour ce projet"), { code: "23514" });
+      await commenter(q.quete, jeton, String(f.get("contenu") ?? ""), String(f.get("parent") ?? "") || null);
+      return Astro.redirect(`${ici}?fait=commenter#discussion`, 303);
     } else if (action === "besoin_ajouter" || action === "besoin_modifier" || action === "besoin_retirer") {
       // Palier 2, B4 : besoins du projet (partagés avec la quête s'ils sont publics).
       const b = String(f.get("besoin") ?? "") || null;
@@ -95,6 +104,9 @@ let suppressions: SuppressionPilote[] = [];
 let nouvelles: NouvelleQuete[] = [];
 // Besoins (palier 2, B4) et propositions d'aide lues en direct chez ChangeTheGame (jamais enregistrées ici).
 let besoins: BesoinsDuProjet | null = null;
+// Discussion : le fil de la quête, lu en direct chez ChangeTheGame avec le jeton de la personne.
+let discussion: Discussion | null = null;
+let erreurDiscussion = false;
 let propositions: PropositionAide[] | null = null;
 // Projet relié à une quête CTG que la personne peut voir : « Rejoindre » mène à la quête (docs/quetes/visibilite.md).
 let quete: Awaited<ReturnType<typeof queteDuProjet>> = null;
@@ -107,6 +119,13 @@ try {
     typesContenu().then((l) => Object.fromEntries(l.map((t) => [t.code, t.libelle]))),
   ]);
   quete = await queteDuProjet(id, acteur).catch(() => null);
+  if (quete && discussionActive()) {
+    discussion = await lireDiscussion(quete.quete, await jetonDe(Astro.cookies)).catch((e) => {
+      console.error("Discussion CTG :", e);
+      erreurDiscussion = true;
+      return null;
+    });
+  }
   if (droits && droits.niveau >= 4 && acteur) {
     [taches, publication, retours, suppressions, nouvelles] = await Promise.all([
       tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null), retoursProjet(id, acteur).catch(() => null),
@@ -133,6 +152,7 @@ const libEtape = (c: string | null) => (c ? listeEtapes.find((e) => e.code === c
 const FAITS: Record<string, string> = {
   retour: "Envoyé à l'artefact : appliqué ici au prochain import du Pilote.",
   candidater: "Candidature envoyée : l'équipe du projet va l'examiner.",
+  commenter: "Message publié dans la discussion de la quête.",
   statut: "Statut enregistré.",
   etape: "Étape changée. Elle est verrouillée : les agents ne feront plus que proposer.",
   deverrouiller: "Étape déverrouillée.",
@@ -328,6 +348,10 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
         </form>
       )}
       {droits?.candidature_en_attente && <p class="avertissement" id={droits?.candidater ? undefined : "rejoindre"}>Votre candidature est en attente de réponse de l'équipe.</p>}
+      {quete && discussionActive() && (
+        <DiscussionQuete discussion={discussion} erreur={erreurDiscussion} connecte={true} ici={ici}
+          lienQuete={adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde)} />
+      )}
 
       {droits?.valider_diffusion && droits.reglages && (
         <form method="post" class="panneau bloc">

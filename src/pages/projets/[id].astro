@@ -3,6 +3,8 @@ import Base from "../../layouts/Base.astro";
 import { acteurConnecte } from "../../lib/acteur";
 import { adresseQueteCtg, apercuProjet, baseConfiguree, besoinsDuProjet, CATEGORIES_BESOIN, etapes, NATURES, profilCtg, queteDuProjet, type BesoinProjet, type ProjetVu } from "../../lib/base";
 import { chargerContenu } from "../../lib/contenu";
+import DiscussionQuete from "../../components/DiscussionQuete.astro";
+import { commenter, discussionActive, jetonDe, lireDiscussion, type Discussion } from "../../lib/discussion-ctg";
 
 // Fiche d'un projet ouverte à tous : c'est l'adresse que porte la quête ChangeTheGame (website_url, étape A4).
 // La base filtre selon le niveau de la personne : le public voit ce qui est visible en N0, une personne connectée
@@ -12,6 +14,26 @@ if (!baseConfiguree() || !/^[0-9a-f-]{36}$/i.test(id)) return Astro.redirect("/p
 const u = Astro.locals.utilisateur;
 const acteur = u ? await acteurConnecte(Astro.cookies) : null;
 const k = chargerContenu();
+const ici0 = `/projets/${encodeURIComponent(id)}`;
+// Discussion de la quête (un seul fil) : écrire demande d'être connecté·e et d'avoir accès à la quête.
+let messageDiscussion = "";
+if (Astro.request.method === "POST" && acteur) {
+  const origine = Astro.request.headers.get("origin");
+  if (origine && origine !== Astro.url.origin) return new Response("Origine refusée", { status: 403 });
+  const f = await Astro.request.formData();
+  if (f.get("action") === "commenter") {
+    try {
+      const q = await queteDuProjet(id, acteur);
+      const jeton = await jetonDe(Astro.cookies);
+      if (!q || !jeton) throw new Error("discussion indisponible");
+      await commenter(q.quete, jeton, String(f.get("contenu") ?? ""), String(f.get("parent") ?? "") || null);
+      return Astro.redirect(`${ici0}#discussion`, 303);
+    } catch (e) {
+      console.error("Discussion CTG :", e);
+      messageDiscussion = "Votre message n'a pas pu être publié. Réessayez dans un instant.";
+    }
+  }
+}
 
 let p: ProjetVu | null = null;
 let libelles: Record<string, string> = {};
@@ -20,11 +42,20 @@ let erreur = false;
 let quete: Awaited<ReturnType<typeof queteDuProjet>> = null;
 // Besoins ouverts visibles à ce niveau (palier 2, B4) : la porte d'entrée de l'extérieur.
 let besoins: BesoinProjet[] = [];
+let discussion: Discussion | null = null;
+let erreurDiscussion = false;
 try {
   const [vu, l, q, b] = await Promise.all([apercuProjet(id, acteur), etapes(), queteDuProjet(id, acteur).catch(() => null),
     besoinsDuProjet(id, acteur).catch(() => null)]);
   quete = q;
   besoins = (b?.besoins ?? []).filter((x) => x.statut === "OPEN");
+  if (quete && discussionActive()) {
+    discussion = await lireDiscussion(quete.quete, u ? await jetonDe(Astro.cookies) : null).catch((e) => {
+      console.error("Discussion CTG :", e);
+      erreurDiscussion = true;
+      return null;
+    });
+  }
   p = vu;
   libelles = Object.fromEntries(l.map((e) => [e.code, e.libelle]));
 } catch (e) {
@@ -94,6 +125,13 @@ const profil = (pid: string | null | undefined) => (pid ? profilCtg(pid, k.liens
           <p><a class="bouton" href={adresseQueteCtg(quete.quete, k.liens.changethegame_guilde)!} rel="noopener">Rejoindre sur ChangeTheGame</a></p>
           <p class="doux">Ce projet est une quête de la guilde Trois-Tiers : on y demande à rejoindre l'équipe, on y suit son avancée.</p>
         </section>
+      )}
+      {quete && discussionActive() && (
+        <>
+          {messageDiscussion && <p class="avertissement" role="alert">{messageDiscussion}</p>}
+          <DiscussionQuete discussion={discussion} erreur={erreurDiscussion} connecte={Boolean(u)} ici={ici0}
+            lienQuete={adresseQueteCtg(quete.quete, k.liens.changethegame_guilde)} />
+        </>
       )}
       <section class="bloc">
         {u ? (

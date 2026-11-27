@@ -164,3 +164,16 @@ propositions d'aide faites sur CTG, la base ne garde **qu'un compteur** ; accept
   et se règlent directement avec la personne.
 - Base : table `besoins_projet`, `projets.ctg_propositions_en_attente`, migration `20261128150000_quetes_b4_besoins.sql` ;
   tests `supabase/tests/quetes_besoins.sql`.
+
+## 9. Un seul fil de commentaires (palier 2)
+
+Décision de PA du 26/11 : un seul fil, celui de la quête ChangeTheGame, affiché aussi sur la fiche du projet.
+
+- Le site lit le fil **en direct** (fonction CTG `quest-comments`, changethegame#25) et **ne garde rien**. On écrit au
+  nom de la personne, avec son propre compte ChangeTheGame (son jeton) ; les réponses se rangent sous leur message.
+- Qui lit, qui écrit : les règles d'accès de ChangeTheGame (quête réservée : ses membres). changethegame#25 corrige
+  au passage une faille : les commentaires d'une quête réservée restaient lisibles par tout le monde.
+- Fiche membre et fiche publique (`/projets/<id>`, lecture pour les visiteurs si la quête est publique).
+- Ce qui est sensible reste dans les notes internes de la base, jamais dans ce fil.
+- Interrupteur : `CTG_DISCUSSION=false` coupe le bloc (ouvert par défaut quand ChangeTheGame est branché ; jamais dans
+  le bac à sable). Rien de l'ASBL ne part vers CTG : ce sont les messages des personnes, sur leur propre compte.
