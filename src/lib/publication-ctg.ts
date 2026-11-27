@@ -11,7 +11,7 @@
 import { createHash } from "node:crypto";
 import { ctgConfiguree, urlFonctionsCtg } from "./ctg";
 import { baseConfiguree, facesASynchroniser, fusionnerBesoinsCtg, noterBesoinsPousses, noterNouvellePubliee, noterSynchroCtg, nouvellesAPublier,
-  projetsBesoinsASynchroniser, type FaceCtg } from "./base";
+  projetsBesoinsASynchroniser, releverQuetesCtg, type FaceCtg } from "./base";
 import { estBacASable } from "./bac-a-sable";
 
 const env = (k: string) => { const v = import.meta.env?.[k] ?? process.env[k]; return v === undefined || v === "" ? undefined : String(v); };
@@ -84,7 +84,7 @@ async function appeler(corps: Record<string, unknown>, jeton?: string, f: typeof
   if (r.status === 400 && d?.error === "invalid_visibility") {
     throw new ErreurPublication(400, `Visibilité refusée par ChangeTheGame : ${d.detail ?? ""}`, "invalid_visibility");
   }
-  if (!r.ok || (corps.action !== "status" && corps.action !== "news" && !d?.quest_id)) {
+  if (!r.ok || (!["status", "news", "guild_quests"].includes(String(corps.action)) && !d?.quest_id)) {
     throw new ErreurPublication(r.status, d?.detail ?? d?.error ?? `CTG ${r.status}`, d?.error);
   }
   return d ?? {};
@@ -209,19 +209,35 @@ export async function deciderProposition(projet: string, quete: string, proposit
   return r;
 }
 
+/**
+ * Palier 2, B5 : relève les quêtes de la guilde (clé du site) et range dans la file « à classer » celles qui ne sont
+ * reliées à aucun projet ni écartées. Rien n'est adopté : la coordination décide (/membre/quetes/liaison).
+ * Renvoie le nombre de quêtes nouvellement repérées.
+ */
+export async function releverQuetesAClasser(fx: typeof fetch = fetch): Promise<number> {
+  if (!publicationAutoActive()) return 0;
+  const r = await appeler({ action: "guild_quests" }, undefined, fx);
+  if (!Array.isArray(r.quests)) throw new ErreurPublication(502, "Réponse inattendue de ChangeTheGame (guild_quests).");
+  return releverQuetesCtg(r.quests);
+}
+
 export function demarrerSynchroQuetes() {
   const g = globalThis as { __synchroQuetes?: boolean };
   if (g.__synchroQuetes || !publicationAutoActive()) return;
   g.__synchroQuetes = true;
   const minutes = Math.max(5, Number(env("CTG_SYNCHRO_MIN") ?? 15) || 15);
-  const tour = () => synchroniserQuetes()
-    .then((b) => b.envoyees || b.erreurs ? console.log(`Synchro quêtes CTG : ${b.envoyees} envoyée(s), ${b.erreurs} erreur(s).`) : undefined)
-    // Les nouvelles après les faces : une quête retirée ne reçoit plus rien (nouvelles_a_publier vérifie la visibilité).
-    .then(() => publierNouvelles())
-    .then((b) => b.envoyees || b.erreurs ? console.log(`Nouvelles de quête CTG : ${b.envoyees} publiée(s), ${b.erreurs} erreur(s).`) : undefined)
-    .then(() => synchroniserBesoins())
-    .then((b) => b.envoyes || b.erreurs ? console.log(`Besoins CTG : ${b.envoyes} envoyé(s), ${b.erreurs} erreur(s).`) : undefined)
-    .catch((e) => console.error("Synchro quêtes CTG :", e));
+  // Chaque étape a sa chance même si la précédente échoue. Les nouvelles après les faces : une quête retirée ne reçoit
+  // plus rien (nouvelles_a_publier vérifie la visibilité).
+  const etape = async <T>(nom: string, f: () => Promise<T>, bilan: (r: T) => string | null) => {
+    try { const m = bilan(await f()); if (m) console.log(`${nom} : ${m}`); }
+    catch (e) { console.error(`${nom} :`, e); }
+  };
+  const tour = async () => {
+    await etape("Synchro quêtes CTG", () => synchroniserQuetes(), (b) => b.envoyees || b.erreurs ? `${b.envoyees} envoyée(s), ${b.erreurs} erreur(s).` : null);
+    await etape("Nouvelles de quête CTG", () => publierNouvelles(), (b) => b.envoyees || b.erreurs ? `${b.envoyees} publiée(s), ${b.erreurs} erreur(s).` : null);
+    await etape("Besoins CTG", () => synchroniserBesoins(), (b) => b.envoyes || b.erreurs ? `${b.envoyes} envoyé(s), ${b.erreurs} erreur(s).` : null);
+    await etape("Quêtes CTG", () => releverQuetesAClasser(), (n) => n ? `${n} nouvelle(s) à classer.` : null);
+  };
   setTimeout(tour, 45_000).unref?.();
   setInterval(tour, minutes * 60_000).unref?.();
   console.log(`Synchro quêtes CTG : faces relues toutes les ${minutes} minutes.`);

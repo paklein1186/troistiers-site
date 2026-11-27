@@ -7,6 +7,7 @@ const publiees: unknown[][] = [];
 const fusions: unknown[][] = [];
 const pousses: unknown[][] = [];
 let aPousser: unknown[] = [];
+const releves: unknown[][] = [];
 vi.mock("../src/lib/base", () => ({
   baseConfiguree: () => true,
   facesASynchroniser: async () => faces,
@@ -15,6 +16,7 @@ vi.mock("../src/lib/base", () => ({
   projetsBesoinsASynchroniser: async () => [{ projet: "p1", quete: "q1" }],
   fusionnerBesoinsCtg: async (...a: unknown[]) => { fusions.push(a); return aPousser; },
   noterBesoinsPousses: async (...a: unknown[]) => { pousses.push(a); },
+  releverQuetesCtg: async (q: unknown[]) => { releves.push(q); return 1; },
   noterNouvellePubliee: async (...a: unknown[]) => { publiees.push(a); },
 }));
 vi.mock("../src/lib/ctg", () => ({ ctgConfiguree: () => true, urlFonctionsCtg: () => "https://ctg.test/functions/v1" }));
@@ -202,5 +204,21 @@ describe("publication automatique des quêtes (visibilité)", () => {
     expect(appels[0].corps).toEqual({ action: "proposal_decide", projet_id: "p1", quest_id: "q1", proposal_id: "x1", decision: "accept", auteur: "u1" });
     expect(appels[1].corps.action).toBe("needs");
     await expect(m.deciderProposition("p1", "q1", "x2", "accept", "u1", fx as any)).rejects.toMatchObject({ code: "already_decided" });
+  });
+
+  it("quêtes à classer (B5) : relevé des quêtes de la guilde par la clé du site, rangé par la base", async () => {
+    releves.length = 0;
+    const quetes = [{ id: "q1", title: "Née sur CTG", projet_id: null }, { id: "q2", title: "Reliée", projet_id: "p2" }];
+    const { fx, appels } = fauxCtg(true, () => ({ status: 200, body: { guild_id: "g", quests: quetes } }));
+    expect(await m.releverQuetesAClasser(fx as any)).toBe(1);
+    expect(appels[0].corps).toEqual({ action: "guild_quests" });
+    expect(appels[0].jeton).toBeUndefined();
+    expect(releves[0]).toEqual(quetes);
+    const mauvais = fauxCtg(true, () => ({ status: 200, body: { guild_id: "g" } }));
+    await expect(m.releverQuetesAClasser(mauvais.fx as any)).rejects.toThrow();
+    process.env.CTG_PUBLICATION_AUTO = "false";
+    const ferme = fauxCtg(true);
+    expect(await m.releverQuetesAClasser(ferme.fx as any)).toBe(0);
+    expect(ferme.fx).not.toHaveBeenCalled();
   });
 });

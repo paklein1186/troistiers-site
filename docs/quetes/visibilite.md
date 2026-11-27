@@ -177,3 +177,18 @@ Décision de PA du 26/11 : un seul fil, celui de la quête ChangeTheGame, affich
 - Ce qui est sensible reste dans les notes internes de la base, jamais dans ce fil.
 - Interrupteur : `CTG_DISCUSSION=false` coupe le bloc (ouvert par défaut quand ChangeTheGame est branché ; jamais dans
   le bac à sable). Rien de l'ASBL ne part vers CTG : ce sont les messages des personnes, sur leur propre compte.
+
+## 10. Quêtes nées sur ChangeTheGame : file « à classer » automatique (palier 2, B5)
+
+Décision 2 de PA du 26/11 : une quête créée directement dans la guilde n'est jamais recréée ; rien n'est adopté sans
+décision de la coordination.
+
+- Toutes les 15 minutes (publication automatique ouverte), le serveur relève les quêtes de la guilde
+  (`guild-quest-sync` action `guild_quests`, clé du site) ; la base range dans `quetes_a_classer` celles qui ne sont
+  reliées à aucun projet ni écartées, et en sort ce qui a été relié, écarté ou supprimé sur CTG.
+- **Aucun projet n'est créé automatiquement** : il ferait doublon dès qu'il faut relier la quête à un projet existant.
+  La coordination relie, accueille comme projet ou écarte sur `/membre/quetes/liaison` (étape A2), où chaque quête
+  porte sa date de repérage ; si ChangeTheGame ne répond pas, la file relevée s'y affiche quand même.
+- Signal : « Quêtes ChangeTheGame à classer (n) » dans l'onglet Projets de l'espace membres et sur la page des projets
+  (coordination seulement).
+- Migration `20261128180000_quetes_b5_a_classer.sql` ; tests `supabase/tests/quetes_a_classer.sql`.

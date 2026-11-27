@@ -2,7 +2,7 @@
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
 import {
-  accueillirQueteCtg, baseConfiguree, ecarterQueteCtg, enregistrerQueteCtg, etatLiaison, type EtatLiaison,
+  accueillirQueteCtg, baseConfiguree, ecarterQueteCtg, enregistrerQueteCtg, etatLiaison, quetesAClasser, type EtatLiaison, type QueteAClasser,
 } from "../../../lib/base";
 import { jetonsValides } from "../../../lib/ctg";
 import { garderJetons, lireJetons } from "../../../lib/jetons";
@@ -27,8 +27,11 @@ let message = "";
 let etat: EtatLiaison | null = null;
 let quetes: QueteCtgAdmin[] | null = null;
 let ctgInjoignable = false;
+// File relevée automatiquement (B5) : date de repérage, et liste de secours si ChangeTheGame ne répond pas.
+let releve: QueteAClasser[] = [];
 try {
   etat = await etatLiaison(acteur);
+  releve = await quetesAClasser(acteur).catch(() => []);
 } catch (e) {
   message = (e as { code?: string })?.code === "42501"
     ? "Cette page est réservée à la coordination."
@@ -85,6 +88,8 @@ if (Astro.request.method === "POST" && etat && quetes) {
 const liees = new Map((etat?.liees ?? []).map((l) => [l.quete, l]));
 const ecartees = new Set((etat?.ecartees ?? []).map((e) => e.quete));
 const aClasser = (quetes ?? []).filter((q) => !liees.has(q.id) && !ecartees.has(q.id));
+const reperee = new Map(releve.map((r) => [r.quete, r.reperee_le]));
+const jour = (d: string) => new Date(d).toLocaleDateString("fr-BE", { timeZone: "Europe/Brussels" });
 const reliees = (etat?.liees ?? []).map((l) => ({ ...l, q: quetes?.find((x) => x.id === l.quete) ?? null }));
 const extrait = (t: string | null) => (t && t.length > 220 ? `${t.slice(0, 217).trimEnd()}…` : t ?? "");
 const visibilite = (q: QueteCtgAdmin) =>
@@ -105,6 +110,13 @@ const fait = FAITS[Astro.url.searchParams.get("fait") ?? ""];
     <p class="avertissement" role="alert">ChangeTheGame ne vous reconnaît pas comme admin de la guilde Trois-Tiers : seules ses admins voient toutes ses quêtes. <a href={connexion}>Se reconnecter</a></p>
   )}
   {ctgInjoignable && <p class="avertissement" role="alert">ChangeTheGame ne répond pas. Réessayez dans un instant.</p>}
+  {etat && !quetes && releve.length > 0 && (
+    <section class="bloc">
+      <h2>Repérées automatiquement · {releve.length}</h2>
+      <p class="doux">Quêtes nées sur ChangeTheGame, relevées par le site. Pour les relier, les accueillir ou les écarter, il faut que ChangeTheGame vous reconnaisse comme admin de la guilde.</p>
+      <ul class="simple">{releve.map((r) => <li>{r.adresse ? <a href={r.adresse} rel="noopener">{r.titre}</a> : r.titre} <span class="doux">· repérée le {jour(r.reperee_le)}{r.brouillon ? " · brouillon" : ""}</span></li>)}</ul>
+    </section>
+  )}
 
   {etat && quetes && (
     <>
@@ -120,6 +132,7 @@ const fait = FAITS[Astro.url.searchParams.get("fait") ?? ""];
                   {q.status && !q.is_draft && <span class="etiquette">{LIBELLE_STATUT[q.status] ?? q.status}</span>}
                   {q.quest_nature && <span class="etiquette">{NATURE[q.quest_nature] ?? q.quest_nature}</span>}
                   {q.link === "affiliation" && <span class="etiquette">Affiliée</span>}
+                  {reperee.has(q.id) && <span class="etiquette">Repérée le {jour(reperee.get(q.id)!)}</span>}
                 </p>
                 {q.description && <p>{extrait(q.description)}</p>}
                 <form method="post" class="rangee">
