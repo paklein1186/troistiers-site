@@ -13,6 +13,8 @@ export interface Utilisateur {
   nom?: string;
   profil: string;
   badges: BadgePorte[];
+  /** Profils des autres formules actives sur ChangeTheGame (formules cumulables), le profil principal étant la plus haute. */
+  profils_ctg?: string[];
 }
 
 const rang = (n: Niveau) => NIVEAUX.indexOf(n);

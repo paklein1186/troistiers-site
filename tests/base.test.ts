@@ -18,8 +18,21 @@ describe("base Trois-Tiers : recopie du badge de statut", () => {
   });
 
   it("la fin du badge de statut = fin de la cotisation", () => {
-    expect(parametresSynchro(ID, u)).toEqual({ p_id: ID, p_email: "pa@ex.org", p_nom: "PA", p_profil: "lieu", p_fin: "2027-11-20T00:00:00Z" });
+    expect(parametresSynchro(ID, u)).toEqual({ p_id: ID, p_email: "pa@ex.org", p_nom: "PA", p_profil: "lieu", p_fin: "2027-11-20T00:00:00Z",
+      p_profils: [], p_roles: [] });
     expect(parametresSynchro(ID, { email: "o@ex.org", profil: "observateur", badges: [] }).p_fin).toBeNull();
+  });
+
+  it("formules cumulées et rôles actif / effectif sans portée transmis à la base (décision 2B du 28/11)", () => {
+    const p = parametresSynchro(ID, { email: "a@ex.org", profil: "accompagnant_freelance", profils_ctg: ["citoyen"], badges: [
+      { id: "adherent", expire_le: "2027-12-01T00:00:00Z" },
+      { id: "actif", expire_le: "2026-12-20T00:00:00Z" },
+      { id: "actif", expire_le: "2027-01-01T00:00:00Z", portee: { type: "projet", id: "q1" } },
+      { id: "effectif" },
+      { id: "equipe" },
+    ] });
+    expect(p.p_profils).toEqual(["citoyen"]);
+    expect(p.p_roles).toEqual([{ code: "actif", fin: "2026-12-20T00:00:00Z" }, { code: "effectif", fin: null }]);
   });
 
   it("sans configuration : aucun appel", async () => {
