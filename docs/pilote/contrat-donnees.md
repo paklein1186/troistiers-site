@@ -109,8 +109,8 @@ Les utiliser est un changement de structure : bac à sable, puis fiche de propos
 L'export contient de la comptabilité, des absences et des notes internes. Sur le site, **le Pilote entier est réservé à
 l'équipe** (projet racine sensible), les absences et les notes des tâches aussi. Une mission devient plus largement
 visible **selon le gradient décidé par PA le 25/11** (défaut par famille : socle sensible, coordination et groupes de
-travail semi-sensibles), et rien n'en sort en public sans **résumé validé**. Proposition de la session de l'artefact
-(27/11) : tout réservé à l'équipe par défaut, une mission ne s'ouvre que par décision explicite. **À trancher par PA.**
+travail semi-sensibles), et rien n'en sort en public sans **résumé validé**. La session de l'artefact proposait
+(27/11) de tout réserver à l'équipe par défaut ; **décision de PA du 27/11 : option A, on garde le gradient du 25/11.**
 
 ## Journal des retours (étape 4, provisoire)
 
