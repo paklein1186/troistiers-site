@@ -194,6 +194,11 @@ retiré comme avant. Ce passage sera fermé quand l'artefact enverra la v1.
 
 ## Tester
 
+- **Vérifier un vrai export avant l'import** (rien n'est envoyé nulle part) :
+  `npm run valider-pilote -- "<chemin du dossier Synchro site>"` (ou le chemin du fichier). Dit si la base l'importera,
+  sinon pourquoi, et signale l'allègement, les entrées de journal sans `before`/`after` (acceptées) et les champs que
+  la base ignorerait.
+
 - `npm test` : le schéma accepte l'export réel anonymisé, accepte un champ inconnu, refuse une version 2.0 et un
   export sans les champs de la v1.
 - `scripts/tester-base.sh` (fichier `supabase/tests/pilote_contrat.sql`) : import v1, suppression appliquée, mission

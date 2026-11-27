@@ -10,7 +10,8 @@
     "build": "astro build",
     "start": "node ./dist/server/entry.mjs",
     "check": "astro check",
-    "test": "vitest run"
+    "test": "vitest run",
+    "valider-pilote": "node scripts/valider-export.mjs"
   },
   "dependencies": {
     "@astrojs/node": "8.3.4",
