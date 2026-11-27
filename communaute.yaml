@@ -107,6 +107,13 @@ espaces:
     source: space2
     # Visiteurs et observateurs : nom, commune, catégories, résumé bref. Membres : toute la synthèse publique Space2.
     acces: { tous: resume, badges: { adherent: complet, equipe: complet, actif: complet } }
+  fiche_lieu_interne:
+    libelle: Synthèse interne d'un lieu
+    groupe: public
+    source: space2
+    # Décision de PA du 27/11 : la synthèse faite de toutes les réponses (confidentielles comprises), jamais les réponses
+    # brutes ni les sources, pour les membres actifs au minimum. Fermée côté Space2 tant que SITE_LIEUX_INTERNE n'est pas posé.
+    acces: { tous: aucun, badges: { actif: complet, effectif: complet, equipe: complet, administrateur: complet } }
   observatoire:
     libelle: Observatoire
     groupe: public
