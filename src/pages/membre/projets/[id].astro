@@ -5,7 +5,7 @@ import ListeTaches from "../../../components/ListeTaches.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import {
   apercuProjet, baseConfiguree, candidater, changerEtape, deverrouillerEtape, etapes, mesDroits, NATURES,
-  reglerDiffusion, reglerEnjeux, retoursProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
+  reglerDiffusion, reglerEnjeux, retoursProjet, queteDuProjet, suppressionsProjet, type SuppressionPilote, reglerResume, publicationCtg, proposerPublicationCtg, enregistrerQueteCtg, adresseQueteCtg, changerNature, type FaceCtg, ROLES_CONTEXTUELS, rpc, SENSIBILITES, tachesProjet, typesContenu, validerDiffusion,
   type Droits, type Etape, type ProjetVu, type Tache, profilCtg,
 } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
@@ -71,6 +71,8 @@ let publication: FaceCtg | null = null;
 // Copie du Pilote : retours vers l'artefact (étape 4 de la décision D).
 let retours: Awaited<ReturnType<typeof retoursProjet>> | null = null;
 let suppressions: SuppressionPilote[] = [];
+// Projet relié à une quête CTG que la personne peut voir : « Rejoindre » mène à la quête (docs/quetes/visibilite.md).
+let quete: Awaited<ReturnType<typeof queteDuProjet>> = null;
 const niveauApercu = Astro.url.searchParams.get("en_tant_que");
 try {
   [p, droits, listeEtapes, libellesTypes] = await Promise.all([
@@ -79,6 +81,7 @@ try {
     etapes().then((l) => l.sort((a, b) => a.ordre - b.ordre)),
     typesContenu().then((l) => Object.fromEntries(l.map((t) => [t.code, t.libelle]))),
   ]);
+  quete = await queteDuProjet(id, acteur).catch(() => null);
   if (droits && droits.niveau >= 4 && acteur) {
     [taches, publication, retours, suppressions] = await Promise.all([
       tachesProjet(id, acteur), publicationCtg(id, acteur).catch(() => null), retoursProjet(id, acteur).catch(() => null),
@@ -199,7 +202,14 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
         </section>
       )}
 
-      {droits?.candidater && (
+      {quete && adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde) && droits && droits.niveau < 4 && (
+        <section class="panneau bloc">
+          <h2>Rejoindre ce projet</h2>
+          <p>Ce projet est une quête de la guilde Trois-Tiers sur ChangeTheGame : c'est là que l'équipe accueille les nouvelles personnes. Demandez à rejoindre la quête ; ses admins sont prévenus et vous donnent accès.</p>
+          <p><a class="bouton" href={adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde)!} rel="noopener">Rejoindre sur ChangeTheGame</a></p>
+        </section>
+      )}
+      {!quete && droits?.candidater && (
         <form method="post" class="panneau bloc formulaire">
           <h2>Rejoindre ce projet</h2>
           <input type="hidden" name="action" value="candidater" />

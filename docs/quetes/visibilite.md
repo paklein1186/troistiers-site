@@ -34,7 +34,7 @@ publication puis à chaque changement (fonction `guild-quest-sync`).
 | Sensibilité sur le site | Quête CTG | N0 / N1 voient | N2 voit | N4 (équipe de la quête) voit |
 | --- | --- | --- | --- | --- |
 | transparent | **publique** | titre, résumé validé, enjeux si besoins publics | idem | tout ce que porte la quête |
-| semi-sensible | **réservée aux membres cotisants de la guilde** | rien | titre, résumé validé, enjeux | tout ce que porte la quête |
+| semi-sensible | **réservée aux membres à partir de N2** (ou N3) | rien | titre, résumé validé, enjeux (à partir de N3 si `niveau_minimum` = N3) | tout ce que porte la quête |
 | sensible | **pas de quête** | — | — | — (reste sur le site) |
 
 - Le **plafond par étape** du site s'applique : si une mission redescend à un niveau plus fermé (ou devient sensible),
@@ -42,6 +42,9 @@ publication puis à chaque changement (fonction `guild-quest-sync`).
 - Ce qui part sur la quête ne change pas : **titre, résumé validé, enjeux validés, nature, statut, étiquettes, lien vers
   la fiche du site**. Jamais la fiche, les obstacles, le budget ni les personnes (palier 3 pour les personnes).
 - Le détail réservé (tâches, notes, budget N3) reste sur le site, derrière ses badges ; la quête y renvoie.
+- **Sur CTG, le niveau minimum donne la fiche ; le contenu de la quête** (besoins, discussions, fichiers, membres)
+  **est à l'équipe** (N4 : participants et accès individuels) et aux admins (N5). Une quête `public` est ouverte à
+  tous, contenu compris.
 
 ## 3. Ce que le site envoie à CTG
 
@@ -53,10 +56,17 @@ Dans `guild-quest-sync` (création et mise à jour), un champ `visibilite` rempl
 ```
 
 - `public` : visible de tous.
-- `membres` : visible des membres de la guilde **à partir du niveau indiqué** (N2 = adhésion active ; N3 = rôles de
-  membrane). CTG traduit ce niveau en ses propres réglages de rôles (« visible à certains rôles des membranes ») pour
-  la guilde Trois-Tiers ; la table de traduction est un réglage de la guilde, pas du code.
-- Le site n'envoie jamais `cache` : une mission qui devient sensible est **retirée** (`withdraw`).
+- `membres` : la fiche est visible des membres de la guilde **à partir du niveau indiqué** (N2 = adhésion active ;
+  N3 = rôles de membrane), le contenu reste à l'équipe. Hors guilde et suiveurs (N0, N1) : rien.
+- **Table N3** : un réglage de la guilde sur CTG (Paramètres de la guilde → « Quest Access & Co-admins »), en
+  **codes**, pas en identifiants : `{ "N3": { "role_codes": ["actif", "effectif", "partenaire"], "plan_codes":
+  ["accompagnant_freelance", "accompagnant_organisation"] } }`. N3 = un rôle de guilde à code non expiré
+  (`entity_roles.code`) ou une adhésion active sur une de ces formules. La quête ne garde que `N3` : changer la table
+  met à jour toutes les quêtes qui y renvoient. Les admins de la guilde (N5) voient toujours tout.
+- Le site n'envoie jamais `cache` : une mission qui devient sensible est **retirée** (`withdraw`). Tout autre mode
+  ou niveau est refusé (400 `invalid_visibility`). Sans `visibilite` (ancien format), seule `face.audience` compte.
+- `public` expose aussi la quête sur le web ; `membres` jamais (mais `guild-quests` la renvoie aux personnes
+  connectées à leur niveau : `access: "full"` ou `"teaser"` avec `request_access_url`).
 - Les accès individuels et l'équipe de la quête sont gérés **sur CTG** (le site n'en envoie pas).
 
 ## 4. Ce que CTG renvoie au site
@@ -71,20 +81,51 @@ dans la réponse de `guild-member-profile` (déjà lue à chaque connexion) :
 ```
 
 - `niveau` : `lecture` (voit la quête comme l'équipe, sans agir) ou `equipe` (participe) ou `admin` (administre).
+  Sur CTG : `lecture` = accès individuel accordé, `equipe` = participant de la quête, `admin` = co-admin de la quête
+  (rôles ADMIN, OWNER, HOST, CO_HOST). Les admins hérités de la guilde n'y figurent pas (déjà N5 sur le site). Un seul
+  niveau par quête, le plus haut.
+- Seulement les quêtes reliées à un projet (`quest_external_links`, source `trois-tiers` ; autre source :
+  `?source=`). `accorde_par` est `null` pour l'équipe (non enregistré sur CTG) ; `expire_le` vient de la date de fin
+  facultative d'un accès individuel. `acces_quetes` vaut `null` si CTG ne peut pas le calculer (base pas à jour) :
+  ne rien retirer dans ce cas ; `[]` = aucun accès.
 - Le site recopie : `lecture` → badge contextuel de lecture sur le projet (N3 sur ce projet), `equipe` → membre
   d'équipe (N4), `admin` → référent·e (N4 avec droits de gestion). Un accès retiré ou expiré sur CTG retire le badge
   au prochain passage (même mécanisme que les adhésions).
 - **Demander à rejoindre** : pour un projet relié à une quête, le bouton « Rejoindre » du site mène à la quête sur CTG
-  (une seule porte) ; la candidature interne du site reste pour les projets sans quête.
+  (une seule porte) ; la candidature interne du site reste pour les projets sans quête. À n'afficher qu'à partir du
+  niveau minimum de la quête : en dessous, CTG répond que la quête n'existe pas.
 
 ## 5. Ordre et garde-fous
 
 1. **Tant que CTG n'applique pas la visibilité des quêtes dans sa base de données**, le site ne publie que des quêtes
    **publiques** (comme aujourd'hui). Aujourd'hui, la base de CTG laisse encore lire toute quête publiée (faille
    signalée) : une quête « réservée aux membres » serait lisible par tous.
-2. CTG l'annonce explicitement : `guild-quest-sync` répond `"visibilite_appliquee_par_la_base": true` ; le site ne
-   publie une quête `membres` qu'après avoir lu cette réponse.
+2. CTG l'annonce explicitement : chaque réponse de `guild-quest-sync` porte `"visibilite_appliquee_par_la_base"`,
+   **mesuré dans la base à chaque appel** (la politique restrictive sur les quêtes existe et est active), jamais
+   déclaré à la main. `{ "action": "status" }` le lit sans rien publier. Tant qu'il est faux, CTG refuse `membres`
+   (422 `visibility_not_enforced`) ; le site ne publie une quête `membres` qu'après avoir lu `true`.
 3. Tests des deux côtés : un utilisateur hors guilde, un membre suiveur, un membre cotisant et un membre de l'équipe
    de la quête lisent la même quête directement dans la base de CTG (pas par l'écran) ; chacun ne voit que son niveau.
+   Côté CTG : `supabase/tests/quest_access_levels.sql` (dépôt changethegame), dans une transaction annulée ; il
+   échoue si la protection manque.
 4. Puis, côté site : publication des missions semi-sensibles, recopie des accès individuels, bouton « Rejoindre sur
    ChangeTheGame ». Fermé par l'interrupteur `CTG_PUBLICATION_AUTO` jusqu'à la convention Trois-Tiers × ChangeTheGame.
+
+## 6. Côté site (codé le 28/11, interrupteur `CTG_PUBLICATION_AUTO` fermé)
+
+- **Visibilité déduite par la base** (`visibilite_quete`, `face_ctg.visibilite`) : niveau minimum où la fiche (le titre)
+  est visible sur le site → transparent et visible de tous : `public` ; visible dès N1 ou N2 : `membres` N2 (CTG n'a pas
+  de niveau N1 : on ferme plutôt qu'ouvrir) ; dès N3 : `membres` N3 ; seulement l'équipe (N4) ou projet sensible :
+  pas de quête (retrait). Le plafond par étape et la validation du lieu jouent donc aussi.
+- **Publication** (`src/lib/publication-ctg.ts`) : `visibilite` envoyée à la création et à chaque mise à jour ; avant une
+  quête `membres`, `{"action": "status"}`, puis envoi seulement si `visibilite_appliquee_par_la_base` vaut `true` (relu
+  dans chaque réponse, gardé 5 minutes). Sinon la quête attend, rien n'est envoyé, l'attente est notée. 422
+  `visibility_not_enforced` et 400 `invalid_visibility` sont signalés à la coordination.
+- **Accès individuels** : `acces_quetes` recopié à chaque lecture du profil (`recopier_acces_quetes`) ; `lecture` →
+  badge `lecteur_quete` (N3 sur ce projet), `equipe` → `membre_equipe`, `admin` → `referent_mission` ; un accès disparu
+  ou expiré retire le badge ; `null` ne touche à rien ; un badge accordé sur le site n'est jamais retiré par CTG.
+- **Rejoindre** (`quete_du_projet`) : sur la fiche publique et la fiche membre, « Rejoindre sur ChangeTheGame » mène à la
+  quête, seulement à partir de son niveau minimum ; il remplace la candidature du site pour un projet relié.
+- **Liste des quêtes** sur `/projets` : avec le jeton de la personne, `access: "teaser"` → fiche seule et « Demander à
+  rejoindre » (`request_access_url`) ; sinon la liste publique.
+- **Propositions venues de CTG** : acceptées par l'import (provenance `ctg`), en attente, avec leur lien CTG en source.

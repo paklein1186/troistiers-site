@@ -1,7 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import { acteurConnecte } from "../../lib/acteur";
-import { apercuProjet, baseConfiguree, etapes, NATURES, profilCtg, type ProjetVu } from "../../lib/base";
+import { adresseQueteCtg, apercuProjet, baseConfiguree, etapes, NATURES, profilCtg, queteDuProjet, type ProjetVu } from "../../lib/base";
 import { chargerContenu } from "../../lib/contenu";
 
 // Fiche d'un projet ouverte à tous : c'est l'adresse que porte la quête ChangeTheGame (website_url, étape A4).
@@ -16,8 +16,11 @@ const k = chargerContenu();
 let p: ProjetVu | null = null;
 let libelles: Record<string, string> = {};
 let erreur = false;
+// Quête CTG reliée, seulement à partir de son niveau minimum (en dessous, CTG répond qu'elle n'existe pas).
+let quete: Awaited<ReturnType<typeof queteDuProjet>> = null;
 try {
-  const [vu, l] = await Promise.all([apercuProjet(id, acteur), etapes()]);
+  const [vu, l, q] = await Promise.all([apercuProjet(id, acteur), etapes(), queteDuProjet(id, acteur).catch(() => null)]);
+  quete = q;
   p = vu;
   libelles = Object.fromEntries(l.map((e) => [e.code, e.libelle]));
 } catch (e) {
@@ -71,6 +74,12 @@ const profil = (pid: string | null | undefined) => (pid ? profilCtg(pid, k.liens
         <section class="bloc">
           <h2>Nouvelles et contenus</h2>
           <ul class="simple">{p.elements.map((e) => <li>{e.texte}</li>)}</ul>
+        </section>
+      )}
+      {quete && adresseQueteCtg(quete.quete, k.liens.changethegame_guilde) && (
+        <section class="bloc">
+          <p><a class="bouton" href={adresseQueteCtg(quete.quete, k.liens.changethegame_guilde)!} rel="noopener">Rejoindre sur ChangeTheGame</a></p>
+          <p class="doux">Ce projet est une quête de la guilde Trois-Tiers : on y demande à rejoindre l'équipe, on y suit son avancée.</p>
         </section>
       )}
       <section class="bloc">

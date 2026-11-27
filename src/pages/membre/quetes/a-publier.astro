@@ -5,7 +5,9 @@ import { acteurConnecte, messageBase } from "../../../lib/acteur";
 import {
   baseConfiguree, enregistrerPublicationAuto, enregistrerQueteCtg, projetsAPublier, publicationCtg, quetesLiees, type FaceCtg,
 } from "../../../lib/base";
-import { empreinte, ErreurPublication, publicationAutoActive, publiableAuto, publierSurCtg } from "../../../lib/publication-ctg";
+import {
+  attendProtection, empreinte, ErreurPublication, protectionCtg, publicationAutoActive, publiableAuto, publierSurCtg, visibiliteDe,
+} from "../../../lib/publication-ctg";
 import { jetonsValides } from "../../../lib/ctg";
 import { lireJetons } from "../../../lib/jetons";
 import { quetesAdmin, quetesProches, type QueteCtgAdmin } from "../../../lib/quetes-ctg";
@@ -32,7 +34,8 @@ if (Astro.request.method === "POST") {
       const jetons = await jetonsValides(lireJetons(Astro.cookies));
       if (!jetons) return Astro.redirect(`/auth/ctg?suite=${encodeURIComponent(ici)}`);
       const face = await publicationCtg(projet, acteur);
-      if (!face || !publiableAuto(face) || !face.validee_le) throw new ErreurPublication(422, "Ce projet ne peut pas être publié automatiquement.");
+      // publierSurCtg relit la protection de CTG avant une quête réservée aux membres.
+      if (!face || !face.publiable || !visibiliteDe(face) || !face.validee_le) throw new ErreurPublication(422, "Ce projet ne peut pas devenir une quête.");
       const quete = await publierSurCtg(jetons.acces, projet, face);
       await enregistrerPublicationAuto(acteur, projet, quete, empreinte(face));
       return Astro.redirect(`${ici}?fait=auto`, 303);
@@ -56,6 +59,12 @@ try {
 }
 const lienGuilde = chargerContenu().liens.changethegame_guilde;
 const auto = publicationAutoActive();
+// Quêtes réservées aux membres : seulement si la base de ChangeTheGame les protège vraiment (lu à chaque affichage).
+const protegee = auto && liste.some((f) => visibiliteDe(f)?.mode === "membres") ? await protectionCtg() : false;
+const libelleVisibilite = (f: FaceCtg) => {
+  const v = visibiliteDe(f);
+  return !v ? "pas de quête" : v.mode === "public" ? "quête publique" : `quête réservée aux membres à partir de ${v.niveau_minimum}`;
+};
 
 // Rapprochement avant création (palier 2, B2) : quêtes de la guilde, pas encore reliées, qui ressemblent au projet.
 // Lues avec le jeton CTG de la personne (admin de la guilde) ; si CTG ne répond pas, la page reste utilisable sans.
@@ -108,7 +117,11 @@ if (liste.length) {
               </ul>
             </div>
           )}
-          {auto && publiableAuto(f) && (
+          {auto && <p class="doux">Visibilité sur ChangeTheGame : {libelleVisibilite(f)}.</p>}
+          {auto && attendProtection(f, protegee) && (
+            <p class="avertissement">ChangeTheGame ne protège pas encore les quêtes réservées aux membres : la publication automatique de ce projet attend.</p>
+          )}
+          {auto && publiableAuto(f, protegee) && (
             <form method="post" action={ici} class="auto">
               <input type="hidden" name="action" value="auto" />
               <input type="hidden" name="projet" value={f.id} />

@@ -99,3 +99,15 @@ SELECT pg_temp.ok('suppressions du projet : la coordination les voit', pg_temp.e
 SELECT pg_temp.ok('suppressions du projet : un partenaire ne les voit pas', pg_temp.en('authenticated', '00000000-0000-0000-0000-0000000000c1',
   $q$SELECT jsonb_array_length(public.suppressions_projet((SELECT id FROM racine)))::text$q$), '0');
 DROP TABLE public.t_export;
+
+-- 6. Propositions venues de ChangeTheGame (agent du Pilote) : provenance ctg, lien CTG en source, en attente.
+SET ROLE service_role;
+SELECT public.importer_pilote_missions('pilote-ctgp', $j${"schema_version": "1.1", "exported_at": "2026-11-28T10:00:00Z",
+  "missions": [], "tasks": [],
+  "proposals": [{"id": "p-ctg-1", "kind": "create", "status": "pending", "author": "agent-ctg", "provenance": "ctg",
+    "maj_le": "2026-11-28T09:00:00Z", "created_at": "2026-11-28T09:00:00Z", "reason": "Une membre propose une tâche sur la quête",
+    "task": {"title": "Animer l'atelier de janvier"},
+    "source": {"label": "Quête ChangeTheGame", "url": "https://changethegame.xyz/quests/aaaaaaaa-0000-0000-0000-000000000001"}}]}$j$::jsonb) IS NOT NULL;
+RESET ROLE;
+SELECT pg_temp.ok('proposition ctg : acceptée, en attente, avec son lien', (SELECT statut || ' ' || (details -> 'source' ->> 'url')
+  FROM pilote_historique WHERE source = 'pilote-ctgp' AND ref = 'p:p-ctg-1'), 'pending https://changethegame.xyz/quests/aaaaaaaa-0000-0000-0000-000000000001');

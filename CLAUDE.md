@@ -304,7 +304,10 @@ travail deviennent des quêtes de la guilde avec la visibilité de leur sensibil
 membres cotisants : titre, résumé, enjeux ; hors guilde et « galaxie » : rien) ; **les missions sensibles ne deviennent
 jamais des quêtes** ; CTG construit un système de visibilité des quêtes appliqué par sa base de données (autre session) ;
 **les accès individuels se donnent sur CTG**, le site les recopie comme badges sur le projet ; le site ne publie une quête
-réservée qu'après que CTG a confirmé `visibilite_appliquee_par_la_base`.
+réservée qu'après que CTG a confirmé `visibilite_appliquee_par_la_base`. **Codé côté CTG (main) et côté site le 28/11** : visibilité déduite
+de `niveau_fiche` (migration `20261128100000_quetes_visibilite.sql`), `status` avant toute quête réservée, `acces_quetes`
+recopié en badges (`lecteur_quete` N3, `membre_equipe`, `referent_mission`), bouton « Rejoindre sur ChangeTheGame »
+(`quete_du_projet`), quêtes « teaser » sur `/projets` ; interrupteur toujours fermé.
 Prévu au départ après le vote du 7 décembre :
 publication automatique, commentaires synchronisés, besoins dans les deux sens, tâches partagées, personnes sur la quête.
 

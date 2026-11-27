@@ -18,7 +18,7 @@ import { resolve } from "node:path";
 import type { BadgePorte, Utilisateur } from "./acces";
 import type { Jetons } from "./jetons";
 import { chargerCommunaute, type Communaute } from "./config";
-import { recopierPersonne } from "./base";
+import { recopierAccesQuetes, recopierPersonne, type AccesQuete } from "./base";
 
 // Une variable vide dans .env (ex. « CTG_FUNCTIONS_URL= ») compte comme absente.
 const env = (k: string) => ((import.meta.env?.[k] as string | undefined) || process.env[k]) || undefined;
@@ -113,6 +113,8 @@ export interface ProfilCtg {
   is_guild_admin: boolean;
   membership: { active: boolean; plan_code: string | null; current_period_end: string | null } | null;
   badges: { code: string; expires_at: string | null; scope: { type: string; id: string } | null }[];
+  /** Accès propres aux quêtes reliées aux projets du site ; null = CTG ne peut pas le calculer (ne rien retirer). */
+  acces_quetes?: AccesQuete[] | null;
 }
 
 interface ReponseJeton {
@@ -191,7 +193,7 @@ export async function lireProfil(jeton: string): Promise<Utilisateur> {
   if (statut !== 200) throw new Error(`Profil CTG indisponible (${statut})`);
   const utilisateur = versUtilisateur(donnees as ProfilCtg, chargerCommunaute());
   // Recopie dans la base Trois-Tiers (badge de statut), sans faire attendre la personne.
-  void recopierPersonne(jeton, utilisateur);
+  void recopierPersonne(jeton, utilisateur).then((ok) => (ok ? recopierAccesQuetes(jeton, (donnees as ProfilCtg).acces_quetes) : false));
   return utilisateur;
 }
 

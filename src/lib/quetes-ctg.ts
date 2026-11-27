@@ -6,6 +6,9 @@
 import { ctgConfiguree, guildeCtg, urlFonctionsCtg } from "./ctg";
 
 export interface QueteCtg {
+  /** Mode « membre » (jeton d'une personne) : full = présentation complète ; teaser = fiche seule + demande d'accès. */
+  access?: "full" | "teaser";
+  request_access_url?: string;
   id: string; title: string; description: string | null; quest_nature: string | null; status: string | null;
   cover_image_url: string | null; website_url: string | null; web_tags: string[]; url: string; updated_at: string | null;
 }
@@ -41,6 +44,29 @@ export async function quetesAdmin(jeton: string, f: typeof fetch = fetch): Promi
   if (!r.ok) throw new Error(`guild-quests ${r.status}`);
   const d = (await r.json()) as { mode?: string; quests?: QueteCtgAdmin[] };
   return d.mode === "admin" ? d.quests ?? [] : null;
+}
+
+/**
+ * Quêtes de la guilde vues par une personne connectée (jeton CTG) : CTG calcule son niveau sur chaque quête
+ * (mode « member » : access full ou teaser, avec request_access_url) ; une admin reçoit toutes les quêtes (mode
+ * « admin ») : on ne garde alors que celles publiées. null si CTG ne répond pas (la page retombe sur la liste publique).
+ */
+export async function quetesPourPersonne(jeton: string, f: typeof fetch = fetch): Promise<QueteCtg[] | null> {
+  if (!ctgConfiguree()) return null;
+  try {
+    const r = await f(`${urlFonctionsCtg()}/guild-quests?guild_id=${encodeURIComponent(guildeCtg())}`, {
+      headers: { authorization: `Bearer ${jeton}` }, signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) throw new Error(`guild-quests ${r.status}`);
+    const d = (await r.json()) as { mode?: string; quests?: (QueteCtg & { is_draft?: boolean | null })[] };
+    const liste = (d.quests ?? []).filter((q) => q && typeof q.id === "string" && typeof q.url === "string");
+    if (d.mode === "admin") return liste.filter((q) => !q.is_draft).map((q) => ({ ...q, access: "full" as const }));
+    if (d.mode === "member") return liste.filter((q) => q.access === "full" || q.access === "teaser");
+    return liste;
+  } catch (e) {
+    console.error("Quêtes CTG (personne) :", e);
+    return null;
+  }
 }
 
 /** Retire les quêtes déjà reliées à un projet du site (lien explicite, ou adresse de la quête vers une fiche du site). */
