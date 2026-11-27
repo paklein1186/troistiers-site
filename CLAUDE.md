@@ -222,8 +222,11 @@ fonction, matrice de diffusion, cycle de vie, 8 lots). Décisions du 23/11 :
   **Gel immédiat** : plus aucune nouvelle fonction du Pilote côté site (tableau, missions, planning, tâches) avant la
   bascule, sauf ce qui sert à la diffusion (gradient, résumés publics, enjeux, personnes affichées) ; une fonction
   demandée par PA est proposée comme **paquet** (étape 3). Étapes, une branche et une PR chacune : 1 contrat de données v1
-  (`docs/pilote/contrat-donnees.md`, `schemas/pilote-v1.json`) ; 2 bac à sable (base `tt-bac-a-sable`,
-  `scripts/bac-a-sable.sh`, `.env.bac-a-sable`, bannière) ; 3 paquets et `docs/pilote/NOUVEAUTES.md`, interrupteurs
+  (`docs/pilote/contrat-donnees.md`, `schemas/pilote-v1.json`, migration `20261127100000_pilote_contrat_v1.sql`, #45 :
+  export sans `schema_version` encore accepté pendant la transition, v2 refusée, `supprime: true`, champs inconnus
+  journalisés ; jeu de test anonymisé par `scripts/anonymiser-pilote.mjs`) ; 2 bac à sable (base `tt-bac-a-sable`,
+  `scripts/bac-a-sable.sh`, `.env.bac-a-sable` seul lu, `npm run dev:bac-a-sable` sur le port 4322, bannière, production
+  refusée, synchro du Pilote réel et publication CTG coupées ; mode d'emploi `docs/pilote/bac-a-sable.md`) ; 3 paquets et `docs/pilote/NOUVEAUTES.md`, interrupteurs
   `pilote.fonctions.<id>` dans `communaute.yaml` ; 4 journal des retours provisoire (`/membre/pilotes/pilote-33/retours`) ;
   5 bascule après mise en ligne (connecteur MCP `pilote_lire` / `pilote_agir`, la base l'emporte) ; 6 Pilote commun
   (après le 7/12 ; copies CTG et Poiethic du Pilote figées dès maintenant). Points avec PA : fin de l'étape 1, bac à sable

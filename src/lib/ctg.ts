@@ -58,7 +58,8 @@ async function decouvrir(): Promise<Decouverte> {
   throw new Error(`Configuration OAuth introuvable pour ${issuer}`);
 }
 
-const FICHIER_CLIENT = resolve(process.cwd(), ".ctg-client.json");
+// Le bac à sable (port 4322) a sa propre adresse de retour, donc son propre enregistrement chez CTG.
+const FICHIER_CLIENT = resolve(process.cwd(), env("CTG_CLIENT_FILE") ?? ".ctg-client.json");
 
 /** Identifiant d'application du site chez CTG : variable d'environnement, fichier local, ou enregistrement dynamique. */
 async function obtenirClient(): Promise<{ client_id: string; client_secret?: string }> {

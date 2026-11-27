@@ -4,6 +4,9 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.bac-a-sable.example
 .DS_Store
 .ctg-client.json
 .donnees/
+.donnees-bac-a-sable/
+.ctg-client-bac-a-sable.json
