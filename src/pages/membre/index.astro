@@ -7,7 +7,8 @@ import { jetonsValides, listerCodes, type CodeAchete } from "../../lib/ctg";
 import { garderJetons, lireJetons } from "../../lib/jetons";
 import { niveauAcces } from "../../lib/acces";
 import { chargerEnquetes, type Enquete } from "../../lib/space2";
-import { baseConfiguree, maRevue, sujetDuJeton } from "../../lib/base";
+import { baseConfiguree, etapes, maRevue, projetsVisibles, sujetDuJeton, type ProjetVu } from "../../lib/base";
+import VignettesProjets from "../../components/VignettesProjets.astro";
 
 const u = Astro.locals.utilisateur;
 if (!u) return Astro.redirect("/connexion");
@@ -57,10 +58,23 @@ const onglets = [
 const demande = Astro.url.searchParams.get("onglet") ?? (Astro.url.searchParams.get("profil") ? "compte" : "");
 const onglet = onglets.find((o) => o.id === demande)?.id ?? onglets[0].id;
 
-// Onglet Projets : nombre de propositions à examiner (coordination, gestionnaires).
+// Onglet Projets : les projets visibles, affichés directement, et les propositions à examiner.
 let aExaminer = 0;
-if (onglet === "projets" && jetons) {
-  const acteur = sujetDuJeton(jetons.acces);
+let projets: ProjetVu[] = [];
+let libellesEtapes: Record<string, string> = {};
+let erreurProjets = false;
+if (onglet === "projets") {
+  const acteur = jetons ? sujetDuJeton(jetons.acces) : null;
+  try {
+    [projets, libellesEtapes] = await Promise.all([
+      projetsVisibles(acteur),
+      etapes().then((l) => Object.fromEntries(l.map((e) => [e.code, e.libelle]))),
+    ]);
+    projets.sort((a, b) => (a.famille?.ordre ?? 99) - (b.famille?.ordre ?? 99) || a.titre.localeCompare(b.titre, "fr"));
+  } catch (e) {
+    console.error("Base Trois-Tiers (liste) :", e);
+    erreurProjets = true;
+  }
   if (acteur) {
     try {
       aExaminer = (await maRevue(acteur)).length;
@@ -157,12 +171,20 @@ const profilMaj = Astro.url.searchParams.get("profil");
   {onglet === "projets" && (
     <section class="panneau-onglet" id="panneau-projets" aria-labelledby="titre-projets">
       <h2 id="titre-projets">Projets et missions</h2>
-      <p>Les projets du réseau que vous pouvez voir selon votre adhésion et vos rôles ; proposez-en un, rejoignez une équipe.</p>
+      <p>Les projets du réseau que vous pouvez voir selon votre adhésion et vos rôles. Proposez-en un, ou rejoignez une équipe depuis sa vignette.</p>
       <div class="rangee">
-        <a class="bouton" href="/membre/projets">Voir les projets</a>
         <a class="bouton creux" href="/membre/taches">Mes tâches</a>
         {aExaminer > 0 && <a class="bouton creux" href="/membre/revue">File de revue ({aExaminer})</a>}
+        <a class="bouton" href="/membre/projets?proposer=1#proposer">Proposer un projet</a>
+        <a class="bouton creux" href="/membre/projets">Filtres et liste</a>
       </div>
+      {erreurProjets ? (
+        <p class="avertissement" role="alert">Les projets n'ont pas pu être chargés. Rechargez la page dans un instant.</p>
+      ) : projets.length === 0 ? (
+        <p class="doux">Aucun projet visible pour l'instant.</p>
+      ) : (
+        <div class="liste-projets"><VignettesProjets projets={projets} libellesEtapes={libellesEtapes} /></div>
+      )}
     </section>
   )}
 
