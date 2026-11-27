@@ -249,7 +249,8 @@ export function enListe(c: Champ): string[] {
 export function enPoints(c: Champ): string[] {
   const items = enListe(c);
   if (items.length !== 1) return items;
-  const phrases = items[0].split(/(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Ý0-9«"])/).map((x) => x.trim()).filter(Boolean);
+  // Coupe après un mot d'au moins 4 lettres, un chiffre ou une parenthèse (pas après « env. », « ex. », « M. »).
+  const phrases = items[0].split(/(?<=(?:\p{L}{4,}|\d|[)»"])[.!?])\s+(?=[\p{Lu}0-9«"])/u).map((x) => x.trim()).filter(Boolean);
   return phrases.length > 1 ? phrases : items;
 }
 
