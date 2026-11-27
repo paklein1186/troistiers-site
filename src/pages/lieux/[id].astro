@@ -2,11 +2,16 @@
 import Base from "../../layouts/Base.astro";
 import { chargerCommunaute } from "../../lib/config";
 import { niveauAcces } from "../../lib/acces";
-import { dansLesPays, enListe, resumeBref, trouverLieu, type Champ } from "../../lib/space2";
+import {
+  dansLesPays, enListe, enPoints, resumeBref, RUBRIQUES_LIEU, syntheseInterne, trouverLieu, type Champ, type SyntheseInterne,
+} from "../../lib/space2";
 import { chargerContenu } from "../../lib/contenu";
+import { jetonsValides } from "../../lib/ctg";
+import { garderJetons, lireJetons } from "../../lib/jetons";
 
-// Fiche d'un lieu, à niveau d'accès gradué (espace « fiche_lieu » de communaute.yaml) :
-// visiteurs → l'essentiel en bref ; membres → toute la synthèse publique de Space2.
+// Fiche d'un lieu, à niveau d'accès gradué (espaces « fiche_lieu » et « fiche_lieu_interne » de communaute.yaml) :
+// visiteurs → l'essentiel en bref ; membres → toute la synthèse publique de Space2 ;
+// membres actifs et plus → la synthèse interne (décision du 27/11), sauf s'ils demandent la vue publique.
 let lieu = null;
 try {
   lieu = await trouverLieu(Astro.params.id ?? "");
@@ -18,28 +23,58 @@ if (lieu && !dansLesPays(lieu, chargerContenu().carte?.pays ?? ["Belgique"])) li
 if (!lieu) return new Response("Lieu introuvable", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
 
 const u = Astro.locals.utilisateur;
-const niveau = niveauAcces(chargerCommunaute(), u, "fiche_lieu");
+const communaute = chargerCommunaute();
+const contenu = chargerContenu();
+const niveau = niveauAcces(communaute, u, "fiche_lieu");
 const complet = niveau === "complet" || niveau === "filtre";
 const categories = enListe(lieu.categories as Champ);
 const ou = [lieu.commune, lieu.region, lieu.pays].filter(Boolean).join(", ");
 const lien = lieu.lien_externe && /^https?:\/\//i.test(lieu.lien_externe) ? lieu.lien_externe : null;
 const photo = lieu.photo_url && /^https:\/\//i.test(lieu.photo_url) ? lieu.photo_url : null;
+let lienCtg: string | null = null;
+if (lieu.ctg_entity_id && /^[0-9a-f-]{36}$/i.test(lieu.ctg_entity_id)) {
+  try { lienCtg = `${new URL(contenu.liens.changethegame_guilde).origin}/guilds/${lieu.ctg_entity_id}`; } catch { /* lien absent */ }
+}
+const contributeurs = typeof lieu.nombre_contributeurs === "number" && lieu.nombre_contributeurs > 0 ? lieu.nombre_contributeurs : null;
 
-// Rubriques détaillées, dans l'ordre d'affichage (membres seulement).
-const rubriques: [string, Champ][] = [
-  ["Activités", lieu.activites], ["Publics", lieu.publics], ["Ancrage territorial", lieu.territoire],
-  ["Partenaires", lieu.partenaires], ["Compétences présentes", lieu.competences], ["Projets", lieu.projets],
-  ["Enjeux", lieu.enjeux], ["Besoins", lieu.besoins],
-].filter(([, v]) => enListe(v).length > 0) as [string, Champ][];
+// Synthèse interne : seulement si le badge l'ouvre (vérifié ICI, avant tout appel), avec le jeton CTG de la personne.
+const peutInterne = complet && niveauAcces(communaute, u, "fiche_lieu_interne") !== "aucun";
+const vuePublique = Astro.url.searchParams.get("vue") === "publique";
+let interne: SyntheseInterne | null = null;
+if (peutInterne && !vuePublique) {
+  const jetons = await jetonsValides(lireJetons(Astro.cookies));
+  if (jetons) {
+    garderJetons(Astro.cookies, jetons);
+    interne = await syntheseInterne(jetons.acces, Astro.params.id ?? "");
+  }
+}
+const resume = interne?.sections.resume ?? lieu.resume;
+
+// Rubriques détaillées, dans l'ordre de Space2 (membres seulement), en listes à puces.
+// Une rubrique absente de la synthèse interne reprend la version publique.
+const source = (cle: string): Champ => interne?.sections[cle] || (lieu as unknown as Record<string, Champ>)[cle];
+const rubriques = RUBRIQUES_LIEU.map(([cle, titre]) => [titre, enPoints(source(cle))] as [string, string[]])
+  .filter(([, items]) => items.length > 0);
 const besoins = (lieu.besoins_mis_en_avant ?? []).filter(Boolean);
 ---
 <Base titre={lieu.tiers_lieu} description={resumeBref(lieu.resume)}>
   <p class="surtitre"><a href="/carte">Carte des lieux</a> · Fiche</p>
   <section class="hero">
-    <h1>{lieu.tiers_lieu}</h1>
-    {ou && <p class="doux">{ou}</p>}
+    <div class="entete">
+      {complet && photo && <img src={photo} alt="" class="logo" loading="lazy" referrerpolicy="no-referrer" />}
+      <div>
+        <h1>{lieu.tiers_lieu}</h1>
+        {(ou || contributeurs) && <p class="doux">{[ou, contributeurs && `${contributeurs} contributeur${contributeurs > 1 ? "s" : ""}`].filter(Boolean).join(" · ")}</p>}
+      </div>
+    </div>
     {categories.length > 0 && <p>{categories.map((c) => <span class="pastille" style="margin-right:6px">{c}</span>)}</p>}
-    <p class="lead">{complet ? lieu.resume : resumeBref(lieu.resume)}</p>
+    <p class="lead">{complet ? resume : resumeBref(lieu.resume)}</p>
+    {complet && (lien || lienCtg) && (
+      <p class="liens">
+        {lien && <a href={lien} rel="noopener">Site du lieu</a>}
+        {lienCtg && <a href={lienCtg} rel="noopener">Voir sur ChangeTheGame</a>}
+      </p>
+    )}
   </section>
 
   {lieu.campagne && (
@@ -53,7 +88,15 @@ const besoins = (lieu.besoins_mis_en_avant ?? []).filter(Boolean);
 
   {complet ? (
     <>
-      {photo && <img src={photo} alt={`Photo : ${lieu.tiers_lieu}`} class="photo" loading="lazy" referrerpolicy="no-referrer" />}
+      {peutInterne && (
+        <p class={interne ? "avertissement interne" : "doux"} role="note">
+          {interne
+            ? <>Synthèse <strong>interne</strong> : faite de toutes les réponses du lieu, y compris confidentielles. Réservée aux membres actifs : ne pas la diffuser. <a href="?vue=publique">Voir la version publique</a></>
+            : vuePublique
+              ? <>Version publique. <a href="?">Voir la synthèse interne</a></>
+              : "La synthèse interne de ce lieu n'est pas disponible pour l'instant : voici la version publique."}
+        </p>
+      )}
       {besoins.length > 0 && (
         <section class="bloc">
           <h2>Besoins mis en avant</h2>
@@ -63,22 +106,18 @@ const besoins = (lieu.besoins_mis_en_avant ?? []).filter(Boolean);
       {rubriques.length > 0 && (
         <section class="bloc">
           <h2>Le lieu en détail</h2>
-          <div class="t2">
-            {rubriques.map(([titre, v]) => {
-              const items = enListe(v);
-              return (
-                <div class="cellule">
-                  <h3>{titre}</h3>
-                  {items.length === 1 ? <p>{items[0]}</p> : <ul class="simple">{items.map((x) => <li>{x}</li>)}</ul>}
-                </div>
-              );
-            })}
+          <div class="t3">
+            {rubriques.map(([titre, items]) => (
+              <div class="cellule">
+                <h3>{titre}</h3>
+                {items.length === 1 ? <p>{items[0]}</p> : <ul class="simple">{items.map((x) => <li>{x}</li>)}</ul>}
+              </div>
+            ))}
           </div>
         </section>
       )}
       <section class="bloc">
         <div class="rangee">
-          {lien && <a class="bouton creux" href={lien} rel="noopener">Site du lieu</a>}
           <a class="bouton creux" href="/carte">Retour à la carte</a>
         </div>
         {lieu.updated_at && <p class="doux" style="font-size:.85rem">Fiche Space2 mise à jour le {lieu.updated_at.slice(0, 10)}.</p>}
@@ -98,5 +137,8 @@ const besoins = (lieu.besoins_mis_en_avant ?? []).filter(Boolean);
 </Base>
 
 <style>
-  .photo { width: 100%; max-width: 720px; max-height: 420px; object-fit: cover; border-radius: 10px; border: 1px solid var(--trait); margin-top: 24px; }
+  .entete { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .logo { width: 140px; height: 140px; object-fit: contain; border-radius: 10px; border: 1px solid var(--trait); background: #fff; }
+  .liens { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .interne { margin-top: 24px; }
 </style>
