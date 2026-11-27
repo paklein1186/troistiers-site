@@ -73,6 +73,19 @@ describe("traduction du profil ChangeTheGame", () => {
     expect(niveauAcces(c, u, "cle_projet", { portee: { type: "projet", id: "q2" } })).toBe("aucun");
   });
 
+  it("formules cumulées : profil principal = membership (la plus haute), autres formules actives en profils_ctg", () => {
+    const u = versUtilisateur({ ...base, guild_member: true,
+      membership: { active: true, plan_code: "accompagnant_freelance", current_period_end: "2099-01-01T00:00:00Z" },
+      plans: [
+        { plan_code: "accompagnant_freelance", level: 3, active: true, current_period_end: "2099-01-01T00:00:00Z" },
+        { plan_code: "citoyen", level: 2, active: true, current_period_end: "2099-01-01T00:00:00Z" },
+        { plan_code: "lieu_moins_20", level: 3, active: false, current_period_end: "2020-01-01T00:00:00Z" },
+      ] }, c);
+    expect(u.profil).toBe("accompagnant_freelance");
+    expect(u.profils_ctg).toEqual(["citoyen"]);
+    expect(versUtilisateur({ ...base, guild_member: true }, c).profils_ctg).toBeUndefined();
+  });
+
   it("administrateur de la guilde : équipe", () => {
     const u = versUtilisateur({ ...base, is_guild_admin: true }, c);
     expect(u.profil).toBe("equipe");

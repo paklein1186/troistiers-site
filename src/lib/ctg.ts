@@ -115,6 +115,12 @@ export interface ProfilCtg {
   badges: { code: string; expires_at: string | null; scope: { type: string; id: string } | null }[];
   /** Accès propres aux quêtes reliées aux projets du site ; null = CTG ne peut pas le calculer (ne rien retirer). */
   acces_quetes?: AccesQuete[] | null;
+  /** Formules cumulées (chantier CTG du 28/11) : toutes les formules de la personne, actives ou non. */
+  plans?: { plan_code: string; level: number | null; active: boolean; current_period_end: string | null }[];
+  /** Niveau calculé par CTG dans la guilde (le plus haut parmi admin, rôles, formules ; 0 à 5). */
+  niveau?: number | null;
+  /** Rôles de guilde à code non expirés (fondateur, source, actif, effectif…). */
+  roles?: { code: string; level: number | null; expires_at: string | null; scope_type: string | null; scope_id: string | null }[];
 }
 
 interface ReponseJeton {
@@ -317,7 +323,10 @@ export function versUtilisateur(p: ProfilCtg, c: Communaute): Utilisateur {
         : undefined;
     ajouter({ id: b.code, expire_le: b.expires_at ?? undefined, portee });
   }
-  return { email: p.email, nom: p.name ?? undefined, profil, badges };
+  // Autres formules actives (cumulables) : leurs profils, pour que la base Trois-Tiers recopie tous les badges de statut.
+  const autres = [...new Set((p.plans ?? []).filter((x) => x.active).map((x) => formules[x.plan_code] ?? null)
+    .filter((x): x is string => Boolean(x) && x !== profil && Boolean(c.profils[x!])))];
+  return { email: p.email, nom: p.name ?? undefined, profil, badges, ...(autres.length ? { profils_ctg: autres } : {}) };
 }
 
 // ---------------------------------------------------------------------------

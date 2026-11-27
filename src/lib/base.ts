@@ -35,6 +35,11 @@ export function parametresSynchro(id: string, u: Utilisateur) {
     p_nom: u.nom ?? null,
     p_profil: u.profil,
     p_fin: u.badges.find((b) => b.id === "adherent")?.expire_le ?? null,
+    // Formules cumulées et rôles tenus par ChangeTheGame (décision 2B du 28/11) : actif et effectif sans portée,
+    // comme guild_member_level côté CTG (un rôle avec portée ne relève pas le niveau dans la guilde).
+    p_profils: u.profils_ctg ?? [],
+    p_roles: u.badges.filter((b) => (b.id === "actif" || b.id === "effectif") && !b.portee)
+      .map((b) => ({ code: b.id, fin: b.expire_le ?? null })),
   };
 }
 
