@@ -57,7 +57,8 @@ export async function synchroniserDepuisFichier(force = false): Promise<EtatSync
     const bilan = await rpc<BilanImport>("importer_pilote_missions", { p_source: SOURCE, p_export: donnees, p_acteur: null });
     const nouvel: EtatSynchro = { empreinte, le: essai_le, essai_le, bilan, fichier_lu: fichier };
     ecrireEtat(nouvel);
-    console.log(`Synchro Pilote 3/3 : ${bilan.missions} missions, ${bilan.taches} tâches, ${bilan.retirees} retirée(s).`);
+    console.log(`Synchro Pilote 3/3 : ${bilan.missions} missions, ${bilan.taches} tâches, ${bilan.retirees} retirée(s), contrat ${bilan.version ?? "?"}` +
+      (bilan.champs_ignores?.length ? `, champs ignorés : ${bilan.champs_ignores.join(", ")}` : "") + ".");
     return nouvel;
   } catch (err) {
     const erreur = err instanceof Error ? err.message : String(err);

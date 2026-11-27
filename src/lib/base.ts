@@ -318,6 +318,8 @@ export interface EntreeHistorique {
 export interface PiloteVisible { source: string; titre: string; id: string; synchro_le: string | null; missions: number }
 export interface BilanImport {
   racine: string; cree: boolean; missions: number; taches: number; sous_taches: number; absences: number; retirees: number;
+  /** Contrat de données (docs/pilote/contrat-donnees.md) : version lue (« 0 » = export d'avant le contrat). */
+  version?: string; avertissements?: string[]; champs_ignores?: string[]; missions_closes?: number;
   historique: number; alias_non_relies: string[];
 }
 export const SOURCE_PILOTE = /^[a-z0-9-]{3,40}$/;

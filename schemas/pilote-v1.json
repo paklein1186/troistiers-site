@@ -1,0 +1,578 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://troistiers.space/schemas/pilote-v1.json",
+  "title": "Contrat de données du Pilote, version 1",
+  "description": "Ce que l'artefact Pilote envoie à la base Trois-Tiers. Les champs inconnus sont acceptés (version mineure plus récente) : la base les ignore et les note. Voir docs/pilote/contrat-donnees.md.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "exported_at",
+    "tasks",
+    "missions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$",
+      "description": "« 1.0 », puis « 1.1 », « 1.2 »… à chaque champ ajouté."
+    },
+    "exported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artefact": {
+      "type": "string",
+      "format": "uri",
+      "description": "Adresse de l'artefact qui a produit l'export."
+    },
+    "titre": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tache"
+      }
+    },
+    "missions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mission"
+      }
+    },
+    "absences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/absence"
+      }
+    },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/proposition"
+      }
+    },
+    "journal": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/journal"
+      }
+    },
+    "hebdo_points": {
+      "type": "array"
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "k"
+            ],
+            "properties": {
+              "k": {
+                "type": "string"
+              },
+              "n": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "chantiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "k"
+            ],
+            "properties": {
+              "k": {
+                "type": "string"
+              },
+              "n": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tache": {
+      "type": "object",
+      "required": [
+        "id",
+        "maj_le",
+        "provenance",
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Identifiant stable : attribué une fois par l'artefact, jamais régénéré."
+        },
+        "maj_le": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date et heure de la dernière modification de l'objet (ISO 8601)."
+        },
+        "provenance": {
+          "enum": [
+            "artefact",
+            "site",
+            "ctg",
+            "agent"
+          ],
+          "description": "Qui a créé l'objet. « agent » = proposition tant qu'un humain ne l'a pas validée."
+        },
+        "supprime": {
+          "type": "boolean",
+          "description": "true = l'objet a été supprimé dans l'artefact. Un objet absent de l'export n'est plus jamais supprimé."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "status": {
+          "enum": [
+            "todo",
+            "doing",
+            "done",
+            "block"
+          ],
+          "description": "à faire, en cours, fait, bloqué."
+        },
+        "chantier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Code du couloir (config.chantiers[].k)."
+        },
+        "mission": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identifiant de la mission ; null = tâche générale du Pilote."
+        },
+        "pilot": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Code court de la personne (config.members[].k)."
+        },
+        "contributors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Date AAAA-MM-JJ, ou null."
+        },
+        "end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Date AAAA-MM-JJ, ou null."
+        },
+        "milestone": {
+          "type": "boolean"
+        },
+        "deps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Identifiants des tâches dont celle-ci dépend."
+        },
+        "estimate_h": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "subtasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "t": {
+                "type": "string"
+              },
+              "d": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "t"
+            ]
+          },
+          "description": "Sous-tâches, dans l'ordre : t = texte, d = faite."
+        },
+        "source": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "D'où vient la tâche (compte rendu, mail…)."
+        },
+        "dedup_key": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_by": {
+          "type": "string"
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "required": [
+        "id",
+        "maj_le",
+        "provenance",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Identifiant stable : attribué une fois par l'artefact, jamais régénéré."
+        },
+        "maj_le": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date et heure de la dernière modification de l'objet (ISO 8601)."
+        },
+        "provenance": {
+          "enum": [
+            "artefact",
+            "site",
+            "ctg",
+            "agent"
+          ],
+          "description": "Qui a créé l'objet. « agent » = proposition tant qu'un humain ne l'a pas validée."
+        },
+        "supprime": {
+          "type": "boolean",
+          "description": "true = l'objet a été supprimé dans l'artefact. Un objet absent de l'export n'est plus jamais supprimé."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "type": {
+          "type": "string",
+          "description": "marche-public, mission, autre…"
+        },
+        "statut": {
+          "enum": [
+            "active",
+            "veille",
+            "cloturee"
+          ]
+        },
+        "lieu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "referent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Code court de la personne (config.members[].k)."
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "context_md": {
+          "type": "string"
+        },
+        "requests_md": {
+          "type": "string"
+        },
+        "next_actions": {
+          "type": "array"
+        },
+        "sources": {
+          "type": "array"
+        },
+        "last_activity": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_by": {
+          "type": "string"
+        }
+      }
+    },
+    "absence": {
+      "type": "object",
+      "required": [
+        "id",
+        "maj_le",
+        "provenance",
+        "who",
+        "start"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Identifiant stable : attribué une fois par l'artefact, jamais régénéré."
+        },
+        "maj_le": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date et heure de la dernière modification de l'objet (ISO 8601)."
+        },
+        "provenance": {
+          "enum": [
+            "artefact",
+            "site",
+            "ctg",
+            "agent"
+          ],
+          "description": "Qui a créé l'objet. « agent » = proposition tant qu'un humain ne l'a pas validée."
+        },
+        "supprime": {
+          "type": "boolean",
+          "description": "true = l'objet a été supprimé dans l'artefact. Un objet absent de l'export n'est plus jamais supprimé."
+        },
+        "who": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Date AAAA-MM-JJ, ou null."
+        },
+        "source": {
+          "type": "string"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "synced_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "proposition": {
+      "type": "object",
+      "required": [
+        "id",
+        "maj_le",
+        "provenance",
+        "kind",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Identifiant stable : attribué une fois par l'artefact, jamais régénéré."
+        },
+        "maj_le": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date et heure de la dernière modification de l'objet (ISO 8601)."
+        },
+        "provenance": {
+          "enum": [
+            "artefact",
+            "site",
+            "ctg",
+            "agent"
+          ],
+          "description": "Qui a créé l'objet. « agent » = proposition tant qu'un humain ne l'a pas validée."
+        },
+        "supprime": {
+          "type": "boolean",
+          "description": "true = l'objet a été supprimé dans l'artefact. Un objet absent de l'export n'est plus jamais supprimé."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "auto": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "mission": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "task": {
+          "type": "object"
+        },
+        "patch": {
+          "type": "object"
+        },
+        "text": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "source": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "decided_by": {
+          "type": "string"
+        }
+      }
+    },
+    "journal": {
+      "type": "object",
+      "required": [
+        "id",
+        "ts",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Identifiant stable : attribué une fois par l'artefact, jamais régénéré."
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Moment de l'événement. Une entrée de journal ne change jamais : ts tient lieu de maj_le."
+        },
+        "type": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
+        "who": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "before": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "after": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "provenance": {
+          "enum": [
+            "artefact",
+            "site",
+            "ctg",
+            "agent"
+          ],
+          "description": "Qui a créé l'objet. « agent » = proposition tant qu'un humain ne l'a pas validée."
+        }
+      }
+    }
+  }
+}

@@ -339,7 +339,10 @@ function syncBlock() {
   const r = DATA.import || {};
   return `<div class="section"><h2>Synchronisation avec l’artefact</h2>
     <p class="hint">Pendant la transition, on travaille dans l’artefact et ses agents ; le site en garde une copie, en lecture, réservée à l’équipe.${DATA.racine.synchro_le ? ` Dernière synchronisation : ${esc(fmtDT(DATA.racine.synchro_le))}.` : ""}${lienSur(DATA.racine.artefact) ? ` <a href="${esc(DATA.racine.artefact)}" target="_blank" rel="noopener">Ouvrir l’artefact</a>.` : ""}</p>
-    ${r.bilan ? `<p class="pill ok">Synchronisation faite : ${r.bilan.missions} missions, ${r.bilan.taches} tâches, ${r.bilan.absences} indisponibilités, ${r.bilan.historique} entrées de journal et propositions${r.bilan.retirees ? `, ${r.bilan.retirees} tâche(s) retirée(s)` : ""}.</p>` : ""}
+    ${r.bilan ? `<p class="pill ok">Synchronisation faite : ${r.bilan.missions} missions, ${r.bilan.taches} tâches, ${r.bilan.absences} indisponibilités, ${r.bilan.historique} entrées de journal et propositions${r.bilan.retirees ? `, ${r.bilan.retirees} tâche(s) retirée(s)` : ""}${r.bilan.missions_closes ? `, ${r.bilan.missions_closes} mission(s) close(s)` : ""}.
+      ${r.bilan.version ? ` Contrat ${r.bilan.version === "0" ? "d'avant la v1" : `v${esc(r.bilan.version)}`}.` : ""}
+      ${r.bilan.champs_ignores?.length ? ` Champs ignorés : ${r.bilan.champs_ignores.map(esc).join(", ")}.` : ""}</p>
+      ${(r.bilan.avertissements ?? []).map((a) => `<p class="pill warn">${esc(a)}</p>`).join("")}` : ""}
     ${r.message ? `<p class="pill warn" role="alert">${esc(r.message)}</p>` : ""}
     ${autoBlock()}
     ${DATA.peut_importer ? `<form method="post" enctype="multipart/form-data" class="formrow" style="margin-top:8px">
