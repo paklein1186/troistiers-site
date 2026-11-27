@@ -225,3 +225,16 @@ parcours « le référent propose, la coordination valide » ; les sensibles ne 
 - Transparents : quête publique sans validation (§11). Sensibles : jamais. Une quête non validée reste brouillon : la
   synchro ne la republie jamais (`empreinte` = « retrait » tant que la publication n'est pas validée).
 - Tests : `supabase/tests/salle_attente.sql`, `salle_attente_existants.sql`.
+
+## 13. Présentation des quêtes : type, taille, enjeu en 2 mots (décisions de PA du 28/11)
+
+- **Type** : une mission liée à un lieu (champ « lieu » du Pilote, hors simple région, hors fonction socle et hors marché
+  public) est un **accompagnement** ; famille « Réseaux européens » → expédition ; autres groupes de travail → groupe de
+  travail ; sinon autre. La coordination corrige mission par mission (bloc ChangeTheGame de la fiche, « Présentation de la
+  quête »).
+- **Titre de la quête** d'un accompagnement : « Accompagnement · <lieu> · <enjeu en 2 mots> » ; **le lieu est toujours
+  nommé** (choix de PA ; une mission à client sensible doit être réglée « sensible » : elle ne part jamais).
+- **Taille** 1 à 3 (accompagnement 1, groupe de travail et expédition 3, autre 2) : étiquettes `type:…` et `taille:…` et une
+  phrase sous le résumé ; aucun effet sur l'XP ni les crédits.
+- Le site tient ces informations ; le Pilote pourra les proposer en contrat 1.2 (`docs/pilote/contrat-donnees.md`).
+- Migration `20261128220000_type_taille_quete.sql` ; tests `supabase/tests/type_taille.sql`.

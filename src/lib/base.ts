@@ -412,7 +412,16 @@ export interface FaceCtg {
   peut_proposer?: boolean; coordination?: boolean; id?: string;
   /** Visibilité de la quête déduite du gradient (null = pas de quête) et niveau minimum où la fiche est visible. */
   visibilite?: { mode: "public" } | { mode: "membres"; niveau_minimum: "N2" | "N3" } | null; niveau_fiche?: number | null;
+  /** Présentation de la quête (28/11) : titre de quête (« Accompagnement · lieu · enjeu »), titre interne, type, taille 1 à 3. */
+  titre_projet?: string; type_quete?: TypeQuete; taille?: number; enjeu_court?: string | null;
 }
+export type TypeQuete = "accompagnement" | "groupe_travail" | "expedition" | "autre";
+export const TYPES_QUETE: Record<TypeQuete, string> = {
+  accompagnement: "Accompagnement (intervention dans un lieu)", groupe_travail: "Groupe de travail", expedition: "Expédition", autre: "Autre projet",
+};
+export const reglerPresentationQuete = (acteur: string, projet: string, type: string | null, taille: number | null, enjeuCourt: string) =>
+  rpc<{ type: TypeQuete; taille: number; titre: string }>("regler_presentation_quete",
+    { p_projet: projet, p_type: type, p_taille: taille, p_enjeu_court: enjeuCourt, p_acteur: acteur });
 export const publicationCtg = (projet: string, acteur: string) => rpc<FaceCtg | null>("publication_ctg", { p_projet: projet, p_acteur: acteur });
 export const proposerPublicationCtg = (acteur: string, projet: string, message: string) =>
   rpc<string>("proposer_publication_ctg", { p_projet: projet, p_message: message, p_acteur: acteur });

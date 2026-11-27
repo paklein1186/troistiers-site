@@ -35,6 +35,7 @@ lancer tt_test_besoins supabase/tests/quetes_besoins.sql $(ls supabase/migration
 lancer tt_test_a_classer supabase/tests/quetes_a_classer.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_badges_ctg supabase/tests/badges_ctg.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_transparents supabase/tests/publication_transparents.sql $(ls supabase/migrations/*.sql | sort)
+lancer tt_test_type_taille supabase/tests/type_taille.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_salle supabase/tests/salle_attente.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_salle_existants supabase/tests/salle_attente_existants.sql \
   $(ls supabase/migrations/*.sql | sort | awk '$0 < "supabase/migrations/20261128210000"') supabase/tests/salle_attente_existants_donnees.sql \
