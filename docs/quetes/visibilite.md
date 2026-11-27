@@ -192,3 +192,18 @@ décision de la coordination.
 - Signal : « Quêtes ChangeTheGame à classer (n) » dans l'onglet Projets de l'espace membres et sur la page des projets
   (coordination seulement).
 - Migration `20261128180000_quetes_b5_a_classer.sql` ; tests `supabase/tests/quetes_a_classer.sql`.
+
+## 11. Projets transparents : quête publique automatique (décision de PA du 28/11, option C)
+
+Le « plus tard » de la décision 1 du 26/11 : un projet **transparent** dont le **résumé public est validé** devient une
+quête **publique** de la guilde sans clic du référent ni de la coordination. Les projets semi-sensibles gardent le
+parcours « le référent propose, la coordination valide » ; les sensibles ne deviennent jamais des quêtes.
+
+- Toutes les 15 minutes (interrupteur `CTG_PUBLICATION_AUTO` ouvert), `publierTransparents` lit
+  `projets_transparents_a_publier`, puis crée la quête par `guild-quest-sync` action `create_auto` (clé du site,
+  face publique seulement ; auteur : la personne qui a créé la guilde) et l'enregistre (`enregistrer_publication_transparente`,
+  validation automatique journalisée « systeme »). La quête suit ensuite le projet comme toute quête reliée automatiquement.
+- **Anti-doublon** : si une quête libre de la guilde ressemble au projet (score ≥ 0,5, même calcul que B2), rien n'est
+  créé ; le projet attend (`ctg_auto_attente`) sur `/membre/quetes/a-publier`, où la coordination le relie à la quête
+  existante ou le publie quand même. Une erreur de ChangeTheGame est notée de la même façon.
+- Migration `20261128200000_publication_auto_transparents.sql` ; tests `supabase/tests/publication_transparents.sql`.

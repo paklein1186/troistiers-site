@@ -444,6 +444,13 @@ export const facesASynchroniser = () =>
   rpc<{ projet: string; quete: string; empreinte: string | null; face: FaceCtg }[]>("faces_ctg_a_synchroniser", {});
 export const noterSynchroCtg = (projet: string, empreinte: string, erreur: string | null) =>
   rpc<null>("noter_synchro_ctg", { p_projet: projet, p_empreinte: empreinte, p_erreur: erreur });
+/** Option C du 28/11 : projets transparents au résumé validé, publiés automatiquement comme quêtes publiques. */
+export interface TransparentAPublier { projet: string; titre: string; territoire: string | null; face: FaceCtg; attente: string | null }
+export const projetsTransparentsAPublier = () => rpc<TransparentAPublier[]>("projets_transparents_a_publier", {});
+export const enregistrerPublicationTransparente = (projet: string, quete: string, empreinte: string) =>
+  rpc<null>("enregistrer_publication_transparente", { p_projet: projet, p_quete: quete, p_empreinte: empreinte });
+export const noterAttentePublication = (projet: string, raison: string) =>
+  rpc<null>("noter_attente_publication", { p_projet: projet, p_raison: raison });
 /** Palier 2, B5 : quêtes nées sur ChangeTheGame, relevées automatiquement dans la file « à classer ». */
 export interface QueteAClasser {
   quete: string; titre: string; description: string | null; nature: string | null; statut: string | null;

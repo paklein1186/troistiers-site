@@ -3,10 +3,12 @@ import Base from "../../../layouts/Base.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
 import {
-  baseConfiguree, enregistrerPublicationAuto, enregistrerQueteCtg, projetsAPublier, publicationCtg, quetesLiees, type FaceCtg,
+  baseConfiguree, enregistrerPublicationAuto, enregistrerQueteCtg, projetsAPublier, projetsTransparentsAPublier, publicationCtg,
+  quetesLiees, type FaceCtg, type TransparentAPublier,
 } from "../../../lib/base";
 import {
-  attendProtection, empreinte, ErreurPublication, protectionCtg, publicationAutoActive, publiableAuto, publierSurCtg, visibiliteDe,
+  attendProtection, empreinte, ErreurPublication, protectionCtg, publicationAutoActive, publiableAuto, publierSurCtg, publierTransparent,
+  visibiliteDe,
 } from "../../../lib/publication-ctg";
 import { jetonsValides } from "../../../lib/ctg";
 import { lireJetons } from "../../../lib/jetons";
@@ -40,6 +42,14 @@ if (Astro.request.method === "POST") {
       await enregistrerPublicationAuto(acteur, projet, quete, empreinte(face));
       return Astro.redirect(`${ici}?fait=auto`, 303);
     }
+    // Projet transparent mis en attente (doublon possible) : la coordination décide de le publier quand même.
+    if (f.get("action") === "transparent" && publicationAutoActive() && /^[0-9a-f-]{36}$/i.test(projet)) {
+      await projetsAPublier(acteur); // réservé à la coordination (refusé sinon)
+      const t = (await projetsTransparentsAPublier()).find((x) => x.projet === projet);
+      if (!t) throw new ErreurPublication(422, "Ce projet n'est plus à publier automatiquement.");
+      await publierTransparent(projet, t.face);
+      return Astro.redirect(`${ici}?fait=auto`, 303);
+    }
     if (/^[0-9a-f-]{36}$/i.test(projet)) {
       await enregistrerQueteCtg(acteur, projet, String(f.get("adresse") ?? "").trim().slice(0, 500));
       return Astro.redirect(`${ici}?fait=1`, 303);
@@ -51,8 +61,11 @@ if (Astro.request.method === "POST") {
   }
 }
 let liste: FaceCtg[] = [];
+// Option C : projets transparents dont la publication automatique attend (doublon possible, erreur).
+let enAttente: TransparentAPublier[] = [];
 try {
   liste = await projetsAPublier(acteur);
+  if (publicationAutoActive()) enAttente = (await projetsTransparentsAPublier()).filter((t) => t.attente);
 } catch (e) {
   console.error("Quêtes à publier :", e);
   message ||= messageBase(e, "La liste n'a pas pu être chargée.");
@@ -69,7 +82,8 @@ const libelleVisibilite = (f: FaceCtg) => {
 // Rapprochement avant création (palier 2, B2) : quêtes de la guilde, pas encore reliées, qui ressemblent au projet.
 // Lues avec le jeton CTG de la personne (admin de la guilde) ; si CTG ne répond pas, la page reste utilisable sans.
 let proches = new Map<string, { quete: QueteCtgAdmin; score: number }[]>();
-if (liste.length) {
+let prochesAttente = new Map<string, { quete: QueteCtgAdmin; score: number }[]>();
+if (liste.length || enAttente.length) {
   try {
     const jetons = await jetonsValides(lireJetons(Astro.cookies));
     const [quetes, liees] = jetons ? await Promise.all([quetesAdmin(jetons.acces), quetesLiees()]) : [null, []];
@@ -77,6 +91,7 @@ if (liste.length) {
       const prises = new Set(liees.map((l) => l.quete));
       const libres = quetes.filter((q) => !prises.has(q.id));
       proches = new Map(liste.map((f) => [f.id!, quetesProches(f, libres)]));
+      prochesAttente = new Map(enAttente.map((t) => [t.projet, quetesProches({ titre: t.titre, territoire: t.territoire }, libres)]));
     }
   } catch (e) {
     console.error("Rapprochement des quêtes :", e);
@@ -93,8 +108,41 @@ if (liste.length) {
     ? "Quête créée sur ChangeTheGame et reliée : elle suivra désormais le projet (résumé, nature, étape, besoins publics)."
     : "Lien enregistré : le projet est relié à sa quête."}</p>}
   {message && <p class="avertissement" role="alert">{message}</p>}
+  {enAttente.length > 0 && (
+    <section class="bloc">
+      <h2>Projets transparents en attente · {enAttente.length}</h2>
+      <p class="doux">Ces projets transparents, au résumé validé, deviennent d'habitude des quêtes publiques tout seuls. Ici, la publication attend : reliez-les à la quête qui existe déjà, ou publiez-les quand même.</p>
+      <div class="a-publier">
+        {enAttente.map((t) => (
+          <section class="panneau">
+            <h3><a href={`/membre/projets/${t.projet}`}>{t.titre}</a></h3>
+            <p class="doux">En attente : {t.attente}</p>
+            {(prochesAttente.get(t.projet) ?? []).length > 0 && (
+              <ul class="proches">
+                {prochesAttente.get(t.projet)!.map(({ quete }) => (
+                  <li>
+                    <a href={quete.url} rel="noopener">{quete.title}</a>
+                    <form method="post" action={ici}>
+                      <input type="hidden" name="projet" value={t.projet} />
+                      <input type="hidden" name="adresse" value={quete.url} />
+                      <button class="bouton creux">Relier à cette quête</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form method="post" action={ici} class="auto">
+              <input type="hidden" name="action" value="transparent" />
+              <input type="hidden" name="projet" value={t.projet} />
+              <button class="bouton">Publier quand même (nouvelle quête publique)</button>
+            </form>
+          </section>
+        ))}
+      </div>
+    </section>
+  )}
   {liste.length === 0 ? (
-    <p class="doux">Rien à publier pour l'instant. Les référents proposent une publication depuis la fiche de leur projet ; vous la validez dans la <a href="/membre/revue">file de revue</a>.</p>
+    <p class="doux">Rien à publier pour l'instant. Les projets transparents au résumé validé deviennent des quêtes publiques tout seuls ; pour les autres, les référents proposent une publication depuis la fiche de leur projet, et vous la validez dans la <a href="/membre/revue">file de revue</a>.</p>
   ) : (
     <div class="a-publier">
       {liste.map((f) => (
@@ -141,6 +189,7 @@ if (liste.length) {
   .a-publier h2 { font-size: 1.15rem; margin: 0 0 8px; }
   .proches { border-left: 3px solid var(--accent, #2f6b47); padding: 4px 0 4px 12px; margin: 0 0 14px; }
   .proches ul { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 8px; }
+  .proches { list-style: none; }
   .proches li { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
   .proches form { margin: 0; }
   .auto { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 12px; }

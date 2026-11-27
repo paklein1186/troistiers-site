@@ -414,6 +414,8 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
               <p>Pas encore publiable sur ChangeTheGame :</p>
               <ul>{publication.raisons.map((r) => <li>{r}</li>)}</ul>
             </>
+          ) : publicationAutoActive() && publication.publiable && publication.visibilite?.mode === "public" ? (
+            <p>Projet transparent au résumé validé : il deviendra <strong>automatiquement une quête publique</strong> de la guilde (relecture toutes les 15 minutes), sauf si une quête proche existe déjà ; la coordination décide alors (page « Quêtes à publier »).</p>
           ) : publication.peut_proposer ? (
             <form method="post" class="formulaire">
               <p>Ce projet peut devenir une quête {publication.audience === "public" ? "publique" : "réservée aux membres de la guilde"} de ChangeTheGame. Seuls le titre, le résumé validé, la nature, le territoire et les étiquettes y partent ; le détail reste ici.</p>

@@ -34,5 +34,6 @@ lancer tt_test_nouvelles supabase/tests/quetes_nouvelles.sql $(ls supabase/migra
 lancer tt_test_besoins supabase/tests/quetes_besoins.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_a_classer supabase/tests/quetes_a_classer.sql $(ls supabase/migrations/*.sql | sort)
 lancer tt_test_badges_ctg supabase/tests/badges_ctg.sql $(ls supabase/migrations/*.sql | sort)
+lancer tt_test_transparents supabase/tests/publication_transparents.sql $(ls supabase/migrations/*.sql | sort)
 echo "$(grep -c '^OK' <<<"$total") vérifications réussies, $(grep -c -E '^KO|ERROR' <<<"$total") en échec."
 ! grep -q -E '^KO|ERROR' <<<"$total"

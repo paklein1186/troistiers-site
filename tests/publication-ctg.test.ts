@@ -8,6 +8,9 @@ const fusions: unknown[][] = [];
 const pousses: unknown[][] = [];
 let aPousser: unknown[] = [];
 const releves: unknown[][] = [];
+let transparents: unknown[] = [];
+const enregistres: unknown[][] = [];
+const attentes: unknown[][] = [];
 vi.mock("../src/lib/base", () => ({
   baseConfiguree: () => true,
   facesASynchroniser: async () => faces,
@@ -17,6 +20,9 @@ vi.mock("../src/lib/base", () => ({
   fusionnerBesoinsCtg: async (...a: unknown[]) => { fusions.push(a); return aPousser; },
   noterBesoinsPousses: async (...a: unknown[]) => { pousses.push(a); },
   releverQuetesCtg: async (q: unknown[]) => { releves.push(q); return 1; },
+  projetsTransparentsAPublier: async () => transparents,
+  enregistrerPublicationTransparente: async (...a: unknown[]) => { enregistres.push(a); },
+  noterAttentePublication: async (...a: unknown[]) => { attentes.push(a); },
   noterNouvellePubliee: async (...a: unknown[]) => { publiees.push(a); },
 }));
 vi.mock("../src/lib/ctg", () => ({ ctgConfiguree: () => true, urlFonctionsCtg: () => "https://ctg.test/functions/v1" }));
@@ -220,5 +226,25 @@ describe("publication automatique des quêtes (visibilité)", () => {
     const ferme = fauxCtg(true);
     expect(await m.releverQuetesAClasser(ferme.fx as any)).toBe(0);
     expect(ferme.fx).not.toHaveBeenCalled();
+  });
+
+  it("option C : transparent publié automatiquement (create_auto, public) ; quête proche → en attente, rien créé", async () => {
+    enregistres.length = 0; attentes.length = 0;
+    transparents = [
+      { projet: "p1", titre: "Atelier compost à Ciney", territoire: "Ciney", face: face({ titre: "Atelier compost à Ciney" }), attente: null },
+      { projet: "p2", titre: "Journée de clôture AAP tiers-lieux", territoire: null, face: face({ titre: "Journée de clôture AAP tiers-lieux" }), attente: null },
+      { projet: "p3", titre: "Réservé", territoire: null, face: face({ visibilite: N2 }), attente: null },
+    ];
+    const quetes = [{ id: "q9", title: "Journée de clôture AAP tiers-lieux ruraux", description: "", web_tags: [], projet_id: null },
+                    { id: "q8", title: "Atelier compost à Ciney", description: "", web_tags: [], projet_id: "pX" }];
+    const { fx, appels } = fauxCtg(true, (c) => ({ status: 200, body: c.action === "guild_quests" ? { quests: quetes } : { quest_id: "q-new" } }));
+    expect(await m.publierTransparents(fx as any)).toEqual({ publiees: 1, en_attente: 1, erreurs: 1 });
+    const creations = appels.filter((a) => a.corps.action === "create_auto");
+    expect(creations).toHaveLength(1);
+    expect(creations[0].corps).toMatchObject({ projet_id: "p1", visibilite: { mode: "public" } });
+    expect(creations[0].jeton).toBeUndefined();
+    expect(enregistres[0]).toEqual(["p1", "q-new", empreinte(transparents[0] as any && (transparents[0] as any).face)]);
+    expect(attentes.map((a) => a[0])).toEqual(["p2", "p3"]);
+    expect(String(attentes[0][1])).toContain("quête proche");
   });
 });
