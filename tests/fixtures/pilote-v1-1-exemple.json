@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.1",
+  "exported_at": "2026-11-27T15:30:00.000Z",
+  "contrat": { "version": "1.1", "decision": "Exemple du bac à sable de l'artefact (données fictives)", "regles": {}, "taches": 4, "suppressions_signalees": 4 },
+  "tasks": [
+    { "id": "GOUV-01", "title": "Préparer l'assemblée générale de printemps", "chantier": "GOUV", "pilot": "ana", "contributors": ["ben"],
+      "status": "doing", "start": "2026-11-16", "end": "2027-03-31", "milestone": false, "estimate_h": 12, "deps": [], "mission": null,
+      "subtasks": [
+        { "t": "Fixer la date", "d": true, "id": "st-k3f9a2qd", "maj_le": "2026-11-20T10:05:00Z" },
+        { "t": "Rédiger l'ordre du jour", "d": false, "id": "st-p7x2m4ew", "maj_le": "2026-11-16T09:00:00Z" },
+        { "t": "Envoyer les convocations", "d": false, "id": "st-b8r1t6yn", "maj_le": "2026-11-16T09:00:00Z" }
+      ],
+      "notes": "20/11 · Date retenue", "source": null, "created_at": "2026-11-16T09:00:00Z", "updated_at": "2026-11-25T16:20:00Z", "updated_by": "ana",
+      "maj_le": "2026-11-25T16:20:00Z", "maj_par": "ana", "provenance": "artefact", "supprime": false,
+      "notes_liste": [{ "id": "GOUV-01~n51yfjn", "texte": "20/11 · Date retenue", "maj_le": "2026-11-20" }] },
+    { "id": "PROJ-02", "title": "Cartographie des lieux de test", "chantier": "PROJ", "pilot": "ben", "contributors": ["cam"],
+      "status": "doing", "start": "2026-11-02", "end": "2026-12-20", "milestone": false, "estimate_h": 10, "deps": [], "mission": "reseau-demo",
+      "subtasks": [
+        { "t": "Lister les lieux", "d": true, "id": "st-e5r7t9y1", "maj_le": "2026-11-12T10:00:00Z" },
+        { "t": "Choisir l'outil de carte", "d": false, "id": "st-u3i5o7p9", "maj_le": "2026-11-26T10:00:00Z" }
+      ],
+      "notes": "", "source": null, "created_at": "2026-11-02T09:00:00Z", "updated_at": "2026-11-26T10:00:00Z", "updated_by": "ben",
+      "maj_le": "2026-11-26T10:00:00Z", "maj_par": "ben", "provenance": "artefact", "supprime": false, "notes_liste": [] },
+    { "id": "SPW-01", "title": "Rapport d'accompagnement · La Grange d'Essai", "chantier": "SPW", "pilot": "cam", "contributors": ["dan"],
+      "status": "doing", "start": "2026-11-10", "end": "2026-12-11", "milestone": false, "estimate_h": 6, "deps": [], "mission": "grange-essai",
+      "subtasks": [
+        { "t": "Compiler les notes de visite", "d": true, "id": "st-h4j6k8l2", "maj_le": "2026-11-19T14:00:00Z" },
+        { "t": "Rédiger le rapport", "d": false, "id": "st-g1f3d5s7", "maj_le": "2026-11-10T09:00:00Z" }
+      ],
+      "notes": "", "source": null, "created_at": "2026-11-10T09:00:00Z", "updated_at": "2026-11-19T14:00:00Z", "updated_by": "cam",
+      "maj_le": "2026-11-19T14:00:00Z", "maj_par": "cam", "provenance": "artefact", "supprime": false, "notes_liste": [] },
+    { "id": "GOUV-02", "title": "Mettre à jour la charte des bénévoles", "chantier": "GOUV", "pilot": "ben", "contributors": [],
+      "status": "todo", "start": "2026-11-24", "end": "2026-12-18", "milestone": false, "estimate_h": 4, "deps": [], "mission": null,
+      "subtasks": [{ "t": "Relire la version 2025", "d": false, "id": "st-q2w8e4rt", "maj_le": "2026-11-24T08:10:00Z" }],
+      "notes": "", "dedup_key": "pv--charte-benevoles", "source": { "label": "PV de test · 23/11", "url": null },
+      "created_at": "2026-11-24T08:10:00Z", "updated_at": "2026-11-24T08:10:00Z", "updated_by": "agent-pv",
+      "maj_le": "2026-11-24T08:10:00Z", "maj_par": "agent-pv", "provenance": "agent", "supprime": false, "notes_liste": [] },
+    { "id": "COM-05", "supprime": true, "maj_le": "2026-11-26T11:00:00Z", "maj_par": "cam", "provenance": "artefact", "motif": "suppression",
+      "fusionnee_dans": null, "dernier_journal": "Tâche supprimée : COM-05 « Doublon de l'agenda »", "titre": "Doublon de l'agenda" },
+    { "id": "PROJ-07", "supprime": true, "maj_le": "2026-11-26T10:00:00Z", "maj_par": "ben", "provenance": "artefact", "motif": "fusion",
+      "fusionnee_dans": "PROJ-02", "dernier_journal": "PROJ-07 fusionnée dans PROJ-02", "titre": "Carte interactive" }
+  ],
+  "missions": [
+    { "id": "grange-essai", "name": "La Grange d'Essai (Exempleville)", "lieu": "Exempleville", "type": "marche-public", "statut": "active",
+      "referent": "cam", "aliases": [], "context_md": "Tiers-lieu fictif.", "requests_md": "", "next_actions": [], "sources": [],
+      "last_activity": "2026-11-19", "created_at": "2026-11-01T09:00:00Z", "updated_at": "2026-11-19T14:00:00Z", "updated_by": "agent-missions",
+      "maj_le": "2026-11-19T14:00:00Z", "maj_par": "agent-missions", "provenance": "agent", "supprime": false },
+    { "id": "reseau-demo", "name": "Réseau de démonstration", "lieu": "", "type": "autre", "statut": "active", "referent": "ben", "aliases": [],
+      "context_md": "", "requests_md": "", "next_actions": [], "sources": [], "last_activity": "2026-11-26", "created_at": "2026-11-02T09:00:00Z",
+      "updated_at": "2026-11-26T10:00:00Z", "updated_by": "ben", "maj_le": "2026-11-26T10:00:00Z", "maj_par": "ben", "provenance": "artefact", "supprime": false },
+    { "id": "ancienne-mission", "supprime": true, "maj_le": "2026-11-26T11:30:00Z", "maj_par": "cam", "provenance": "artefact", "motif": "suppression",
+      "fusionnee_dans": null, "titre": "Ancienne mission de test" }
+  ],
+  "absences": [
+    { "id": "abs-ana-conges", "who": "ana", "start": "2026-12-24", "end": "2027-01-02", "label": "Congés", "created_by": "ana",
+      "created_at": "2026-11-18T09:00:00Z", "maj_le": "2026-11-18T09:00:00Z", "maj_par": "ana", "provenance": "artefact", "supprime": false },
+    { "id": "abs-dan-dec", "supprime": true, "maj_le": "2026-11-26T12:00:00Z", "maj_par": "ana", "provenance": "artefact", "motif": "suppression",
+      "fusionnee_dans": null, "titre": "dan · 2026-12-01 → 2026-12-02" }
+  ],
+  "proposals": [
+    { "id": "p-test-charte", "kind": "update", "task_id": "GOUV-02", "patch": { "status": "doing" }, "reason": "Le PV de test le dit.",
+      "excerpt": "Ben a commencé.", "confidence": "moyenne", "status": "pending", "author": "agent-pv", "created_at": "2026-11-26T09:00:00Z",
+      "source": { "label": "PV de test · 26/11", "url": null }, "maj_le": "2026-11-26T09:00:00Z", "maj_par": "agent-pv", "provenance": "agent", "supprime": false },
+    { "id": "p-test-badges", "kind": "create", "task": { "title": "Commander les badges du réseau" }, "reason": "Action citée.", "excerpt": "Badges.",
+      "confidence": "basse", "status": "rejected", "decided_by": "cam", "decided_at": "2026-11-25T15:00:00Z", "reason_reject": "Déjà prévu ailleurs",
+      "author": "agent-pv", "created_at": "2026-11-24T09:00:00Z", "source": null, "maj_le": "2026-11-25T15:00:00Z", "maj_par": "cam", "provenance": "agent", "supprime": false }
+  ],
+  "journal": [
+    { "id": "j-test-03", "ts": "2026-11-26T10:00:00Z", "who": "ben", "type": "fusion", "task_id": "PROJ-02",
+      "summary": "PROJ-07 fusionnée dans PROJ-02", "maj_le": "2026-11-26T10:00:00Z", "maj_par": "ben", "provenance": "artefact", "supprime": false },
+    { "id": "j-test-01", "ts": "2026-11-24T08:10:00Z", "who": "agent-pv", "type": "auto", "op": "create", "task_id": "GOUV-02",
+      "summary": "Nouvelle tâche", "source": null, "before": null, "after": null,
+      "maj_le": "2026-11-24T08:10:00Z", "maj_par": "agent-pv", "provenance": "agent", "supprime": false }
+  ],
+  "hebdo_points": [
+    { "id": "hp-test-ag", "kind": "deep", "title": "Décider du format de l'AG", "detail": "Présentiel ou hybride ?", "task_id": "GOUV-01",
+      "mission": null, "status": "open", "meeting": "2026-11-30", "who": "agent-hebdo", "maj_le": "2026-11-27T08:43:00Z",
+      "maj_par": "agent-hebdo", "provenance": "agent", "supprime": false }
+  ],
+  "config": {
+    "chantiers": [{ "k": "GOUV", "n": "Pilotage & gouvernance" }, { "k": "SPW", "n": "Marché public" }, { "k": "PROJ", "n": "Autres projets" }, { "k": "COM", "n": "Communauté" }],
+    "members": [{ "k": "ana", "n": "Ana (test)" }, { "k": "ben", "n": "Ben (test)" }, { "k": "cam", "n": "Cam (test)" }, { "k": "dan", "n": "Dan (test)" }, { "k": "col", "n": "Collectif" }],
+    "bac_a_sable": true
+  },
+  "artefact": "https://claude.ai/artifact/DyupybFxDvyqFBmyKb7rw1"
+}

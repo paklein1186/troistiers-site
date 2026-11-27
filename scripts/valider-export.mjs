@@ -47,6 +47,10 @@ if (v !== undefined) {
       if (manques.length) problemes.push(`${coll}[${o.id ?? "?"}] : ${manques.join(", ")} manquant(s) → la base refuse tout l'export`);
     }
   }
+  if (Number(String(v).split(".")[1]) >= 1) {
+    for (const t of e.tasks ?? []) for (const st of t.subtasks ?? [])
+      if (!st?.id || !st?.maj_le) problemes.push(`tasks[${t.id}].subtasks : id ou maj_le manquant (obligatoires en 1.1) → la base refuse tout l'export`);
+  }
 }
 
 // 3. Champs inconnus de la base (ignorés et notés, pas bloquants) : liste tirée de la dernière migration qui la définit.

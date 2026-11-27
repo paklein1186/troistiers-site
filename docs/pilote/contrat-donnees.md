@@ -1,4 +1,6 @@
-# Contrat de données du Pilote, version 1
+# Contrat de données du Pilote, version 1 (1.0, 1.1)
+
+**Version en cours : 1.1** (27/11/2026). Le site lit aussi la 1.0 et l'export d'avant le contrat.
 
 Décision D du 27/11/2026 : **l'artefact Pilote est le laboratoire, la base Trois-Tiers est la source de vérité.**
 L'artefact invente la forme et ce qu'on extrait des comptes rendus ; les données vivent dans la base, qui les affiche
@@ -67,7 +69,7 @@ tâche est renommée ou change de chantier.
 | `chantier` | non | couloir (code de `config.chantiers`) |
 | `pilot`, `contributors` | non | personnes (codes de `config.members`) |
 | `start`, `end`, `milestone` | non | début, échéance, jalon |
-| `subtasks` | non | sous-tâches dans l'ordre : `t` texte, `d` faite, `id` (`<ID>~s<empreinte du texte>`), `maj_le` |
+| `subtasks` | non | sous-tâches dans l'ordre : `t` texte, `d` faite, `id`, `maj_le`. **1.1** : `id` gardé à vie (`st-` + 8 caractères ; à défaut `<ID>~s<empreinte du texte>`) et `maj_le` propre à la sous-tâche, **obligatoires**. Le site repère chaque sous-tâche par son `id` ; une sous-tâche absente du tableau est retirée |
 | `notes_liste` | non | une entrée `{id, texte, maj_le}` par ligne de `notes` (`<ID>~n<empreinte>`) |
 | `deps`, `estimate_h`, `notes`, `source` | non | dépendances, estimation en heures, notes, d'où vient la tâche |
 | `supprime`, `motif`, `fusionnee_dans`, `dernier_journal` | non | suppression signalée (voir les règles) |
@@ -81,11 +83,15 @@ tâche est renommée ou change de chantier.
 | `statut` | non | `active`, `veille` (en pause), `cloturee` (close) |
 | `type`, `lieu`, `referent` | non | type, territoire, référent (code de personne) |
 | `context_md`, `requests_md`, `next_actions`, `sources`, `last_activity` | non | fiche du projet (réservée à l'équipe) |
-| `supprime` | non | `true` = la mission est **close et gardée**, jamais effacée (l'historique reste) |
+| `supprime` | non | `true` = la mission est **close et gardée**, jamais effacée (l'historique reste). **1.1** : l'entrée supprimée n'a plus de nom : `{id, supprime, maj_le, maj_par, provenance, motif, fusionnee_dans, titre}` |
 
 ### Absences et propositions
 
 - `absences` : `id`, `maj_le`, `provenance`, `who` (code de personne), `start` obligatoires ; `end`, `label` facultatifs.
+  **1.1** : une absence supprimée arrive comme une mission supprimée (sans `who` ni `start`, avec `titre`).
+- **Traces de suppression (1.1)** : pour chaque tâche, mission ou absence supprimée, le site garde titre, date, auteur,
+  motif et `fusionnee_dans`. L'équipe du projet voit « supprimée le … par … » et le renvoi vers la tâche qui a absorbé
+  une tâche fusionnée.
 - `proposals` : `id`, `maj_le`, `provenance`, `kind`, `status` obligatoires ; le reste (tâche visée, texte, raison,
   décision…) est gardé tel quel dans l'historique.
 
@@ -96,13 +102,10 @@ Les utiliser est un changement de structure : bac à sable, puis fiche de propos
 
 | Champ | Aujourd'hui | Plus tard |
 | --- | --- | --- |
-| `subtasks[].id`, `subtasks[].maj_le` | sous-tâches repérées par leur **rang** | repérées par leur identifiant (une sous-tâche cochée sur le site retrouvée dans l'artefact) ; il faudra un identifiant qui ne change pas quand le texte change |
 | `notes_liste` | seul le texte brut `notes` est gardé | notes datées, une par ligne, affichables séparément |
 | `maj_par` | non gardé (`maj_le` et `provenance` le sont) | « modifié par » sur la fiche, règles de conflit de l'étape 5 |
 | `contrat` (`allegement`, `regles`…) | ignoré | affiché dans le bilan d'import |
-| `motif`, `fusionnee_dans` | la tâche est retirée | renvoi vers la tâche qui la remplace |
 | `hebdo_points` | ignoré | ordre du jour de la réunion hebdomadaire sur le site |
-| suppressions de missions et d'absences | une mission `supprime: true` est close et gardée ; une absence est retirée | l'artefact ne les signale pas encore |
 
 ## Données sensibles
 
@@ -148,8 +151,8 @@ coordination copie depuis `/membre/pilotes/pilote-33/retours` et colle dans l'ar
   un `statut_tache` ou une `sous_tache` est soldé quand l'export a le même statut ou la même coche ; un
   `commentaire`, une `proposition` ou une `candidature` est soldé quand l'export **cite son `id`** (`site-r-…`,
   `site-c-…`), par exemple dans `source` de l'entrée de journal ou de la proposition créée par l'artefact.
-- Un `sous_tache` porte aussi `rang` (1 pour la première) : tant que le site repère les sous-tâches par leur rang
-  (voir « Ce que le site ne lit pas encore »), c'est lui qui désigne la sous-tâche.
+- Un `sous_tache` porte `sous_tache` (identifiant de la sous-tâche dans l'artefact, 1.1) et `rang` (1 pour la
+  première ; seul repère pour une sous-tâche importée avant la 1.1).
 - **Sur le site** : sur la fiche d'une mission du Pilote, l'équipe change un statut, coche une sous-tâche, commente
   ou propose une tâche comme d'habitude ; la copie ne bouge pas (« ⏳ envoyé à l'artefact ») jusqu'à l'import qui
   l'intègre. La coordination produit le journal sur `/membre/pilotes/pilote-33/retours`.

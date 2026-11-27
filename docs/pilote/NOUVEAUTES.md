@@ -14,6 +14,19 @@ Un test vérifie que chaque paquet a son interrupteur dans `communaute.yaml`, et
 
 ---
 
+### `contrat-v1-1`
+- **Type** : socle
+- **Contrat** : 1.1
+- **Date** : 2026-11-27
+- **Description** : identifiants de sous-tâches stables à vie (« st- » + 8 caractères) avec leur propre date ; les
+  sous-tâches sont repérées par leur identifiant et plus par leur rang (un retour du site reste rattaché même si
+  l'ordre ou le texte change). Suppressions de missions et d'absences signalées comme celles des tâches, avec titre,
+  auteur, motif et fusion ; une trace est gardée et l'équipe voit « supprimée le … par … » et le renvoi d'une tâche
+  fusionnée. Proposé par la session de l'artefact (bac à sable « Pilote 3/3 — bac à sable »), accepté par PA.
+- **Migration** : `20261127190000_pilote_contrat_v1_1.sql`
+- **Par défaut pour les autres communautés** : actif (socle : condition pour que le journal des retours s'applique
+  sans erreur dans le Pilote commun)
+
 ### `contrat-v1`
 - **Type** : socle
 - **Contrat** : 1.0
