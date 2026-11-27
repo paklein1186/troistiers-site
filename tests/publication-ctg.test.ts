@@ -11,6 +11,7 @@ const releves: unknown[][] = [];
 let transparents: unknown[] = [];
 const enregistres: unknown[][] = [];
 const attentes: unknown[][] = [];
+const decisions: unknown[][] = [];
 vi.mock("../src/lib/base", () => ({
   baseConfiguree: () => true,
   facesASynchroniser: async () => faces,
@@ -20,8 +21,9 @@ vi.mock("../src/lib/base", () => ({
   fusionnerBesoinsCtg: async (...a: unknown[]) => { fusions.push(a); return aPousser; },
   noterBesoinsPousses: async (...a: unknown[]) => { pousses.push(a); },
   releverQuetesCtg: async (q: unknown[]) => { releves.push(q); return 1; },
-  projetsTransparentsAPublier: async () => transparents,
-  enregistrerPublicationTransparente: async (...a: unknown[]) => { enregistres.push(a); },
+  projetsACreerAuto: async () => transparents,
+  enregistrerCreationAuto: async (...a: unknown[]) => { enregistres.push(a); },
+  appliquerDecisionCtg: async (...a: unknown[]) => { decisions.push(a); return true; },
   noterAttentePublication: async (...a: unknown[]) => { attentes.push(a); },
   noterNouvellePubliee: async (...a: unknown[]) => { publiees.push(a); },
 }));
@@ -228,23 +230,53 @@ describe("publication automatique des quêtes (visibilité)", () => {
     expect(ferme.fx).not.toHaveBeenCalled();
   });
 
-  it("option C : transparent publié automatiquement (create_auto, public) ; quête proche → en attente, rien créé", async () => {
+  it("création automatique : transparent → publique ; semi validé → membres ; semi nouveau → brouillon en attente ; doublon → attente", async () => {
     enregistres.length = 0; attentes.length = 0;
     transparents = [
-      { projet: "p1", titre: "Atelier compost à Ciney", territoire: "Ciney", face: face({ titre: "Atelier compost à Ciney" }), attente: null },
-      { projet: "p2", titre: "Journée de clôture AAP tiers-lieux", territoire: null, face: face({ titre: "Journée de clôture AAP tiers-lieux" }), attente: null },
-      { projet: "p3", titre: "Réservé", territoire: null, face: face({ visibilite: N2 }), attente: null },
+      { projet: "p1", titre: "Atelier compost à Ciney", territoire: "Ciney", face: face({ titre: "Atelier compost à Ciney" }), attente: null, en_attente: false },
+      { projet: "p2", titre: "Journée de clôture AAP tiers-lieux", territoire: null, face: face(), attente: null, en_attente: false },
+      { projet: "p3", titre: "Réseau des GAL wallons", territoire: null, face: face({ visibilite: N2 }), attente: null, en_attente: false },
+      { projet: "p4", titre: "Tiers-lieux en maison de retraite", territoire: null, face: face({ visibilite: N3, validee_le: null }), attente: null, en_attente: true },
     ];
     const quetes = [{ id: "q9", title: "Journée de clôture AAP tiers-lieux ruraux", description: "", web_tags: [], projet_id: null },
                     { id: "q8", title: "Atelier compost à Ciney", description: "", web_tags: [], projet_id: "pX" }];
-    const { fx, appels } = fauxCtg(true, (c) => ({ status: 200, body: c.action === "guild_quests" ? { quests: quetes } : { quest_id: "q-new" } }));
-    expect(await m.publierTransparents(fx as any)).toEqual({ publiees: 1, en_attente: 1, erreurs: 1 });
+    const { fx, appels } = fauxCtg(true, (c) => ({ status: 200, body: c.action === "guild_quests" ? { quests: quetes } : c.action === "status" ? { ok: true } : { quest_id: `q-${c.projet_id}` } }));
+    expect(await m.publierAutomatiques(fx as any)).toEqual({ publiees: 3, en_attente: 1, erreurs: 0 });
     const creations = appels.filter((a) => a.corps.action === "create_auto");
-    expect(creations).toHaveLength(1);
-    expect(creations[0].corps).toMatchObject({ projet_id: "p1", visibilite: { mode: "public" } });
-    expect(creations[0].jeton).toBeUndefined();
-    expect(enregistres[0]).toEqual(["p1", "q-new", empreinte(transparents[0] as any && (transparents[0] as any).face)]);
-    expect(attentes.map((a) => a[0])).toEqual(["p2", "p3"]);
+    expect(creations.map((a) => [a.corps.projet_id, a.corps.visibilite.mode, a.corps.en_attente ?? false])).toEqual(
+      [["p1", "public", false], ["p3", "membres", false], ["p4", "membres", true]]);
+    expect(creations.every((a) => a.jeton === undefined)).toBe(true);
+    expect(enregistres.map((e) => [e[0], e[1], e[3]])).toEqual([["p1", "q-p1", false], ["p3", "q-p3", false], ["p4", "q-p4", true]]);
+    expect(enregistres[2][2]).toBe("retrait");
+    expect(attentes.map((a) => a[0])).toEqual(["p2"]);
     expect(String(attentes[0][1])).toContain("quête proche");
+  });
+
+  it("création automatique d'une quête réservée : rien tant que CTG ne protège pas la visibilité", async () => {
+    enregistres.length = 0; attentes.length = 0;
+    transparents = [{ projet: "p3", titre: "Réseau des GAL wallons", territoire: null, face: face({ visibilite: N2 }), attente: null, en_attente: false }];
+    const { fx, appels } = fauxCtg(false, (c) => ({ status: 200, body: c.action === "guild_quests" ? { quests: [] } : { ok: true } }));
+    expect(await m.publierAutomatiques(fx as any)).toEqual({ publiees: 0, en_attente: 0, erreurs: 1 });
+    expect(appels.some((a) => a.corps.action === "create_auto")).toBe(false);
+    expect(String(attentes[0][1])).toContain("protège");
+  });
+
+  it("salle d'attente : non validée → retrait « privé » ; validée → mise à jour « validée » ; décisions CTG reprises au relevé", async () => {
+    faces = [
+      { projet: "p1", quete: "q1", empreinte: "ancienne", face: face({ visibilite: N2, validee_le: null }) },
+      { projet: "p2", quete: "q2", empreinte: "retrait", face: face({ visibilite: N2 }) },
+    ];
+    let { fx, appels } = fauxCtg(true);
+    await synchroniserQuetes(fx as any);
+    const parProjet = Object.fromEntries(appels.filter((a) => a.corps.projet_id).map((a) => [a.corps.projet_id, a.corps]));
+    expect(parProjet.p1).toMatchObject({ action: "withdraw", prive: true });
+    expect(parProjet.p2).toMatchObject({ action: "update", validee: true });
+    expect(empreinte(face({ validee_le: null }))).toBe("retrait");
+    decisions.length = 0;
+    ({ fx } = fauxCtg(true, () => ({ status: 200, body: { quests: [
+      { id: "qa", projet_id: "pa", decision: "validated" }, { id: "qb", projet_id: "pb", decision: "private" },
+      { id: "qc", projet_id: "pc", decision: null }, { id: "qd", projet_id: null, decision: "validated" }] } })));
+    await m.releverQuetesAClasser(fx as any);
+    expect(decisions).toEqual([["qa", "validated"], ["qb", "private"]]);
   });
 });

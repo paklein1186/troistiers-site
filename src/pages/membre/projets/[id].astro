@@ -414,6 +414,8 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
               <p>Pas encore publiable sur ChangeTheGame :</p>
               <ul>{publication.raisons.map((r) => <li>{r}</li>)}</ul>
             </>
+          ) : publication.publiable && publication.visibilite?.mode === "membres" && !publication.validee_le ? (
+            <p>Mission semi-sensible prête : elle attend dans la <a href="/membre/quetes/salle-attente">salle d'attente</a> que la coordination la valide (ici ou sur ChangeTheGame) ; elle deviendra alors une quête réservée aux membres de la guilde.</p>
           ) : publicationAutoActive() && publication.publiable && publication.visibilite?.mode === "public" ? (
             <p>Projet transparent au résumé validé : il deviendra <strong>automatiquement une quête publique</strong> de la guilde (relecture toutes les 15 minutes), sauf si une quête proche existe déjà ; la coordination décide alors (page « Quêtes à publier »).</p>
           ) : publication.peut_proposer ? (

@@ -1,7 +1,7 @@
 ---
 import Base from "../../../layouts/Base.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
-import { baseConfiguree, creerProjet, nbQuetesAClasser, etapes, NATURES, pilotesVisibles, profilCtg, projetsVisibles, type PiloteVisible, type ProjetVu } from "../../../lib/base";
+import { baseConfiguree, creerProjet, nbQuetesAClasser, nbSalleAttente, etapes, NATURES, pilotesVisibles, profilCtg, projetsVisibles, type PiloteVisible, type ProjetVu } from "../../../lib/base";
 import { chargerContenu } from "../../../lib/contenu";
 import VignettesProjets from "../../../components/VignettesProjets.astro";
 
@@ -42,8 +42,9 @@ let projets: ProjetVu[] = [];
 let libellesEtapes: Record<string, string> = {};
 let pilotes: PiloteVisible[] = [];
 let aClasser = 0;
+let enSalle = 0;
 if (baseConfiguree()) {
-  if (acteur) aClasser = await nbQuetesAClasser(acteur).catch(() => 0);
+  if (acteur) [aClasser, enSalle] = await Promise.all([nbQuetesAClasser(acteur).catch(() => 0), nbSalleAttente(acteur).catch(() => 0)]);
   try {
     [projets, libellesEtapes, pilotes] = await Promise.all([
       projetsVisibles(acteur),
@@ -115,6 +116,7 @@ const etiquetteFamille = (p: ProjetVu) => p.famille ? `${FAMILLES[p.famille.fami
             ))}
           </nav>
           {brouillons > 0 && <a class="bouton creux" href={`${ici}/brouillons`}>Brouillons à valider · {brouillons}</a>}
+          {enSalle > 0 && <a class="bouton" href="/membre/quetes/salle-attente">Missions à valider · {enSalle}</a>}
           {projets.some((p) => p.niveau >= 5) && <a class="bouton creux" href="/membre/quetes/liaison">Quêtes ChangeTheGame à relier{aClasser > 0 ? ` · ${aClasser} à classer` : ""}</a>}
           <nav class="vues" aria-label="Affichage">
             <a href={lien({ vue: "vignettes" })} aria-current={vue === "vignettes" ? "true" : undefined}>Vignettes</a>

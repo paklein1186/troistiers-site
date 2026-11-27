@@ -11,8 +11,8 @@
 import { createHash } from "node:crypto";
 import { ctgConfiguree, urlFonctionsCtg } from "./ctg";
 import { baseConfiguree, facesASynchroniser, fusionnerBesoinsCtg, noterBesoinsPousses, noterNouvellePubliee, noterSynchroCtg, nouvellesAPublier,
-  projetsBesoinsASynchroniser, releverQuetesCtg, projetsTransparentsAPublier, enregistrerPublicationTransparente,
-  noterAttentePublication, type FaceCtg } from "./base";
+  projetsBesoinsASynchroniser, releverQuetesCtg, projetsACreerAuto, enregistrerCreationAuto, appliquerDecisionCtg,
+  noterAttentePublication, type ACreerAuto, type FaceCtg } from "./base";
 import { quetesProches, type QueteCtg } from "./quetes-ctg";
 import { estBacASable } from "./bac-a-sable";
 
@@ -51,7 +51,8 @@ export function faceEnvoyee(f: FaceCtg) {
 }
 /** Empreinte de ce qui serait envoyé, visibilité comprise (« retrait » quand le projet ne doit plus être une quête). */
 export const empreinte = (f: FaceCtg) =>
-  f?.publiable && visibiliteDe(f)
+  // Non validée (salle d'attente, gardée privée) : la quête reste brouillon côté CTG.
+  f?.publiable && visibiliteDe(f) && f.validee_le
     ? createHash("sha256").update(JSON.stringify({ ...faceEnvoyee(f), visibilite: visibiliteDe(f) })).digest("hex").slice(0, 32)
     : "retrait";
 
@@ -128,15 +129,15 @@ export async function synchroniserQuetes(fx: typeof fetch = fetch): Promise<{ en
     if (e === avant) { bilan.inchangees++; continue; }
     const v = visibiliteDe(face);
     // Réservée aux membres mais CTG ne le garantit pas encore : on n'envoie rien, on le signale.
-    if (face.publiable && v?.mode === "membres" && !protegee) {
+    if (face.publiable && face.validee_le && v?.mode === "membres" && !protegee) {
       await noterSynchroCtg(projet, avant ?? "", "en attente : ChangeTheGame ne protège pas encore les quêtes réservées").catch(() => {});
       bilan.en_attente++;
       continue;
     }
     try {
-      await appeler(face.publiable && v
-        ? { action: "update", projet_id: projet, quest_id: quete, face: faceEnvoyee(face), visibilite: v }
-        : { action: "withdraw", projet_id: projet, quest_id: quete }, undefined, fx);
+      await appeler(face.publiable && v && face.validee_le
+        ? { action: "update", projet_id: projet, quest_id: quete, face: faceEnvoyee(face), visibilite: v, validee: true }
+        : { action: "withdraw", projet_id: projet, quest_id: quete, prive: !face.validee_le }, undefined, fx);
       await noterSynchroCtg(projet, e, null);
       bilan.envoyees++;
     } catch (err) {
@@ -220,41 +221,56 @@ export async function releverQuetesAClasser(fx: typeof fetch = fetch): Promise<n
   if (!publicationAutoActive()) return 0;
   const r = await appeler({ action: "guild_quests" }, undefined, fx);
   if (!Array.isArray(r.quests)) throw new ErreurPublication(502, "Réponse inattendue de ChangeTheGame (guild_quests).");
+  // Salle d'attente : une décision prise sur ChangeTheGame (onglet Travail) est reprise par la base (sans effet si
+  // la mission n'est plus en attente).
+  for (const q of r.quests as { id: string; projet_id?: string | null; decision?: string | null }[]) {
+    if (q.projet_id && (q.decision === "validated" || q.decision === "private")) {
+      await appliquerDecisionCtg(q.id, q.decision).catch((e) => console.error("Décision CTG :", e));
+    }
+  }
   return releverQuetesCtg(r.quests);
 }
 
 /**
- * Option C (décision de PA du 28/11) : un projet TRANSPARENT dont le résumé est validé devient une quête PUBLIQUE sans
- * clic de la coordination (action CTG create_auto, clé du site). Garde-fou anti-doublon : si une quête libre de la
- * guilde ressemble au projet (score ≥ 0,5), rien n'est créé ; le projet attend que la coordination relie ou publie.
+ * Création automatique des quêtes (décisions de PA du 28/11), clé du site (action CTG create_auto) :
+ *  - transparent → quête publique (option C) ;
+ *  - semi-sensible validé par la coordination → quête réservée aux membres ;
+ *  - semi-sensible nouveau → quête BROUILLON en attente, notifiée aux admins sur CTG (salle d'attente des deux côtés).
+ * Une quête réservée n'est créée que si CTG protège vraiment la visibilité. Anti-doublon : si une quête libre de la
+ * guilde ressemble au projet (score ≥ 0,5), rien n'est créé ; le projet attend la coordination (/membre/quetes/a-publier).
  */
 export const SEUIL_DOUBLON = 0.5;
-export async function publierTransparent(projet: string, face: FaceCtg, fx: typeof fetch = fetch): Promise<string> {
+export async function publierAuto(a: ACreerAuto, fx: typeof fetch = fetch): Promise<string> {
   if (!publicationAutoActive()) throw new ErreurPublication(503, "La publication automatique n'est pas ouverte.");
-  if (!face?.publiable || visibiliteDe(face)?.mode !== "public") throw new ErreurPublication(422, "Seule une quête publique est créée automatiquement.");
-  const r = await appeler({ action: "create_auto", projet_id: projet, face: faceEnvoyee(face), visibilite: { mode: "public" } }, undefined, fx);
-  await enregistrerPublicationTransparente(projet, r.quest_id!, empreinte(face));
+  const v = visibiliteDe(a.face);
+  if (!a.face?.publiable || !v) throw new ErreurPublication(422, "Ce projet ne peut pas devenir une quête.");
+  if (v.mode === "membres" && !(await protectionCtg(fx))) {
+    throw new ErreurPublication(422, "ChangeTheGame ne protège pas encore les quêtes réservées aux membres.", "visibility_not_enforced");
+  }
+  const r = await appeler({ action: "create_auto", projet_id: a.projet, face: faceEnvoyee(a.face), visibilite: v,
+    ...(a.en_attente ? { en_attente: true } : {}) }, undefined, fx);
+  await enregistrerCreationAuto(a.projet, r.quest_id!, empreinte(a.face), a.en_attente);
   return r.quest_id!;
 }
-export async function publierTransparents(fx: typeof fetch = fetch): Promise<{ publiees: number; en_attente: number; erreurs: number }> {
+export async function publierAutomatiques(fx: typeof fetch = fetch): Promise<{ publiees: number; en_attente: number; erreurs: number }> {
   const bilan = { publiees: 0, en_attente: 0, erreurs: 0 };
   if (!publicationAutoActive()) return bilan;
-  const liste = await projetsTransparentsAPublier();
+  const liste = await projetsACreerAuto();
   if (!liste.length) return bilan;
   const r = await appeler({ action: "guild_quests" }, undefined, fx);
   const libres = ((r.quests ?? []) as (QueteCtg & { projet_id?: string | null })[]).filter((q) => !q.projet_id);
-  for (const t of liste) {
+  for (const a of liste) {
     try {
-      const proche = quetesProches({ titre: t.titre, territoire: t.territoire }, libres, 1)[0];
+      const proche = quetesProches({ titre: a.titre, territoire: a.territoire }, libres, 1)[0];
       if (proche && proche.score >= SEUIL_DOUBLON) {
-        await noterAttentePublication(t.projet, `quête proche déjà dans la guilde : « ${proche.quete.title} »`);
+        await noterAttentePublication(a.projet, `quête proche déjà dans la guilde : « ${proche.quete.title} »`);
         bilan.en_attente++;
         continue;
       }
-      await publierTransparent(t.projet, t.face, fx);
+      await publierAuto(a, fx);
       bilan.publiees++;
     } catch (e) {
-      await noterAttentePublication(t.projet, `erreur : ${e instanceof Error ? e.message : String(e)}`).catch(() => {});
+      await noterAttentePublication(a.projet, `erreur : ${e instanceof Error ? e.message : String(e)}`).catch(() => {});
       bilan.erreurs++;
     }
   }
@@ -273,12 +289,13 @@ export function demarrerSynchroQuetes() {
     catch (e) { console.error(`${nom} :`, e); }
   };
   const tour = async () => {
-    await etape("Quêtes des projets transparents", () => publierTransparents(),
+    // Décisions prises sur ChangeTheGame d'abord : une validation faite là-bas n'est jamais défaite par la synchro.
+    await etape("Quêtes CTG", () => releverQuetesAClasser(), (n) => n ? `${n} nouvelle(s) à classer.` : null);
+    await etape("Création automatique des quêtes", () => publierAutomatiques(),
       (b) => b.publiees || b.en_attente || b.erreurs ? `${b.publiees} créée(s), ${b.en_attente} en attente (doublon possible), ${b.erreurs} erreur(s).` : null);
     await etape("Synchro quêtes CTG", () => synchroniserQuetes(), (b) => b.envoyees || b.erreurs ? `${b.envoyees} envoyée(s), ${b.erreurs} erreur(s).` : null);
     await etape("Nouvelles de quête CTG", () => publierNouvelles(), (b) => b.envoyees || b.erreurs ? `${b.envoyees} publiée(s), ${b.erreurs} erreur(s).` : null);
     await etape("Besoins CTG", () => synchroniserBesoins(), (b) => b.envoyes || b.erreurs ? `${b.envoyes} envoyé(s), ${b.erreurs} erreur(s).` : null);
-    await etape("Quêtes CTG", () => releverQuetesAClasser(), (n) => n ? `${n} nouvelle(s) à classer.` : null);
   };
   setTimeout(tour, 45_000).unref?.();
   setInterval(tour, minutes * 60_000).unref?.();

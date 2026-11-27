@@ -207,3 +207,21 @@ parcours « le référent propose, la coordination valide » ; les sensibles ne 
   créé ; le projet attend (`ctg_auto_attente`) sur `/membre/quetes/a-publier`, où la coordination le relie à la quête
   existante ou le publie quand même. Une erreur de ChangeTheGame est notée de la même façon.
 - Migration `20261128200000_publication_auto_transparents.sql` ; tests `supabase/tests/publication_transparents.sql`.
+
+## 12. Salle d'attente des missions semi-sensibles (décisions de PA du 28/11)
+
+- **Les missions semi-sensibles existantes sont validées** par la coordination (décision de PA, migration
+  `20261128210000_salle_attente.sql`, journal `publication_validee_decision_28_11`) : elles deviennent des quêtes réservées
+  aux membres. **Retour en arrière** possible : « Garder privée » sur `/membre/quetes/salle-attente` (la quête repasse en
+  brouillon).
+- **Une nouvelle mission semi-sensible** prête (résumé validé) entre dans la salle d'attente, des deux côtés :
+  - site : `/membre/quetes/salle-attente` (coordination), signal « Missions à valider (n) » dans l'espace membres ;
+  - ChangeTheGame : la quête est créée en **brouillon**, réservée aux membres, marquée en attente ; les admins de la guilde
+    reçoivent une notification « Mission à valider » ; section « Missions en attente de validation » de l'onglet **Travail**
+    (changethegame#28).
+  - Valider ou Garder privée d'un côté ou de l'autre : le site relit les décisions prises sur ChangeTheGame à chaque
+    relevé (avant toute synchro, pour ne jamais défaire une validation faite là-bas) et envoie les siennes
+    (`update` avec `validee`, `withdraw` avec `prive`).
+- Transparents : quête publique sans validation (§11). Sensibles : jamais. Une quête non validée reste brouillon : la
+  synchro ne la republie jamais (`empreinte` = « retrait » tant que la publication n'est pas validée).
+- Tests : `supabase/tests/salle_attente.sql`, `salle_attente_existants.sql`.

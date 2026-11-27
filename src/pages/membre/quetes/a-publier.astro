@@ -3,11 +3,11 @@ import Base from "../../../layouts/Base.astro";
 import FaceCtgBloc from "../../../components/FaceCtg.astro";
 import { acteurConnecte, messageBase } from "../../../lib/acteur";
 import {
-  baseConfiguree, enregistrerPublicationAuto, enregistrerQueteCtg, projetsAPublier, projetsTransparentsAPublier, publicationCtg,
-  quetesLiees, type FaceCtg, type TransparentAPublier,
+  baseConfiguree, enregistrerPublicationAuto, enregistrerQueteCtg, projetsAPublier, projetsACreerAuto, publicationCtg,
+  quetesLiees, type FaceCtg, type ACreerAuto,
 } from "../../../lib/base";
 import {
-  attendProtection, empreinte, ErreurPublication, protectionCtg, publicationAutoActive, publiableAuto, publierSurCtg, publierTransparent,
+  attendProtection, empreinte, ErreurPublication, protectionCtg, publicationAutoActive, publiableAuto, publierSurCtg, publierAuto,
   visibiliteDe,
 } from "../../../lib/publication-ctg";
 import { jetonsValides } from "../../../lib/ctg";
@@ -45,9 +45,9 @@ if (Astro.request.method === "POST") {
     // Projet transparent mis en attente (doublon possible) : la coordination décide de le publier quand même.
     if (f.get("action") === "transparent" && publicationAutoActive() && /^[0-9a-f-]{36}$/i.test(projet)) {
       await projetsAPublier(acteur); // réservé à la coordination (refusé sinon)
-      const t = (await projetsTransparentsAPublier()).find((x) => x.projet === projet);
+      const t = (await projetsACreerAuto()).find((x) => x.projet === projet);
       if (!t) throw new ErreurPublication(422, "Ce projet n'est plus à publier automatiquement.");
-      await publierTransparent(projet, t.face);
+      await publierAuto(t);
       return Astro.redirect(`${ici}?fait=auto`, 303);
     }
     if (/^[0-9a-f-]{36}$/i.test(projet)) {
@@ -62,10 +62,10 @@ if (Astro.request.method === "POST") {
 }
 let liste: FaceCtg[] = [];
 // Option C : projets transparents dont la publication automatique attend (doublon possible, erreur).
-let enAttente: TransparentAPublier[] = [];
+let enAttente: ACreerAuto[] = [];
 try {
   liste = await projetsAPublier(acteur);
-  if (publicationAutoActive()) enAttente = (await projetsTransparentsAPublier()).filter((t) => t.attente);
+  if (publicationAutoActive()) enAttente = (await projetsACreerAuto()).filter((t) => t.attente);
 } catch (e) {
   console.error("Quêtes à publier :", e);
   message ||= messageBase(e, "La liste n'a pas pu être chargée.");
@@ -110,8 +110,8 @@ if (liste.length || enAttente.length) {
   {message && <p class="avertissement" role="alert">{message}</p>}
   {enAttente.length > 0 && (
     <section class="bloc">
-      <h2>Projets transparents en attente · {enAttente.length}</h2>
-      <p class="doux">Ces projets transparents, au résumé validé, deviennent d'habitude des quêtes publiques tout seuls. Ici, la publication attend : reliez-les à la quête qui existe déjà, ou publiez-les quand même.</p>
+      <h2>Création automatique en attente · {enAttente.length}</h2>
+      <p class="doux">Ces projets deviennent d'habitude des quêtes tout seuls. Ici, la création attend (quête proche déjà dans la guilde, ou erreur) : reliez-les à la quête qui existe déjà, ou créez-la quand même.</p>
       <div class="a-publier">
         {enAttente.map((t) => (
           <section class="panneau">
@@ -134,7 +134,7 @@ if (liste.length || enAttente.length) {
             <form method="post" action={ici} class="auto">
               <input type="hidden" name="action" value="transparent" />
               <input type="hidden" name="projet" value={t.projet} />
-              <button class="bouton">Publier quand même (nouvelle quête publique)</button>
+              <button class="bouton">Créer la quête quand même</button>
             </form>
           </section>
         ))}
