@@ -210,9 +210,9 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
                 <li>
                   <p><strong>{pr.titre}</strong>{pr.nom && <> · {pr.profil_id ? <a href={profilCtg(pr.profil_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">{pr.nom}</a> : pr.nom}</>}
                     {pr.need_id && vb.besoins.some((b) => b.ctg_need_id === pr.need_id) && <span class="doux"> · pour « {vb.besoins.find((b) => b.ctg_need_id === pr.need_id)!.titre} »</span>}</p>
-                  {pr.contrepartie_a_suivre && (
-                    <p class="doux">Demande {[pr.demande_credits > 0 ? `${pr.demande_credits} crédits` : "", pr.demande_euros > 0 ? `${pr.demande_euros} €` : ""].filter(Boolean).join(" et ")} :
-                      si vous acceptez, rien n'est versé automatiquement ; la contrepartie se suit au cas par cas.</p>
+                  {(pr.demande_credits > 0 || pr.demande_euros > 0) && (
+                    <p class="doux">Demande {[pr.demande_credits > 0 ? `${pr.demande_credits} crédits $CTG, versés par ChangeTheGame si vous acceptez` : "",
+                      pr.demande_euros > 0 ? `${pr.demande_euros} €, à régler directement avec la personne` : ""].filter(Boolean).join(" ; ")}.</p>
                   )}
                   <details class="plus">
                     <summary>Plus d'infos</summary>
@@ -220,7 +220,7 @@ const NIVEAUX = ["N0 grand public", "N1 observateur", "N2 membre", "N3 membre ac
                     <p class="doux">Proposée le {new Date(pr.cree_le).toLocaleDateString("fr-BE")}
                       {pr.nom && pr.profil_id && <> · profil de <a href={profilCtg(pr.profil_id, chargerContenu().liens.changethegame_guilde) ?? "#"} rel="noopener">{pr.nom} sur ChangeTheGame</a></>}
                       {quete && adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde) && <> · <a href={adresseQueteCtg(quete.quete, chargerContenu().liens.changethegame_guilde)!} rel="noopener">échanger sur la quête</a></>}</p>
-                    {pr.contrepartie_a_suivre && <p class="doux">Contrepartie demandée : {pr.demande_credits > 0 ? `${pr.demande_credits} crédits $CTG` : ""}{pr.demande_credits > 0 && pr.demande_euros > 0 ? " et " : ""}{pr.demande_euros > 0 ? `${pr.demande_euros} €` : ""}. À convenir avec la personne (et la coordination pour les euros), puis à régler à part.</p>}
+                    {pr.demande_euros > 0 && <p class="doux">Les euros ne sont pas versés par ChangeTheGame : à convenir avec la personne (et la coordination), puis à régler à part.</p>}
                   </details>
                   <form method="post" class="rangee">
                     <input type="hidden" name="proposition" value={pr.id} />

@@ -158,7 +158,9 @@ propositions d'aide faites sur CTG, la base ne garde **qu'un compteur** ; accept
   ou qui cesse d'être partagé est **fermé** sur CTG, jamais effacé. changethegame#24.
 - Propositions d'aide : le référent les lit **en direct** (nom et lien de profil, jamais d'e-mail ; rien n'est
   enregistré, « Plus d'infos » pour le détail) et peut accepter ou ne pas retenir ; la personne est prévenue par CTG.
-  Toutes les propositions s'acceptent depuis le site (décision de PA du 28/11) : pour celles qui demandent des crédits
-  ou des euros, **rien n'est versé automatiquement**, la contrepartie se suit au cas par cas.
+  Toutes les propositions s'acceptent depuis le site (décision de PA du 28/11), **par la même fonction que l'écran de la
+  quête** (`decide_quest_proposal`, changethegame#24) : les crédits $CTG demandés sont versés à l'acceptation, avec l'XP,
+  puisque chaque personne du site a un compte ChangeTheGame ; les euros demandés ne sont pas versés par la plateforme
+  et se règlent directement avec la personne.
 - Base : table `besoins_projet`, `projets.ctg_propositions_en_attente`, migration `20261128150000_quetes_b4_besoins.sql` ;
   tests `supabase/tests/quetes_besoins.sql`.

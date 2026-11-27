@@ -191,13 +191,16 @@ export async function synchroniserBesoins(fx: typeof fetch = fetch): Promise<{ e
 /** Proposition d'aide faite sur CTG, lue en direct pour le référent : jamais enregistrée par le site. */
 export interface PropositionAide {
   id: string; need_id: string | null; titre: string; description: string | null; nom: string | null; profil_id: string | null;
-  demande_credits: number; demande_euros: number; cree_le: string; contrepartie_a_suivre: boolean;
+  demande_credits: number; demande_euros: number; cree_le: string;
 }
 export async function propositionsAide(projet: string, quete: string, fx: typeof fetch = fetch): Promise<PropositionAide[]> {
   if (!publicationAutoActive()) return [];
   return ((await appeler({ action: "proposals", projet_id: projet, quest_id: quete }, undefined, fx)).propositions ?? []) as PropositionAide[];
 }
-/** Accepter ou refuser sur CTG (la personne est prévenue), puis relire les compteurs. */
+/**
+ * Accepter ou refuser sur CTG, par la même fonction que l'écran de la quête (decide_quest_proposal : crédits demandés
+ * versés, XP, notification ; euros réglés à part), puis relire les compteurs.
+ */
 export async function deciderProposition(projet: string, quete: string, proposition: string, decision: "accept" | "reject",
   auteur: string, fx: typeof fetch = fetch) {
   if (!publicationAutoActive()) throw new ErreurPublication(503, "La liaison automatique avec ChangeTheGame n'est pas ouverte.");
